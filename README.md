@@ -37,6 +37,24 @@ overall performance characteristic(s) of the crate.
 
 ## Generating Graphs
 
+### Dash/Plotly
+
+The easiest way to visualize our results would be: 
+
+1. Clone this repository
+
+2. Install `numpy >= 1.16.1`, `dash >= 0.42.0`, and any other required dependencies
+
+3. Run: 
+
+```sh
+$ python3 result_presenter.py -p .
+```
+
+4. Visit `http://0.0.0.0:8050/`
+
+### Gnuplot
+
 The `gnuplot-script` reads from the respective `bench-sanity.data` files, so (in the current state of the tool)
 the script should be invoked from the same directory as the data you want to visualize. 
 

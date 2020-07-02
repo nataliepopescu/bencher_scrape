@@ -150,7 +150,8 @@ def display_rel(crate_name, crate_opt):
             time = cols[col]
 
             # calculate the percent speedup or slowdown
-            perc_time = ((float(time) - float(vanilla)) / float(vanilla)) * 100
+            div = float(vanilla) if float(vanilla) != 0 else 1
+            perc_time = ((float(time) - float(vanilla)) / div) * 100
             one_perf_list.append(perc_time)
 
 

@@ -59,7 +59,10 @@ def create_options():
     global crates
     options = []
     for crate in crates:
-        options.append({'label': crate, 'value': crate})
+        # only display crates that have this data
+        filepath = path_to_crates + "/" + crate + "/cloudlab-output/bench-sanity-CRUNCHED.data"
+        if os.path.exists(filepath):
+            options.append({'label': crate, 'value': crate})
     return options
 
 
@@ -154,6 +157,7 @@ def display_rel(crate_name, crate_opt):
             perc_time = ((float(time) - float(vanilla)) / div) * 100
             one_perf_list.append(perc_time)
 
+        handle.close()
 
         bar_one = {'x': one_bmark_list, 'y': one_perf_list, 
                    'type': 'bar', 'name': bar_name, 'marker_color': color}

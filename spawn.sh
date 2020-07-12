@@ -10,6 +10,13 @@ rustup toolchain link safelib /benchdata/rust/rust-safelib/build/x86_64-unknown-
 
 OUTNAME="cloudlab-output-lto-thin"
 
+SUBDIRS="./crates/crates/*"
+
+for d in ${SUBDIRS[@]}
+do
+	rm -r "$d/$OUTNAME"
+done
+
 # Pre-compile
 #./bench.sh -c -o "$OUTNAME"
 

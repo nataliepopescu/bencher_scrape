@@ -18,6 +18,11 @@ import plotly.graph_objects as go
 path_to_crates = "./crates/crates"
 crates = []
 
+dir_lto_off = "cloudlab-output"
+dir_lto_thin = "cloudlab-output-lto"
+
+data_file = "bench-sanity-CRUNCHED.data"
+
 
 def get_crates():
     global crates
@@ -60,7 +65,7 @@ def create_options():
     options = []
     for crate in crates:
         # only display crates that have this data
-        filepath = path_to_crates + "/" + crate + "/cloudlab-output/bench-sanity-CRUNCHED.data"
+        filepath = path_to_crates + "/" + crate + "/" + dir_lto_off + "/" + data_file
         if os.path.exists(filepath):
             options.append({'label': crate, 'value': crate})
     return options
@@ -87,10 +92,11 @@ def getPerfRustcsLayout(): #resultProvider):
             html.Label('Pick an optimization setting:'),
             dcc.RadioItems(id='crate_opt',
                 options=[
-                    {'label': 'LTO=thin', 'value': 'cloudlab-output'},
-                    {'label': 'LTO=fat', 'value': 'cloudlab-output-lto'},
+                    {'label': 'LTO=off', 'value': dir_lto_off},
+                    {'label': 'LTO=thin', 'value': dir_lto_thin},
+                    {'label': 'Difference', 'value': 'diff'},
                 ],
-                value='cloudlab-output',
+                value=dir_lto_off,
                 labelStyle={'display': 'inline-block'}
             ),
 
@@ -103,7 +109,7 @@ def getPerfRustcsLayout(): #resultProvider):
                 value='abs',
                 labelStyle={'display': 'inline-block'}
             ),
-        ], style={'columnCount': 2, 'width': '33%'}),
+        ]), #style={'columnCount': 2, 'width': '33%'}),
 
         html.Br(),
         html.Label('Lower is better!'),
@@ -119,10 +125,107 @@ def getPerfRustcsLayout(): #resultProvider):
                dash.dependencies.Input('crate_view', 'value')])
 def display_crate_info(crate_name, crate_opt, crate_view):
 
+    if crate_opt == 'diff' and crate_view == 'abs':
+        return "Can only view the relative differences"
+    elif crate_opt == 'diff':
+        return display_lto_diff(crate_name)
+
     if crate_view == 'rel':
         return display_rel(crate_name, crate_opt)
     elif crate_view == 'abs':
         return display_abs(crate_name, crate_opt)
+
+
+def display_lto_diff(crate_name):
+
+    def get_one_bar(rustc_type, bar_name, color):
+        one_bmark_list = []
+        one_perf_list = []
+
+        file_lto_off = path_to_crates + "/" + crate_name + "/" + dir_lto_off + "/" + data_file
+        file_lto_on = path_to_crates + "/" + crate_name + "/" + dir_lto_thin + "/" + data_file
+
+        # open files for reading
+        handle_off = open(file_lto_off, 'r')
+        handle_on = open(file_lto_on, 'r')
+
+        col = rustc_type * 2 + 1
+
+        for line_off, line_on in zip(handle_off, handle_on):
+            if line_off[:1] == '#':
+                continue
+
+            # get columns from LTO=off file
+            cols_off = line_off.split()
+            # get columns from LTO=on file
+            cols_on = line_on.split()
+
+            # get benchmark names for this crate
+            name = cols_off[0]
+            one_bmark_list.append(name)
+
+            # get LTO=off time from specified (column * 2 + 1)
+            time_off = cols_off[col]
+
+            # get LTO=on time from the specified (column * 2 + 1)
+            time_on = cols_on[col]
+
+            # calculate the percent speedup or slowdown
+            div = float(time_off) if float(time_off) != 0 else 1
+            perc_time = ((float(time_on) - float(time_off)) / div) * 100
+            one_perf_list.append(perc_time)
+
+        handle_off.close()
+        handle_on.close()
+
+        bar_one = {'x': one_bmark_list, 'y': one_perf_list, 
+                   'type': 'bar', 'name': bar_name, 'marker_color': color}
+        return bar_one
+
+
+    bar_unmod = get_one_bar(0, "Vanilla Rustc", '#ca0020')
+    bar_nobc = get_one_bar(1, "Rustc No Slice Bounds Checks", '#f4a582')
+    bar_both = get_one_bar(2, "Rustc No Slice Bounds Checks + Safe memcpy", '#0571b0')
+    bar_safelib = get_one_bar(3, "Rustc Safe memcpy", '#abd9e9')
+
+    bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
+
+    fig = go.Figure({
+                    'data': bar_list,
+                    'layout': {
+                        'legend': {'orientation': 'h', 'x': 0.2, 'y': 1.3},
+                        'yaxis': {
+                            'showline': True, 
+                            'linewidth': 2,
+                            'ticks': "outside",
+                            'mirror': 'all',
+                            'linecolor': 'black',
+                            'gridcolor':'rgb(200,200,200)', 
+                            'nticks': 20,
+                            'title': {'text': " Performance Change Relative to LTO=off [%]"},
+                        },
+                        'xaxis': {
+                            'linecolor': 'black',
+                            'showline': True, 
+                            'linewidth': 2,
+                            'mirror': 'all',
+                            'nticks': 10,
+                            'showticklabels': True,
+                            'title': {'text': "Benchmarks"},
+                        },
+                        'font': {'family': 'Helvetica', 'color': "Black"},
+                        'plot_bgcolor': 'white',
+                        'autosize': False,
+                        'width': 1450, 
+                        'height': 700}
+                    })
+
+    return html.Div(
+        dcc.Graph(
+            id='rustc-compare-ltos',
+            figure=fig
+        )
+    )
 
 
 def display_rel(crate_name, crate_opt):
@@ -131,7 +234,7 @@ def display_rel(crate_name, crate_opt):
         one_bmark_list = []
         one_perf_list = []
 
-        filepath = path_to_crates + "/" + crate_name + "/" + crate_opt + "/bench-sanity-CRUNCHED.data"
+        filepath = path_to_crates + "/" + crate_name + "/" + crate_opt + "/" + data_file
 
         # open file for reading
         handle = open(filepath, 'r')
@@ -214,7 +317,7 @@ def display_abs(crate_name, crate_opt):
         one_bmark_list = []
         one_perf_list = []
 
-        filepath = path_to_crates + "/" + crate_name + "/" + crate_opt + "/bench-sanity-CRUNCHED.data"
+        filepath = path_to_crates + "/" + crate_name + "/" + crate_opt + "/" + data_file
 
         # open file for reading
         handle = open(filepath, 'r')

@@ -4,9 +4,18 @@ cp bashrc ~/.bashrc
 cp bash_profile ~/.bash_profile
 source ~/.bashrc
 
-sudo apt install tmux
+rustup toolchain link nobc /benchdata/rust/rust-nobc/build/x86_64-unknown-linux-gnu/stage2
+rustup toolchain link nobc+sl /benchdata/rust/rust-nobc+sl/build/x86_64-unknown-linux-gnu/stage2
+rustup toolchain link safelib /benchdata/rust/rust-safelib/build/x86_64-unknown-linux-gnu/stage2
 
-OUTNAME="cloudlab-output-lto"
+OUTNAME="cloudlab-output-lto-thin"
+
+SUBDIRS="./crates/crates/*"
+
+for d in ${SUBDIRS[@]}
+do
+	rm -r "$d/$OUTNAME"
+done
 
 # Pre-compile
 #./bench.sh -c -o "$OUTNAME"

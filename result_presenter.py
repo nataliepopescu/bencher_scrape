@@ -138,6 +138,11 @@ def display_crate_info(crate_name, crate_opt, crate_view):
 
 def display_lto_diff(crate_name):
 
+    unexp_unmod = []
+    unexp_nobc = []
+    unexp_both = []
+    unexp_safelib = []
+
     def get_one_bar(rustc_type, bar_name, color):
         one_bmark_list = []
         one_perf_list = []
@@ -174,6 +179,17 @@ def display_lto_diff(crate_name):
             div = float(time_off) if float(time_off) != 0 else 1
             perc_time = ((float(time_on) - float(time_off)) / div) * 100
             one_perf_list.append(perc_time)
+
+            # get stats for expectation #2
+            if perc_time > 0:
+                switcher_local = {
+                    0: unexp_unmod,
+                    1: unexp_nobc, 
+                    2: unexp_both,
+                    3: unexp_safelib
+                }
+                arr = switcher_local.get(rustc_type)
+                arr.append(perc_time)
 
         handle_off.close()
         handle_on.close()
@@ -220,15 +236,63 @@ def display_lto_diff(crate_name):
                         'height': 700}
                     })
 
-    return html.Div(
+    sum_unexp_0 = 0
+    len_unexp_0 = len(unexp_unmod)
+    avg_0 = "None"
+
+    if len_unexp_0 > 0: 
+        for e in unexp_unmod: 
+            sum_unexp_0 += e
+        avg_0 = str(sum_unexp_0 / len_unexp_0)
+
+    sum_unexp_1 = 0
+    len_unexp_1 = len(unexp_nobc)
+    avg_1 = "None"
+
+    if len_unexp_1 > 0: 
+        for e in unexp_nobc: 
+            sum_unexp_1 += e
+        avg_1 = str(sum_unexp_1 / len_unexp_1)
+        
+    sum_unexp_2 = 0
+    len_unexp_2 = len(unexp_both)
+    avg_2 = "None"
+
+    if len_unexp_2 > 0: 
+        for e in unexp_both: 
+            sum_unexp_2 += e
+        avg_2 = str(sum_unexp_2 / len_unexp_2)
+        
+    sum_unexp_3 = 0
+    len_unexp_3 = len(unexp_safelib)
+    avg_3 = "None"
+
+    if len_unexp_3 > 0: 
+        for e in unexp_safelib: 
+            sum_unexp_3 += e
+        avg_3 = str(sum_unexp_3 / len_unexp_3)
+        
+    return html.Div([
+        html.Br(),
+        html.Label('Expectation 2 [unmod]: ' + avg_0),
+        html.Br(),
+        html.Label('Expectation 2 [nobc]: ' + avg_1),
+        html.Br(),
+        html.Label('Expectation 2 [both]: ' + avg_2),
+        html.Br(),
+        html.Label('Expectation 2 [safelib]: ' + avg_3),
+        html.Br(),
         dcc.Graph(
             id='rustc-compare-ltos',
             figure=fig
         )
-    )
+    ])
 
 
 def display_rel(crate_name, crate_opt):
+
+    unexp_1 = []
+    unexp_3 = []
 
     def get_one_bar_rel(rustc_type, bar_name, color):
         one_bmark_list = []
@@ -259,6 +323,12 @@ def display_rel(crate_name, crate_opt):
             div = float(vanilla) if float(vanilla) != 0 else 1
             perc_time = ((float(time) - float(vanilla)) / div) * 100
             one_perf_list.append(perc_time)
+
+            # get stats for expectation #1 and #3
+            if rustc_type == 1 and perc_time > 0:
+                unexp_1.append(perc_time)
+            elif rustc_type == 3 and perc_time < 0:
+                unexp_3.append(perc_time)
 
         handle.close()
 
@@ -303,12 +373,35 @@ def display_rel(crate_name, crate_opt):
                         'height': 700}
                     })
 
-    return html.Div(
+    sum_unexp_1 = 0
+    len_unexp_1 = len(unexp_1)
+    avg_1 = "None"
+
+    if len_unexp_1 > 0: 
+        for e in unexp_1: 
+            sum_unexp_1 += e
+        avg_1 = str(sum_unexp_1 / len_unexp_1)
+        
+    sum_unexp_3 = 0
+    len_unexp_3 = len(unexp_3)
+    avg_3 = "None"
+
+    if len_unexp_3 > 0: 
+        for e in unexp_3: 
+            sum_unexp_3 += e
+        avg_3 = str(sum_unexp_3 / len_unexp_3)
+        
+    return html.Div([
+        html.Br(),
+        html.Label('Expectation 1: ' + avg_1),
+        html.Br(),
+        html.Label('Expectation 3: ' + avg_3),
+        html.Br(),
         dcc.Graph(
             id='rustc-compare-graph-rel',
             figure=fig
         )
-    )
+    ])
 
 
 def display_abs(crate_name, crate_opt):

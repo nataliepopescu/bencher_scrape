@@ -1,6 +1,6 @@
 \documentclass{article}
 
-%\usepackage[normalem]{ulem}
+\usepackage{amsmath}
 \usepackage[margin=1in]{geometry}
 \usepackage{longtable}
 \usepackage[tableposition=below]{caption}
@@ -44,19 +44,25 @@
 \section{Observations}
 
 
-Tables~\ref{table:formatting} and~\ref{table:formatting2} provide an overview of how well the empirical performances of our modifications match up with our expectations. 
+After compiling each crates' built-in benchmarks with each Rustc variation, we run each compiled benchmark at least 32 times\---in random order\---on one of two types of hardware (see Section~\ref{sec:hw}). 
 %
-After compiling each crates' built-in benchmarks with each Rustc variation, we run each compiled benchmark at least 32 times (in random order) on one of two types of hardware (see Section 2.1). 
+The tables in Section~\ref{sec:results} provide an overview of how our modifications empirically match up with our expectations. 
 %
-Table~\ref{table:formatting} focuses on expectations \#1 and \#3 with \textbf{LTO=off} and \textbf{LTO=thin}, while Table~\ref{table:formatting2} focuses on how each Rustc version matches up with expectation \#2. % across crates.
+We start out by counting how many benchmarks match up with our expectations in Tables~\ref{table:qual13} and~\ref{table:qual2}. 
 %
-See Section 2.2 for more details about what these values mean. 
-%Note that \textbf{LTO=thin} means the crates were compiled with the "-C embed-bitcode=yes" flag, which was omitted in \textbf{LTO=no}.
+We then attempt to quantify just how unexpected the unexpected results really are in Tables~\ref{table:quant13} and~\ref{table:quant2}.
 %
-Later figures attempt to quantify the unexpected performance differences per crate that we initially summarize. 
+To do this we essentially calculate an average value per crate: 
 
+$$
+\frac{\Sigma \text{ all \% performance differences in the unexpected direction}}{\text{\# unexpected benchmarks}}
+$$
+
+\medskip
+\noindent Note that Tables~\ref{table:qual13} and~\ref{table:qual2} look at \textit{expected} results and Tables~\ref{table:quant13} and~\ref{table:quant2} look at \textit{unexpected} results. 
 
 \subsection{Cloudlab Machines}
+\label{sec:hw}
 \bigskip
 
 \textbf{Wisconsin Cluster: c220g2}
@@ -95,9 +101,9 @@ A value of "yes" causes Rustc to embed the generated LLVM bitcode into object fi
 %
 A value of "no" is preferable if you will not perform LTO due to smaller generated file sizes and faster compilation times. 
 
-The value of the "-C embed-bitcode" flag implicitly sets the default value of the "-C LTO" flag. % can be overridden if needed. 
+The value of the "-C embed-bitcode" flag implicitly sets the default value of the "-C LTO" flag. 
 %
-Specifying "-C embed-bitcode=no" implies a default of "-C LTO=off", and cannot be used with any other LTO value. % unless another value is explicitly used. 
+Specifying "-C embed-bitcode=no" implies a default of "-C LTO=off", and cannot be used with any other LTO value. 
 %
 Similarly, specifying "-C embed-bitcode=yes" implies a default of "-C LTO=thin", with some exceptions.
 %
@@ -108,6 +114,7 @@ The high-level difference between \textbf{LTO=thin} and \textbf{LTO=fat} is that
 All of these defaults can, of course, be passed explicitly: we do this to avoid any confusion. 
 
 \subsection{Results}
+\label{sec:results}
 \medskip
 
 \begin{longtable}[h!]{|l|c|c|c|c|}
@@ -230,8 +237,10 @@ All of these defaults can, of course, be passed explicitly: we do this to avoid 
     zip-rs & X & - & - & X \\ % total = 1
     \hline
   \caption{Percent of benchmarks that line up with expectations \#1 and \#3 (X if 100\%, - if 0\%, otherwise explicit).}
-  \label{table:formatting}
+  \label{table:qual13}
 \end{longtable}
+
+
 
 \begin{longtable}[h!]{|l|c|c|c|c|}
     \hline
@@ -353,8 +362,255 @@ All of these defaults can, of course, be passed explicitly: we do this to avoid 
     zip-rs & - & - & - & - \\ % 1
     \hline
   \caption{Percent of benchmarks that line up with expectation \#2, per rustc version (X if 100\%, - if 0\%, otherwise explicit).}
-  \label{table:formatting2}
+  \label{table:qual2}
 \end{longtable}
+
+%\begin{longtable}[h!]{|l|c|c|c|c|}
+%    \hline
+%    \textbf{Crate} & \textbf{\#1 [LTO=off]} & \textbf{\#1 [LTO=thin]} & \textbf{\#3 [LTO=off]} & \textbf{\#3 [LTO=thin]}\\
+%    \hline
+%    \hline
+%    KDFs & & $0.753\%$ & & $30\%$ \\ % total = 3
+%    \hline
+%    PAKEs & $0.043\%$ &  &  & - \\ % total = 2
+%    \hline
+%    RustQIP & $2.61\%$ & $0.153\%$ & $45\%$ & $55\%$ \\ % total = 20
+%    \hline
+%    arrayvec & $17.734\%$ & $1.032\%$ & $45.\overline{45}\%$ & $72.\overline{72}\%$ \\ % total = 11
+%    \hline
+%    average & $2.06\%$ & $0.0163\%$ & $33.\overline{3}\%$ & $16.\overline{6}\%$ \\ % total = 6
+%    \hline
+%    base-x-rs & $50\%$ & $66.\overline{6}\%$ & $66.\overline{6}\%$ & $16.\overline{6}\%$ \\ % total = 6
+%    \hline
+%    bayesic\_rs & $33.\overline{3}\%$ & $66.\overline{6}\%$ &  & $66.\overline{6}\%$ \\ % total = 6
+%    \hline
+%    bdays & $33.\overline{3}\%$ &  &  & $33.\overline{3}\%$ \\ % total = 3
+%    \hline
+%    boyer-moore-magiclen & $66.\overline{6}\%$ & $45.8\overline{3}\%$ & $50\%$ & $66.\overline{6}\%$ \\ % total = 24
+%    \hline
+%    bravery\_router & $88.\overline{8}\%$ & $44.\overline{4}\%$ &  & $77.\overline{7}\%$ \\ % total = 9
+%    \hline
+%    bucket\_queue &  & $60\%$ & $50\%$ & $80\%$ \\ % total = 10
+%    \hline
+%    chess\_perft & $72.\overline{2}\%$ & $27.\overline{7}\%$ & $72.\overline{2}\%$ & $31.48\%$ \\ % total = 54
+%    \hline
+%    coinaddress & - & - &  &  \\ % total = 1
+%    \hline
+%    color-thief-rs &  & $50\%$ &  & $50\%$ \\ % total = 2
+%    \hline
+%    crc-any & $60\%$ & $30\%$ & $40\%$ & $80\%$ \\ % total = 10
+%     \hline
+%    directories-rs & - & - &  & $50\%$ \\ % total = 4
+%    \hline
+%    exrs & $61.54\%$ & $7.69\%$ &  & $76.92\%$ \\ % total = 13
+%    \hline
+%    fair-baccarat & - & - &  &  \\ % total = 1
+%    \hline
+%    fbleau & - & - &  & $50\%$ \\ % total = 2
+%    \hline
+%    flatten-overlapping... &  &  &  & - \\ % total = 1
+%    \hline
+%    frappe & $30\%$ & $40\%$ & $80\%$ & $60\%$ \\ % total = 10
+%     \hline
+%    gift &  & - & - &  \\ % total = 1
+%    \hline
+%    horned-owl & $75\%$ & $25\%$ &  & $50\%$ \\ % total = 4
+%    \hline
+%    implicit3d & $18.75\%$ & $56.25\%$ & $75\%$ & $50\%$ \\ % total = 16 
+%    \hline
+%    ixlist & $57.14\%$ & $57.14\%$ & $28.57\%$ & $42.86\%$ \\ % total = 7
+%    \hline
+%    lazy-static-include & $22.\overline{2}\%$ & $33.\overline{3}\%$ & $55.\overline{5}\%$ & $66.\overline{6}\%$ \\ % total = 9
+%    \hline
+%    lebe & $30\%$ & $70\%$ &  & $40\%$ \\ % total = 10
+%     \hline
+%    lehmer & $60\%$ & $20\%$ & $60\%$ & $80\%$ \\ % total = 5
+%    \hline
+%    matrixmultiply & $40.63\%$ & $37.5\%$ &  & $21.88\%$ \\ % total = 32
+%    \hline
+%    metric & $75\%$ &  &  & $25\%$ \\ % total = 4
+%    \hline
+%    nblast-rs & $88.\overline{8}\%$ & $11.\overline{1}\%$ &  & $44.\overline{4}\%$ \\ % total = 9
+%    \hline
+%    optional & $41.05\%$ & $31.58\%$ & $57.89\%$ & $72.63\%$ \\ % total = 95
+%    \hline
+%    outils & $83.\overline{3}\%$ & $50\%$ &  & $83.\overline{3}\%$ \\ % total = 12
+%     \hline
+%    partition & $70\%$ & $40\%$ & $70\%$ & $63.\overline{3}\%$ \\ % total = 30
+%    \hline
+%    ripb & $35\%$ & $10\%$ & $90\%$ & $60\%$ \\ % total = 20
+%    \hline
+%    ropey & $55.84\%$ & $76.62\%$ & $90.\overline{90}\%$ & $31.17\%$ \\ % total = 77
+%    \hline
+%    rtriangulate &  & $72.\overline{72}\%$ &  & $9.\overline{09}\%$ \\ % total = 11
+%    \hline
+%    rumq & $25\%$ & $50\%$ &  & $25\%$ \\ % total = 4
+%    \hline
+%    rust-boomphf & $66.\overline{6}\%$ & $66.\overline{6}\%$ &  & $66.\overline{6}\%$ \\ % total = 3
+%     \hline
+%    rust-btoi & $55.\overline{5}\%$ & $77.\overline{7}\%$ & $77.\overline{7}\%$ & $88.\overline{8}\%$ \\ % total = 9
+%    \hline
+%    rust-obstack & $40\%$ & $60\%$ &  & $20\%$ \\ % total = 5
+%    \hline
+%    rust-url &  &  &  &  \\ % total = 1
+%    \hline
+%    simhash-rs &  &  &  &  \\ % total = 1
+%    \hline
+%    simple-irc-rs & - & - &  & $50\%$ \\ % total = 1
+%    \hline
+%    sliding\_puzzle\_rust & $61.54\%$ & $53.85\%$ & $84.62\%$ & $7.69\%$ \\ % total = 13
+%     \hline
+%    soa-derive & $20\%$ &  & $60\%$ & $50\%$ \\ % total = 10
+%    \hline
+%    sstable & - & $50\%$ &  & $50\%$ \\ % total = 2
+%     \hline
+%    ta-rs & $73.\overline{3}\%$ & $40\%$ & $26.\overline{6}\%$ & $46.\overline{6}\%$ \\ % total = 15
+%    \hline
+%    ticket & $33.\overline{3}\%$ & $33.\overline{3}\%$ &  & $66.\overline{6}\%$ \\ % total = 3
+%    \hline
+%    time-parse & $50\%$ & $50\%$ & $50\%$ &  \\ % total = 2
+%    \hline
+%    ucg & - & $53.85\%$ &  & $53.85\%$ \\ % total = 13
+%    \hline
+%    ulid-rs & $40\%$ & $40\%$ & $40\%$ &  \\ % total = 5
+%    \hline
+%    whatlang-rs & $50\%$ &  &  & $50\%$ \\ % total = 2
+%     \hline
+%    woodpecker & $54.84\%$ & $87.1\%$ & $90.32\%$ & $58.06\%$ \\ % total = 31
+%    \hline
+%    xoroshiro & $47.62\%$ & $42.86\%$ & $66.\overline{6}\%$ & $66.\overline{6}\%$ \\ % total = 21
+%    \hline
+%    xoshiro &  &  &  & - \\ % total = 1
+%    \hline
+%    zip-rs &  & - & - &  \\ % total = 1
+%    \hline
+%  \caption{Quantification of how unexpected the benchmarks are with respect to expectations \#1 and \#3 (left blank if no unexpected results).} % (X if 100\%, - if 0\%, otherwise explicit).}
+%  \label{table:quant13}
+%\end{longtable}
+%
+%
+%\begin{longtable}[h!]{|l|c|c|c|c|}
+%    \hline
+%    \textbf{Crate} & \textbf{\#2 [VANILLA]} & \textbf{\#2 [NOBC]} & \textbf{\#2 [NOBC+SL]} & \textbf{\#2 [SAFELIB]} \\
+%    \hline
+%    \hline
+%    KDFs &  & $66.\overline{6}\%$ &  &  \\ 
+%    \hline
+%    PAKEs & - & $50\%$ & $50\%$ &  \\
+%    \hline
+%    RustQIP &  &  &  & $90\%$ \\
+%    \hline
+%    arrayvec & $81.\overline{81}\%$ & $54.\overline{54}\%$ & $63.\overline{63}\%$ & $72.\overline{72}\%$ \\
+%    \hline
+%    average & $33.\overline{3}\%$ &  $33.\overline{3}\%$ & $50\%$ & $50\%$ \\
+%    \hline
+%    base-x-rs & $66.\overline{6}\%$ & $66.\overline{6}\%$ & $66.\overline{6}\%$ & $66.\overline{6}\%$ \\
+%    \hline
+%    bayesic\_rs &  &  &  &  \\
+%    \hline
+%    bdays & $66.\overline{6}\%$ & $66.\overline{6}\%$ & $66.\overline{6}\%$ & $66.\overline{6}\%$ \\
+%    \hline
+%    boyer-moore-magiclen & $58.\overline{3}\%$ & $45.8\overline{3}\%$ & $54.1\overline{6}\%$ & $58.\overline{3}\%$ \\ % total = 24
+%    \hline
+%    bravery\_router & $77.\overline{7}\%$ & $55.\overline{5}\%$ &  &  \\ % total = 9
+%    \hline
+%    bucket\_queue & $30\%$ & - & $50\%$ & $50\%$ \\ % total = 10
+%    \hline
+%    chess\_perft & $72.\overline{2}\%$ & $22.\overline{2}\%$ & $48.15\%$ & $18.52\%$ \\ % total = 54
+%    \hline
+%    coinaddress & - &  &  &  \\ % 1
+%    \hline
+%    color-thief-rs &  & - & - &  \\ % 2
+%    \hline
+%    crc-any & $40\%$ & $20\%$ & $40\%$ & $30\%$ \\ % 10
+%     \hline
+%    directories-rs & $75\%$ &  &  &  \\ % 4 
+%    \hline
+%    exrs & $23.08\%$ & - &  &  \\ % 13
+%    \hline
+%    fair-baccarat & - & - &  & - \\ % 1
+%    \hline
+%    fbleau &  &  &  &  \\ % 2
+%    \hline
+%    flatten-overlapping... & - &  &  &  \\ % 1
+%    \hline
+%    frappe & $90\%$ & $90\%$ &  &  \\ % 10
+%     \hline
+%    gift &  & - & - &  \\ % 1
+%    \hline
+%    horned-owl &  &  &  &  \\ % 4
+%    \hline
+%    implicit3d & $75\%$ & $81.25\%$ & $81.25\%$ & $81.25\%$ \\ % 16
+%    \hline
+%    ixlist & $85.71\%$ & $71.43\%$ & $71.43\%$ & $71.43\%$ \\ % 7
+%    \hline
+%    lazy-static-include & $66.\overline{6}\%$ &  & $33.\overline{3}\%$ & $77.\overline{7}\%$ \\ % 9
+%    \hline
+%    lebe &  &  &  &  \\ % 10
+%     \hline
+%    lehmer & $80\%$ &  &  &  \\ % 5
+%    \hline
+%    matrixmultiply & $12.5\%$ & $6.25\%$ &  &  \\ % 32
+%    \hline
+%    metric & - & - & - & - \\ % 4
+%    \hline
+%    nblast-rs & $88.\overline{8}\%$ & $88.\overline{8}\%$ &  &  \\ % 9 
+%    \hline
+%    optional & $48.42\%$ & $46.32\%$ & $47.37\%$ & $48.42\%$ \\ % 95
+%    \hline
+%    outils & $50\%$ & $25\%$ & $33.\overline{3}\%$ & $66.\overline{6}\%$ \\ % 12
+%     \hline
+%    partition & $90\%$ & $76.\overline{6}\%$ & $66.\overline{6}\%$ & $80\%$ \\ % 30
+%    \hline
+%    ripb & $90\%$ & $85\%$ & $95\%$ & $95\%$ \\ % 20
+%    \hline
+%    ropey & $77.92\%$ & $67.53\%$ & $92.21\%$ & $94.81\%$ \\ % 77
+%    \hline
+%    rtriangulate & $72.\overline{72}\%$ & - & $90.\overline{90}\%$ &  \\ % 11
+%    \hline
+%    rumq & $50\%$ & $75\%$ &  &  \\ % 4
+%    \hline
+%    rust-boomphf & $33.\overline{3}\%$ & $33.\overline{3}\%$ &  &  \\ % 3
+%     \hline
+%    rust-btoi &  & $88.\overline{8}\%$ & $88.\overline{8}\%$ & $88.\overline{8}\%$ \\ % 9 
+%    \hline
+%    rust-obstack & $60\%$ & $80\%$ &  &  \\ % 5
+%    \hline
+%    rust-url & - & - & - & - \\ % 1
+%    \hline
+%    simhash-rs &  &  &  &  \\ % 1
+%    \hline
+%    simple-irc-rs & $50\%$ &  &  &  \\ % 1
+%    \hline
+%    sliding\_puzzle\_rust & $92.31\%$ & $92.31\%$ &  &  \\ % 13
+%     \hline
+%    soa-derive & $60\%$ & $60\%$ & $70\%$ & $60\%$ \\ % 10
+%    \hline
+%    sstable &  &  &  &  \\ % 2
+%     \hline
+%    ta-rs & $60\%$ & $53.\overline{3}\%$ & $60\%$ & $60\%$ \\ % 15
+%    \hline
+%    ticket &  & $66.\overline{6}\%$ &  &  \\ % 3
+%    \hline
+%    time-parse &  &  &  &  \\ % 2
+%    \hline
+%    ucg & $69.23\%$ & $69.23\%$ & $84.62\%$ & $76.92\%$ \\ % 13
+%    \hline
+%    ulid-rs &  & $80\%$ & $60\%$ &  \\ % 5
+%    \hline
+%    whatlang-rs &  &  &  &  \\ % 2
+%     \hline
+%    woodpecker & $67.74\%$ & $87.1\%$ & $96.77\%$ & $93.55\%$ \\ % 31 ... 20
+%    \hline
+%    xoroshiro & $61.9\%$ & $66.\overline{6}\%$ & $71.43\%$ & $71.43\%$ \\ % 21
+%    \hline
+%    xoshiro &  &  &  &  \\ % 1
+%    \hline
+%    zip-rs & - & - & - & - \\ % 1
+%    \hline
+%  \caption{Quantification of how unexpected the benchmarks are with respect to expectation \#2 (left blank if no unexpected results).} % (X if 100\%, - if 0\%, otherwise explicit).}
+%  \label{table:quant2}
+%\end{longtable}
 
 
 

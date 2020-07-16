@@ -1,0 +1,2 @@
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	nobc+sl-time	nobc+sl-error	safelib-time	safelib-error	
+bench_kilobyte_baseline	366.8888888888889	1.0213764617139023	366.30555555555554	0.738596433350463	366.97222222222223	1.499742776299231	366.6111111111111	0.7556372504853027	

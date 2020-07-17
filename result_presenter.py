@@ -38,11 +38,11 @@ graph_styles = {
     }
 }
 
-lto_off_1 = "cloudlab-output"
-lto_off_2 = "cloudlab-output-lto-off"
-lto_thin_1 = "cloudlab-output-lto"
-lto_thin_2 = "cloudlab-output-lto-thin"
-no_inline = "cloudlab-output-llvmarg-inline-0-lto-off"
+lto_off_1 = "results-lto-off-1"
+lto_off_2 = "results-lto-off-2"
+lto_thin_1 = "results-lto-thin-1"
+lto_thin_2 = "results-lto-thin-2"
+no_inline = "results-no-inline-lto-off"
 
 switcher = {
     "lto-off-1": {

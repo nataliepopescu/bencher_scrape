@@ -43,6 +43,7 @@ lto_off_2 = "results-lto-off-2"
 lto_thin_1 = "results-lto-thin-1"
 lto_thin_2 = "results-lto-thin-2"
 no_inline = "results-no-inline-lto-off"
+agg_inline = "results-agg-inline-lto-off"
 
 switcher = {
     "lto-off-1": {
@@ -88,7 +89,17 @@ switcher = {
     "no-inline": {
         "label": "Inline-threshold=0 and LTO=off",
         "dir": no_inline
-    }
+    },
+    "agg-inline": {
+        "label": "Inline-threshold=300 and LTO=off",
+        "dir": agg_inline
+    },
+    "diff-inline": {
+        "label": "Diff Inline-threshold=0 vs Inline-threshold=300",
+        "y-axis-label": "Inline-threshold=300 Performance Relative to Inline-threshold=0 [%]",
+        "dir1": no_inline, # baseline
+        "dir2": agg_inline, # tocompare
+    },
 }
 
 

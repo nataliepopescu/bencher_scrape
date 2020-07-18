@@ -16,14 +16,80 @@ import plotly.graph_objects as go
 
 
 path_to_crates = "./crates/crates"
+data_file = "bench-sanity-CRUNCHED.data"
 crates = []
 
-dir_lto_off = "cloudlab-output"
-dir_lto_off_rerun = "cloudlab-output-lto-off"
-dir_lto_thin = "cloudlab-output-lto"
-dir_lto_thin_rerun = "cloudlab-output-lto-thin"
+graph_styles = {
+    0: {
+        "bar-name": "Vanilla Rustc",
+        "bar-color": "#FF4500"
+    },
+    1: {
+        "bar-name": "Rustc No Slice Bounds Checks",
+        "bar-color": "#FFA500"
+    },
+    2: {
+        "bar-name": "Rustc No Slice Bounds Checks + Safe memcpy",
+        "bar-color": "#DDA0DD"
+    },
+    3: {
+        "bar-name": "Rustc Safe memcpy",
+        "bar-color": "#0571B0"
+    }
+}
 
-data_file = "bench-sanity-CRUNCHED.data"
+lto_off_1 = "results-lto-off-1"
+lto_off_2 = "results-lto-off-2"
+lto_thin_1 = "results-lto-thin-1"
+lto_thin_2 = "results-lto-thin-2"
+no_inline = "results-no-inline-lto-off"
+
+switcher = {
+    "lto-off-1": {
+        "label": "LTO=off [Run 1]",
+        "dir": lto_off_1
+    },
+    "lto-off-2": {
+        "label": "LTO=off [Run 2]",
+        "dir": lto_off_2
+    },
+    "lto-thin-1": {
+        "label": "LTO=thin [Run 1]",
+        "dir": lto_thin_1
+    },
+    "lto-thin-2": {
+        "label": "LTO=thin [Run 2]",
+        "dir": lto_thin_2
+    },
+    "diff-ltos-1": {
+        "label": "LTO=off vs LTO=thin [Run 1]",
+        "y-axis-label": "Run 1: LTO=thin Performance Relative to LTO=off [%]",
+        "dir1": lto_off_1, # baseline
+        "dir2": lto_thin_1, # tocompare
+    },
+    "diff-ltos-2": {
+        "label": "LTO=off vs LTO=thin [Run 2]",
+        "y-axis-label": "Run 2: LTO=thin Performance Relative to LTO=off [%]",
+        "dir1": lto_off_2, # baseline
+        "dir2": lto_thin_2, # tocompare
+    },
+    "diff-off": {
+        "label": "Diff LTO=off across Runs",
+        "y-axis-label": "LTO=off: Run 2 Performance Relative to Run 1 [%]",
+        "dir1": lto_off_1, # baseline
+        "dir2": lto_off_2, # tocompare
+    },
+    "diff-thin": {
+        "label": "Diff LTO=thin across Runs",
+        "y-axis-label": "LTO=thin: Run 2 Performance Relative to Run 1 [%]",
+        "dir1": lto_thin_1, # baseline
+        "dir2": lto_thin_2, # tocompare
+    },
+    "no-inline": {
+        "label": "Inline-threshold=0 and LTO=off",
+        "dir": no_inline
+    }
+}
 
 
 def get_crates():
@@ -61,14 +127,21 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.config.suppress_callback_exceptions = True
 
 
-def create_options():
-    global crates
+def crate_options():
     options = []
+    global crates
     for crate in crates:
-        # only display crates that have this data
-        #filepath = path_to_crates + "/" + crate + "/" + dir_lto_off + "/" + data_file
-        #if os.path.exists(filepath): # and (not is_empty_datafile(filepath)):
         options.append({'label': crate, 'value': crate})
+    return options
+
+
+def setting_options():
+    options = []
+    global switcher
+    keys = switcher.keys()
+    for k in keys:
+        label = switcher.get(k).get("label")
+        options.append({'label': label, 'value': k})
     return options
 
 
@@ -82,45 +155,23 @@ def is_empty_datafile(filepath):
     return True
 
 
-def getPerfRustcsLayout(): #resultProvider):
+def getPerfRustcsLayout():
 
     layout = html.Div([
         html.Br(),
         html.Label('Pick a crate:'),
         dcc.Dropdown(id='crate_name',
-            options=create_options(),
+            options=crate_options(),
             value='KDFs',
             style={'width': '50%'}
         ),
 
         html.Br(),
-        html.Div([
-            html.Label('Pick a setting:'),
-            dcc.RadioItems(id='crate_opt',
-                options=[
-                    {'label': 'LTO=off [Run 1]', 'value': dir_lto_off},
-                    {'label': 'LTO=off [Run 2]', 'value': dir_lto_off_rerun},
-                    {'label': 'LTO=thin [Run 1]', 'value': dir_lto_thin},
-                    {'label': 'LTO=thin [Run 2]', 'value': dir_lto_thin_rerun},
-                    {'label': 'LTO=off -vs- LTO=thin [Run 1]', 'value': 'diff'},
-                    {'label': 'LTO=off -vs- LTO=thin [Run 2]', 'value': 'diff_rerun'},
-                    {'label': 'Run 1 -vs- Run 2 [LTO=off]', 'value': 'diff_off'},
-                    {'label': 'Run 1 -vs- Run 2 [LTO=thin]', 'value': 'diff_thin'},
-                ],
-                value=dir_lto_off #,
-                #labelStyle={'display': 'inline-block'}
-            ),
-
-#            html.Label('Pick a view:'),
-#            dcc.RadioItems(id='crate_view',
-#                options=[
-#                    {'label': 'Absolute', 'value': 'abs'},
-#                    {'label': 'Relative', 'value': 'rel'},
-#                ],
-#                value='abs',
-#                labelStyle={'display': 'inline-block'}
-#            ),
-        ]), #style={'columnCount': 2, 'width': '33%'}),
+        html.Label('Pick a setting:'),
+        dcc.RadioItems(id='crate_opt',
+            options=setting_options(),
+            value="no-inline"
+        ),
 
         html.Br(),
         html.Label('Lower is better!'),
@@ -133,35 +184,28 @@ def getPerfRustcsLayout(): #resultProvider):
 @app.callback(dash.dependencies.Output('crate-content', 'children'),
               [dash.dependencies.Input('crate_name', 'value'),
                dash.dependencies.Input('crate_opt', 'value')])
-               #dash.dependencies.Input('crate_view', 'value')])
-def display_crate_info(crate_name, crate_opt): #, crate_view):
+def display_crate_info(crate_name, crate_opt):
 
-    if crate_opt == 'diff':
-        return display_diff(crate_name, dir_lto_off, dir_lto_thin, "Performance Change Relative to LTO=off [%]")
-    elif crate_opt == 'diff_rerun':
-        return display_diff(crate_name, dir_lto_off_rerun, dir_lto_thin_rerun, "Performance Change Relative to LTO=off [%]")
-    elif crate_opt == 'diff_off':
-        return display_diff(crate_name, dir_lto_off, dir_lto_off_rerun, "LTO=off Performance Comparison across Runs [%]")
-    elif crate_opt == 'diff_thin':
-        return display_diff(crate_name, dir_lto_thin, dir_lto_thin_rerun, "LTO=thin Performance Comparison across Runs [%]")
+    #y_axis_txt = switcher.get(crate_opt).get("y-axis-label")
+
+    if crate_opt.startswith("diff"):
+        return display_diff(crate_name, crate_opt) #, dir_lto_thin, dir_lto_thin_rerun, y_axis_txt)
     else:
         return display_relative(crate_name, crate_opt)
-#    elif crate_view == 'abs':
-#        return display_absolute(crate_name, crate_opt)
 
 
-def display_diff(crate_name, dir_baseline, dir_tocompare, graph_text):
+def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_text):
 
 #    unexp_unmod = []
 #    unexp_nobc = []
 #    unexp_both = []
 #    unexp_safelib = []
 
-    file_baseline = path_to_crates + "/" + crate_name + "/" + dir_baseline + "/" + data_file
-    file_tocompare = path_to_crates + "/" + crate_name + "/" + dir_tocompare + "/" + data_file
+    file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir1") + "/" + data_file
+    file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir2") + "/" + data_file
 
     if ((not os.path.exists(file_baseline)) or is_empty_datafile(file_baseline)) or ((not os.path.exists(file_tocompare)) or is_empty_datafile(file_tocompare)):
-        return "\nNo data for crate " + str(crate_name) + " with these settings."
+        return "\nNo diff data for crate " + str(crate_name) + " with these settings."
 
     def get_one_bar(rustc_type, bar_name, color):
         one_bmark_list = []
@@ -213,10 +257,10 @@ def display_diff(crate_name, dir_baseline, dir_tocompare, graph_text):
         return bar_one
 
 
-    bar_unmod = get_one_bar(0, "Vanilla Rustc", '#ca0020')
-    bar_nobc = get_one_bar(1, "Rustc No Slice Bounds Checks", '#f4a582')
-    bar_both = get_one_bar(2, "Rustc No Slice Bounds Checks + Safe memcpy", '#0571b0')
-    bar_safelib = get_one_bar(3, "Rustc Safe memcpy", '#abd9e9')
+    bar_unmod = get_one_bar(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
+    bar_nobc = get_one_bar(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
+    bar_both = get_one_bar(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
+    bar_safelib = get_one_bar(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
 
     bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
 
@@ -232,7 +276,7 @@ def display_diff(crate_name, dir_baseline, dir_tocompare, graph_text):
                             'linecolor': 'black',
                             'gridcolor':'rgb(200,200,200)', 
                             'nticks': 20,
-                            'title': {'text': graph_text},
+                            'title': {'text': switcher.get(crate_opt).get("y-axis-label")},
                         },
                         'xaxis': {
                             'linecolor': 'black',
@@ -308,10 +352,10 @@ def display_relative(crate_name, crate_opt):
    # unexp_1 = []
    # unexp_3 = []
 
-    filepath = path_to_crates + "/" + crate_name + "/" + crate_opt + "/" + data_file
+    filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file
 
     if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
-        return "\nNo data for crate " + str(crate_name) + " with these settings."
+        return "\nNo relative data for crate " + str(crate_name) + " with these settings."
 
     def get_one_bar_rel(rustc_type, bar_name, color):
         one_bmark_list = []
@@ -354,9 +398,9 @@ def display_relative(crate_name, crate_opt):
         return bar_one
 
     
-    bar_nobc = get_one_bar_rel(1, "Rustc No Slice Bounds Checks", '#ca0020')
-    bar_both = get_one_bar_rel(2, "Rustc No Slice Bounds Checks + Safe memcpy", '#D8BFD8')
-    bar_safelib = get_one_bar_rel(3, "Rustc Safe memcpy", '#0571b0')
+    bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
+    bar_both = get_one_bar_rel(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
+    bar_safelib = get_one_bar_rel(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
 
     bar_list = [bar_nobc, bar_both, bar_safelib]
 
@@ -372,7 +416,7 @@ def display_relative(crate_name, crate_opt):
                             'linecolor': 'black',
                             'gridcolor':'rgb(200,200,200)', 
                             'nticks': 20,
-                            'title': {'text': " Performance Change Relative to Vanilla [%]"},
+                            'title': {'text': " Performance Relative to Vanilla [%]"},
                         },
                         'xaxis': {
                             'linecolor': 'black',
@@ -419,83 +463,6 @@ def display_relative(crate_name, crate_opt):
             figure=fig
         )
     ])
-
-
-#def display_absolute(crate_name, crate_opt):
-#
-#    def get_one_bar_abs(rustc_type, bar_name, color):
-#        one_bmark_list = []
-#        one_perf_list = []
-#
-#        filepath = path_to_crates + "/" + crate_name + "/" + crate_opt + "/" + data_file
-#
-#        # open file for reading
-#        handle = open(filepath, 'r')
-#
-#        for line in handle:
-#            if line[:1] == '#':
-#                continue
-#            cols = line.split()
-#
-#            # get benchmark names for this crate
-#            name = cols[0]
-#            one_bmark_list.append(name)
-#
-#            # get the times from the specified (column * 2 + 1)
-#            col = rustc_type * 2 + 1
-#            time = cols[col]
-#            one_perf_list.append(time)
-#
-#
-#        bar_one = {'x': one_bmark_list, 'y': one_perf_list, 
-#                   'type': 'bar', 'name': bar_name, 'marker_color': color}
-#        return bar_one
-#
-#    bar_unmod = get_one_bar_abs(0, "Vanilla Rustc", '#ca0020')
-#    bar_nobc = get_one_bar_abs(1, "Rustc No Slice Bounds Checks", '#f4a582')
-#    bar_both = get_one_bar_abs(2, "Rustc No Slice Bounds Checks + Safe memcpy", '#0571b0')
-#    bar_safelib = get_one_bar_abs(3, "Rustc Safe memcpy", '#abd9e9')
-#
-#    bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
-#
-#    fig = go.Figure({
-#                    'data': bar_list,
-#                    'layout': {
-#                        'legend': {'orientation': 'h', 'x': 0.2, 'y': 1.3},
-#                        'yaxis': {
-#                            'showline': True, 
-#                            'linewidth': 2,
-#                            'ticks': "outside",
-#                            'mirror': 'all',
-#                            'linecolor': 'black',
-#                            'gridcolor':'rgb(200,200,200)', 
-#                            'nticks': 20,
-#                            'title': {'text': " Performance [ns/iter]"},
-#                        },
-#                        'xaxis': {
-#                            'linecolor': 'black',
-#                            'showline': True, 
-#                            'linewidth': 2,
-#                            'mirror': 'all',
-#                            'nticks': 10,
-#                            'showticklabels': True,
-#                            'title': {'text': "Benchmarks"},
-#                        },
-#                        'font': {'family': 'Helvetica', 'color': "Black"},
-#                        'plot_bgcolor': 'white',
-#                        'autosize': False,
-#                        'width': 1450, 
-#                        'height': 700}
-#                    })
-#
-#    fig.update_yaxes(type="log")
-#
-#    return html.Div(
-#        dcc.Graph(
-#            id='rustc-compare-graph-abs',
-#            figure=fig
-#        )
-#    )
 
 
 @app.callback(dash.dependencies.Output('page-content', 'children'),

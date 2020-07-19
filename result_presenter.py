@@ -72,31 +72,31 @@ switcher = {
     },
     "diff-ltos-1": {
         "label": "1 vs 3",
-        "y-axis-label": "3 Performance Relative to 1 [%]",
+        "y-axis-label": "3 Time per Iteration Relative to 1 [%]",
         "dir1": lto_off_1, # baseline
         "dir2": lto_thin_1, # tocompare
     },
     "diff-ltos-2": {
         "label": "2 vs 4",
-        "y-axis-label": "4 Performance Relative to 2 [%]",
+        "y-axis-label": "4 Time per Iteration Relative to 2 [%]",
         "dir1": lto_off_2, # baseline
         "dir2": lto_thin_2, # tocompare
     },
     "diff-off": {
         "label": "1 vs 2",
-        "y-axis-label": "2 Performance Relative to 1 [%]",
+        "y-axis-label": "2 Time per Iteration Relative to 1 [%]",
         "dir1": lto_off_1, # baseline
         "dir2": lto_off_2, # tocompare
     },
     "diff-thin": {
         "label": "3 vs 4",
-        "y-axis-label": "4 Performance Relative to 3 [%]",
+        "y-axis-label": "4 Time per Iteration Relative to 3 [%]",
         "dir1": lto_thin_1, # baseline
         "dir2": lto_thin_2, # tocompare
     },
     "diff-inline": {
         "label": "5 vs 6",
-        "y-axis-label": "6 Performance Relative to 5 [%]",
+        "y-axis-label": "6 Time per Iteration Relative to 5 [%]",
         "dir1": no_inline, # baseline
         "dir2": agg_inline, # tocompare
     },

@@ -178,6 +178,13 @@ def getPerfRustcsLayout():
         ),
 
         html.Br(),
+        html.Label("Setting Notes: "),
+        html.Label("[Run 1]: '-C embed-bitcode' was specified, but '-C lto' was not."),
+        html.Label("[Run 2]: both '-C embed-bitcode' and '-C lto' were specified."),
+        html.Label("Looking at the differences between the runs (particularly where no crate data is available, meaning that the crate"),
+        html.Label("could not be compiled with that specific flag combination) hints that the defaults are not actually what we understood"),
+        html.Label("them to be. Therefore, consider [Run 2] more 'precise' in this manner."),
+        html.Br(),
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
             options=setting_options(),

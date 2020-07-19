@@ -47,56 +47,56 @@ agg_inline = "results-agg-inline-lto-off"
 
 switcher = {
     "lto-off-1": {
-        "label": "LTO=off [Run 1]",
+        "label": "1: -C embed-bitcode=no",
         "dir": lto_off_1
     },
     "lto-off-2": {
-        "label": "LTO=off [Run 2]",
+        "label": "2: -C embed-bitcode=no -C lto=off",
         "dir": lto_off_2
     },
     "lto-thin-1": {
-        "label": "LTO=thin [Run 1]",
+        "label": "3: -C embed-bitcode=yes",
         "dir": lto_thin_1
     },
     "lto-thin-2": {
-        "label": "LTO=thin [Run 2]",
+        "label": "4: -C embed-bitcode=yes =C lto=thin",
         "dir": lto_thin_2
     },
+    "no-inline": {
+        "label": "5: -C llvm-args=-inline-threshold=0 and -C lto=off",
+        "dir": no_inline
+    },
+    "agg-inline": {
+        "label": "6: -C llvm-args=-inline-threshold=300 and -C lto=off",
+        "dir": agg_inline
+    },
     "diff-ltos-1": {
-        "label": "LTO=off vs LTO=thin [Run 1]",
-        "y-axis-label": "Run 1: LTO=thin Performance Relative to LTO=off [%]",
+        "label": "1 vs 3",
+        "y-axis-label": "3 Performance Relative to 1 [%]",
         "dir1": lto_off_1, # baseline
         "dir2": lto_thin_1, # tocompare
     },
     "diff-ltos-2": {
-        "label": "LTO=off vs LTO=thin [Run 2]",
-        "y-axis-label": "Run 2: LTO=thin Performance Relative to LTO=off [%]",
+        "label": "2 vs 4",
+        "y-axis-label": "4 Performance Relative to 2 [%]",
         "dir1": lto_off_2, # baseline
         "dir2": lto_thin_2, # tocompare
     },
     "diff-off": {
-        "label": "Diff LTO=off across Runs",
-        "y-axis-label": "LTO=off: Run 2 Performance Relative to Run 1 [%]",
+        "label": "1 vs 2",
+        "y-axis-label": "2 Performance Relative to 1 [%]",
         "dir1": lto_off_1, # baseline
         "dir2": lto_off_2, # tocompare
     },
     "diff-thin": {
-        "label": "Diff LTO=thin across Runs",
-        "y-axis-label": "LTO=thin: Run 2 Performance Relative to Run 1 [%]",
+        "label": "3 vs 4",
+        "y-axis-label": "4 Performance Relative to 3 [%]",
         "dir1": lto_thin_1, # baseline
         "dir2": lto_thin_2, # tocompare
     },
-    "no-inline": {
-        "label": "Inline-threshold=0 and LTO=off",
-        "dir": no_inline
-    },
-    "agg-inline": {
-        "label": "Inline-threshold=300 and LTO=off",
-        "dir": agg_inline
-    },
     "diff-inline": {
-        "label": "Diff Inline-threshold=0 vs Inline-threshold=300",
-        "y-axis-label": "Inline-threshold=300 Performance Relative to Inline-threshold=0 [%]",
+        "label": "5 vs 6",
+        "y-axis-label": "6 Performance Relative to 5 [%]",
         "dir1": no_inline, # baseline
         "dir2": agg_inline, # tocompare
     },
@@ -178,17 +178,10 @@ def getPerfRustcsLayout():
         ),
 
         html.Br(),
-        html.Label("Setting Notes: "),
-        html.Label("[Run 1]: '-C embed-bitcode' was specified, but '-C lto' was not."),
-        html.Label("[Run 2]: both '-C embed-bitcode' and '-C lto' were specified."),
-        html.Label("Looking at the differences between the runs (particularly where no crate data is available, meaning that the crate"),
-        html.Label("could not be compiled with that specific flag combination) hints that the defaults are not actually what we understood"),
-        html.Label("them to be. Therefore, consider [Run 2] more 'precise' in this manner."),
-        html.Br(),
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
             options=setting_options(),
-            value="no-inline"
+            value="diff-inline"
         ),
 
         html.Br(),

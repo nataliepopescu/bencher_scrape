@@ -8,6 +8,7 @@ ROOT="$PWD"
 LLVM_HOME=/benchdata/llvm-project/build
 RUSTUP_TOOLCHAIN_LIB=/benchdata/.rustup/toolchains/nightly-2020-05-07-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib
 NOPIE_SCRIPT="$ROOT/make_no_pie.py"
+PASS="/benchdata/remove-bounds-check-pass/build/CAT.so"
 
 DIR="$ROOT/example"
 OUTDIR="$DIR/target/debug/deps"
@@ -35,7 +36,7 @@ rm *no-opt*
 find . -name '*.ll' | xargs -n 1 $LLVM_HOME/bin/llvm-as
 
 # Run all the bitcode through our phantom pass
-find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt -o {}bc {}bc
+find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt -load $PASS -remove-bc -simplifycfg -dce {}bc -o {}bc
 
 # Compile the bitcode to object files
 find . -name '*.bc' | xargs -n 1 $LLVM_HOME/bin/llc -filetype=obj

@@ -43,52 +43,63 @@ lto_off_2 = "results-lto-off-2"
 lto_thin_1 = "results-lto-thin-1"
 lto_thin_2 = "results-lto-thin-2"
 no_inline = "results-no-inline-lto-off"
+agg_inline = "results-agg-inline-lto-off"
 
 switcher = {
     "lto-off-1": {
-        "label": "LTO=off [Run 1]",
+        "label": "1: -C embed-bitcode=no",
         "dir": lto_off_1
     },
     "lto-off-2": {
-        "label": "LTO=off [Run 2]",
+        "label": "2: -C embed-bitcode=no -C lto=off",
         "dir": lto_off_2
     },
     "lto-thin-1": {
-        "label": "LTO=thin [Run 1]",
+        "label": "3: -C embed-bitcode=yes",
         "dir": lto_thin_1
     },
     "lto-thin-2": {
-        "label": "LTO=thin [Run 2]",
+        "label": "4: -C embed-bitcode=yes =C lto=thin",
         "dir": lto_thin_2
     },
+    "no-inline": {
+        "label": "5: -C llvm-args=-inline-threshold=0 and -C lto=off",
+        "dir": no_inline
+    },
+    "agg-inline": {
+        "label": "6: -C llvm-args=-inline-threshold=300 and -C lto=off",
+        "dir": agg_inline
+    },
     "diff-ltos-1": {
-        "label": "LTO=off vs LTO=thin [Run 1]",
-        "y-axis-label": "Run 1: LTO=thin Performance Relative to LTO=off [%]",
+        "label": "1 vs 3",
+        "y-axis-label": "3 Time per Iteration Relative to 1 [%]",
         "dir1": lto_off_1, # baseline
         "dir2": lto_thin_1, # tocompare
     },
     "diff-ltos-2": {
-        "label": "LTO=off vs LTO=thin [Run 2]",
-        "y-axis-label": "Run 2: LTO=thin Performance Relative to LTO=off [%]",
+        "label": "2 vs 4",
+        "y-axis-label": "4 Time per Iteration Relative to 2 [%]",
         "dir1": lto_off_2, # baseline
         "dir2": lto_thin_2, # tocompare
     },
     "diff-off": {
-        "label": "Diff LTO=off across Runs",
-        "y-axis-label": "LTO=off: Run 2 Performance Relative to Run 1 [%]",
+        "label": "1 vs 2",
+        "y-axis-label": "2 Time per Iteration Relative to 1 [%]",
         "dir1": lto_off_1, # baseline
         "dir2": lto_off_2, # tocompare
     },
     "diff-thin": {
-        "label": "Diff LTO=thin across Runs",
-        "y-axis-label": "LTO=thin: Run 2 Performance Relative to Run 1 [%]",
+        "label": "3 vs 4",
+        "y-axis-label": "4 Time per Iteration Relative to 3 [%]",
         "dir1": lto_thin_1, # baseline
         "dir2": lto_thin_2, # tocompare
     },
-    "no-inline": {
-        "label": "Inline-threshold=0 and LTO=off",
-        "dir": no_inline
-    }
+    "diff-inline": {
+        "label": "5 vs 6",
+        "y-axis-label": "6 Time per Iteration Relative to 5 [%]",
+        "dir1": no_inline, # baseline
+        "dir2": agg_inline, # tocompare
+    },
 }
 
 
@@ -170,7 +181,7 @@ def getPerfRustcsLayout():
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
             options=setting_options(),
-            value="no-inline"
+            value="diff-inline"
         ),
 
         html.Br(),
@@ -210,6 +221,7 @@ def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_t
     def get_one_bar(rustc_type, bar_name, color):
         one_bmark_list = []
         one_perf_list = []
+        one_y_error_list = []
 
         # open files for reading
         handle_baseline = open(file_baseline, 'r')
@@ -232,11 +244,16 @@ def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_t
             # get times from specified (column * 2 + 1)
             time_baseline = cols_baseline[col]
             time_tocompare = cols_tocompare[col]
+            error = cols_tocompare[col + 1]
 
             # calculate the percent speedup or slowdown
             div = float(time_baseline) if float(time_baseline) != 0 else 1
             perc_time = ((float(time_tocompare) - float(time_baseline)) / div) * 100
             one_perf_list.append(perc_time)
+
+            div = float(time_tocompare) if float(time_tocompare) != 0 else 1
+            perc_e = (float(error) / div) * 100
+            one_y_error_list.append(perc_e)
 
             # get stats for expectation #2
 #            if perc_time > 0:
@@ -252,7 +269,7 @@ def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_t
         handle_baseline.close()
         handle_tocompare.close()
 
-        bar_one = {'x': one_bmark_list, 'y': one_perf_list, 
+        bar_one = {'x': one_bmark_list, 'y': one_perf_list, 'error_y': {'type': 'data', 'array': one_y_error_list},
                    'type': 'bar', 'name': bar_name, 'marker_color': color}
         return bar_one
 
@@ -360,6 +377,7 @@ def display_relative(crate_name, crate_opt):
     def get_one_bar_rel(rustc_type, bar_name, color):
         one_bmark_list = []
         one_perf_list = []
+        one_y_error_list = []
 
         # open file for reading
         handle = open(filepath, 'r')
@@ -375,15 +393,25 @@ def display_relative(crate_name, crate_opt):
 
             # get baseline (vanilla times) to compare this version againt
             vanilla = cols[1]
+            vanilla_error = cols[2]
 
             # get the times from the specified (column * 2 + 1)
             col = rustc_type * 2 + 1
             time = cols[col]
+            error = cols[col + 1]
+#            one_y_error_list.append(error)
 
             # calculate the percent speedup or slowdown
             div = float(vanilla) if float(vanilla) != 0 else 1
             perc_time = ((float(time) - float(vanilla)) / div) * 100
             one_perf_list.append(perc_time)
+
+            #div_e = float(vanilla_error) if float(vanilla_error) != 0 else 1
+            #perc_error = ((float(error) - float(vanilla_er
+            div_e = float(time) if float(time) != 0 else 1
+            perc_e = (float(error) / div_e) * 100
+            #perc_error = perc_e if perc_e > 0 else (0 - perc_e)
+            one_y_error_list.append(perc_e)
 
             # get stats for expectation #1 and #3
  #           if rustc_type == 1 and perc_time > 0:
@@ -393,16 +421,19 @@ def display_relative(crate_name, crate_opt):
 
         handle.close()
 
-        bar_one = {'x': one_bmark_list, 'y': one_perf_list, 
+        color_e = 'black' if rustc_type != 0 else color
+
+        bar_one = {'x': one_bmark_list, 'y': one_perf_list, 'error_y': {'type': 'data', 'array': one_y_error_list, 'color': color_e},
                    'type': 'bar', 'name': bar_name, 'marker_color': color}
         return bar_one
 
     
+    bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
     bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
     bar_both = get_one_bar_rel(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
     bar_safelib = get_one_bar_rel(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
 
-    bar_list = [bar_nobc, bar_both, bar_safelib]
+    bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
 
     fig = go.Figure({
                     'data': bar_list,

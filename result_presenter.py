@@ -17,6 +17,7 @@ import plotly.graph_objects as go
 
 path_to_crates = "./crates/crates"
 data_file = "bench-sanity-CRUNCHED.data"
+data_file_new = "bench-CRUNCHED.data"
 crates = []
 
 graph_styles = {
@@ -404,7 +405,10 @@ def display_relative(crate_name, crate_opt):
    # unexp_1 = []
    # unexp_3 = []
 
-    filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file
+    if crate_opt == "bcrm-pass":
+        filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file_new
+    else: 
+        filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file
 
     if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
         return "\nNo relative data for crate " + str(crate_name) + " with these settings."

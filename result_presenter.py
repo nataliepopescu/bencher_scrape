@@ -44,6 +44,7 @@ lto_thin_1 = "results-lto-thin-1"
 lto_thin_2 = "results-lto-thin-2"
 no_inline = "results-no-inline-lto-off"
 agg_inline = "results-agg-inline-lto-off"
+bcrm_pass = "results-bcrmpass-embedbitcode-no-lto-off"
 
 switcher = {
     "lto-off-1": {
@@ -100,6 +101,10 @@ switcher = {
         "dir1": no_inline, # baseline
         "dir2": agg_inline, # tocompare
     },
+    "bcrm-pass": {
+        "label": "1: -C embed-bitcode=no -C lto=off",
+        "dir": bcrm_pass
+    }
 }
 
 
@@ -146,13 +151,17 @@ def crate_options():
     return options
 
 
-def setting_options():
+def setting_options(version):
     options = []
     global switcher
     keys = switcher.keys()
     for k in keys:
-        label = switcher.get(k).get("label")
-        options.append({'label': label, 'value': k})
+        if version == 0 and k == "bcrm-pass":
+            label = switcher.get(k).get("label")
+            options.append({'label': label, 'value': k})
+        elif version == 1 and k != "bcrm-pass": 
+            label = switcher.get(k).get("label")
+            options.append({'label': label, 'value': k})
     return options
 
 
@@ -180,8 +189,34 @@ def getPerfRustcsLayout():
         html.Br(),
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
-            options=setting_options(),
+            options=setting_options(1),
             value="diff-inline"
+        ),
+
+        html.Br(),
+        html.Label('Lower is better!'),
+        html.Div(id='crate-content')
+    ])
+
+    return layout
+
+
+def getPerfPassLayout():
+
+    layout = html.Div([
+        html.Br(),
+        html.Label('Pick a crate:'),
+        dcc.Dropdown(id='crate_name',
+            options=crate_options(),
+            value='KDFs',
+            style={'width': '50%'}
+        ),
+
+        html.Br(),
+        html.Label('Pick a setting:'),
+        dcc.RadioItems(id='crate_opt',
+            options=setting_options(0),
+            value="bcrm-pass"
         ),
 
         html.Br(),
@@ -428,12 +463,19 @@ def display_relative(crate_name, crate_opt):
         return bar_one
 
     
-    bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
-    bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
-    bar_both = get_one_bar_rel(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
-    bar_safelib = get_one_bar_rel(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
+    bar_list=[]
+    if crate_opt == "bcrm-pass":
+        bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
+        bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
 
-    bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
+        bar_list = [bar_unmod, bar_nobc]
+    else: 
+        bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
+        bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
+        bar_both = get_one_bar_rel(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
+        bar_safelib = get_one_bar_rel(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
+
+        bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
 
     fig = go.Figure({
                     'data': bar_list,
@@ -503,10 +545,13 @@ def display_page(pathname):
         return 404
 
     if pathname == '/':
-        pathname = '/compareRustcs'
+        pathname = '/comparePass'
 
     if pathname == '/compareRustcs':
         layout = getPerfRustcsLayout() #app._resultProvider)
+        return layout
+    if pathname == '/comparePass':
+        layout = getPerfPassLayout() #app._resultProvider)
         return layout
     else:
         return 404
@@ -522,8 +567,10 @@ if __name__ == '__main__':
 
     app.layout = html.Div([
         dcc.Location(id='url', refresh=False),
-        #dcc.Link('Performance Comparisons', href='/compareRustcs'),
-        #html.Br(),
+        dcc.Link('Modified Rustc', href='/compareRustcs'),
+        html.Br(),
+        dcc.Link('Out of Tree LLVM Pass', href='/comparePass'),
+        html.Br(),
         html.Div(id='page-content')
     ])
 

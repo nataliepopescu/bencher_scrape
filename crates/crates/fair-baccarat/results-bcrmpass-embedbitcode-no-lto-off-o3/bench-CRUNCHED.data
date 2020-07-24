@@ -1,2 +1,2 @@
 #	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	
-bench_simulate_games	3367.5	23.022332153319695	3369.6944444444443	27.399127565636547	
+bench_simulate_games	3367.5	23.022332153319695	3372.5	28.399432701689268	

@@ -46,6 +46,7 @@ lto_thin_2 = "results-lto-thin-2"
 no_inline = "results-no-inline-lto-off"
 agg_inline = "results-agg-inline-lto-off"
 bcrm_pass = "results-bcrmpass-embedbitcode-no-lto-off"
+bcrm_o3 = "results-bcrmpass-embedbitcode-no-lto-off-o3"
 
 switcher = {
     "lto-off-1": {
@@ -105,6 +106,10 @@ switcher = {
     "bcrm-pass": {
         "label": "1: -C embed-bitcode=no -C lto=off",
         "dir": bcrm_pass
+    },
+    "bcrm-o3": {
+        "label": "2: -C embed-bitcode=no -C lto=off && opt -o3",
+        "dir": bcrm_o3
     }
 }
 
@@ -157,10 +162,10 @@ def setting_options(version):
     global switcher
     keys = switcher.keys()
     for k in keys:
-        if version == 0 and k == "bcrm-pass":
+        if version == 0 and k.startswith("bcrm"):
             label = switcher.get(k).get("label")
             options.append({'label': label, 'value': k})
-        elif version == 1 and k != "bcrm-pass": 
+        elif version == 1 and (not k.startswith("bcrm")):
             label = switcher.get(k).get("label")
             options.append({'label': label, 'value': k})
     return options
@@ -405,7 +410,7 @@ def display_relative(crate_name, crate_opt):
    # unexp_1 = []
    # unexp_3 = []
 
-    if crate_opt == "bcrm-pass":
+    if crate_opt.startswith("bcrm"):
         filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file_new
     else: 
         filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file
@@ -468,7 +473,7 @@ def display_relative(crate_name, crate_opt):
 
     
     bar_list=[]
-    if crate_opt == "bcrm-pass":
+    if crate_opt.startswith("bcrm"):
         bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
         bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
 

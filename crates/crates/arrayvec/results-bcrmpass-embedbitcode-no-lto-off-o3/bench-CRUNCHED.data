@@ -1,0 +1,12 @@
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	
+push_alpha	0.0	0.0	0.0	0.0	
+push_c	0.0	0.0	0.0	0.0	
+push_string	1349.0	1.0	1327.0	0.0	
+try_push_alpha	49.5	3.5	172.0	0.0	
+try_push_c	0.0	0.0	0.0	0.0	
+try_push_string	1315.0	0.0	1239.5	0.5	
+extend_from_slice	8.0	0.0	8.0	0.0	
+extend_with_constant	9.0	0.0	12.5	3.5	
+extend_with_range	345.5	0.5	345.0	0.0	
+extend_with_slice	8.0	0.0	8.0	0.0	
+extend_with_write	8.0	0.0	8.0	0.0	

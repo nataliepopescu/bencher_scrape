@@ -36,9 +36,10 @@ def dump_benchmark(
     filepath=default_file,
     unmod=default_unmod,
     nobc=default_nobc,
-    nobcsl=default_nobcsl,
-    safelib=default_safelib,
-    headers=['#','bench-name','unmod-time', 'unmod-error','nobc-time','nobc-error','nobc+sl-time','nobc+sl-error','safelib-time','safelib-error'],
+    #nobcsl=default_nobcsl,
+    #safelib=default_safelib,
+    headers=['#','bench-name','unmod-time', 'unmod-error','nobc-time','nobc-error'], #,'nobc+sl-time','nobc+sl-error','safelib-time','safelib-error'],
+    #headers=['#','bench-name','unmod-time', 'unmod-error','nobc-time','nobc-error','nobc+sl-time','nobc+sl-error','safelib-time','safelib-error'],
     **kwargs):
     """
     Customise with your own output path and header row.
@@ -48,15 +49,15 @@ def dump_benchmark(
     unmod_names = re.findall(name_pattern, check_output(["cat", unmod]).decode('utf-8'))
     unmod_result = re.findall(pattern, check_output(["cat", unmod]).decode('utf-8'))
     nobc_result = re.findall(pattern, check_output(["cat", nobc]).decode('utf-8'))
-    nobcsl_result = re.findall(pattern, check_output(["cat", nobcsl]).decode('utf-8'))
-    safelib_result = re.findall(pattern, check_output(["cat", safelib]).decode('utf-8'))
+    #nobcsl_result = re.findall(pattern, check_output(["cat", nobcsl]).decode('utf-8'))
+    #safelib_result = re.findall(pattern, check_output(["cat", safelib]).decode('utf-8'))
     # get rid of nasty commas
     output = []
     unmod_len = len(unmod_result)
     nobc_len = len(nobc_result)
-    nobcsl_len = len(nobcsl_result)
-    safelib_len = len(safelib_result)
-    length = unmod_len if unmod_len < nobc_len else nobc_len if nobc_len < nobcsl_len else nobcsl_len if nobcsl_len < safelib_len else safelib_len
+    #nobcsl_len = len(nobcsl_result)
+    #safelib_len = len(safelib_result)
+    length = unmod_len if unmod_len < nobc_len else nobc_len #if nobc_len < nobcsl_len else nobcsl_len if nobcsl_len < safelib_len else safelib_len
     for i in range(length):
         line = []
         # grab and append benchmark name to line
@@ -65,8 +66,8 @@ def dump_benchmark(
         # grab each matched line
         unmod_line = unmod_result[i]
         nobc_line = nobc_result[i]
-        nobcsl_line = nobcsl_result[i]
-        safelib_line = safelib_result[i]
+        #nobcsl_line = nobcsl_result[i]
+        #safelib_line = safelib_result[i]
         # grab each of the two numbers per line
         for num in unmod_line:
             tnum = num.translate({ord(','): None})
@@ -74,12 +75,12 @@ def dump_benchmark(
         for num in nobc_line:
             tnum = num.translate({ord(','): None})
             line.append(tnum)
-        for num in nobcsl_line:
-            tnum = num.translate({ord(','): None})
-            line.append(tnum)
-        for num in safelib_line:
-            tnum = num.translate({ord(','): None})
-            line.append(tnum)
+        #for num in nobcsl_line:
+        #    tnum = num.translate({ord(','): None})
+        #    line.append(tnum)
+        #for num in safelib_line:
+        #    tnum = num.translate({ord(','): None})
+        #    line.append(tnum)
         output.append(line)
     # any other kwargs will be written as a CSV header row and value
     # nothing prevents you from writing rows that don't have a header
@@ -120,19 +121,19 @@ if __name__ == "__main__":
     filepath = default_file
     unmod = default_unmod
     nobc = default_nobc
-    nobcsl = default_nobcsl
-    safelib = default_safelib
-    if len(sys.argv) == 6:
+    #nobcsl = default_nobcsl
+    #safelib = default_safelib
+    if len(sys.argv) == 4: #6:
         filepath = sys.argv[1]
         unmod = sys.argv[2]
         nobc = sys.argv[3]
-        nobcsl = sys.argv[4]
-        safelib = sys.argv[5]
+        #nobcsl = sys.argv[4]
+        #safelib = sys.argv[5]
     dump_benchmark(
         pattern,
         filepath=filepath,
         unmod=unmod,
-        nobc=nobc,
-        nobcsl=nobcsl,
-        safelib=safelib
+        nobc=nobc #,
+        #nobcsl=nobcsl,
+        #safelib=safelib
     )

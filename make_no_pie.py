@@ -2,33 +2,52 @@ import sys
 
 def replace(
         infile,
-        outfile):
+        outfile,
+        execlist):
     o = open(outfile, 'w')
     i = open(infile, 'r')
-    one = True
+    e = open(execlist, 'a')
+    one_line = True
     args = []
+    seen_o_flag = False
     # Read in one-line infile
     for line in i:
-        if one == False:
+        if one_line == False:
             print("Check format of input file!")
+            return
         args = line.split("\"")
         one = False
         # Write to outfile replacing any "-pie" instances
-        for a in args:
+        for a in args: 
             if a == "-pie":
                 o.write("-no-pie ")
                 #print("WROTE -no-pie")
+            elif seen_o_flag and len(a.strip()) > 0:
+                path = a.split("/")
+                name = path[-1]
+                e.write(name + "\n")
+                #print("SHOULD HAVE WRITTEN TO EXECLIST")
+                o.write(a + " ")
+                #print("WROTE " + a)
+                seen_o_flag = False
+            elif a == "-o":
+                seen_o_flag = True
+                o.write(a + " ")
+                #print("WROTE " + a)
             else:
                 o.write(a + " ")
                 #print("WROTE " + a)
     # Cleanup
+    e.close()
     i.close()
     o.close()
 
 if __name__ == "__main__":
     infile = sys.argv[1]
     outfile = sys.argv[2]
+    execlist = sys.argv[3]
     replace(
         infile,
-        outfile
+        outfile,
+        execlist
     )

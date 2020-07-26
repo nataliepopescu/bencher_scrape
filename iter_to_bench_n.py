@@ -26,6 +26,5 @@ def rewrite(infile):
 if __name__ == "__main__":
     for sd, d, f in os.walk(root):
         if sd.endswith("benches"):
-            print("SD == " + sd)
             for benchfile in f:
-                rewrite(sd + "/" + benchfile)
+                rewrite(os.path.join(sd, benchfile))

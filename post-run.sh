@@ -1,30 +1,29 @@
 #!/bin/bash
 
 SSH_NODES=(
-"npopescu@c220g2-010819.wisc.cloudlab.us"
-"npopescu@c220g2-010826.wisc.cloudlab.us"
-"npopescu@c220g2-010824.wisc.cloudlab.us"
-"npopescu@c220g2-011305.wisc.cloudlab.us"
-"npopescu@c220g2-011310.wisc.cloudlab.us"
-"npopescu@c220g2-011315.wisc.cloudlab.us"
-"npopescu@c220g2-011303.wisc.cloudlab.us"
-"npopescu@c220g2-010821.wisc.cloudlab.us"
-"npopescu@c220g2-011321.wisc.cloudlab.us"
-"npopescu@c220g2-011319.wisc.cloudlab.us"
-"npopescu@c220g2-010817.wisc.cloudlab.us"
-"npopescu@c220g2-011019.wisc.cloudlab.us"
-"npopescu@c220g2-011020.wisc.cloudlab.us"
-"npopescu@c220g2-010820.wisc.cloudlab.us"
-"npopescu@c220g2-011318.wisc.cloudlab.us"
-"npopescu@c220g2-010829.wisc.cloudlab.us"
-"npopescu@c220g2-010825.wisc.cloudlab.us"
-"npopescu@c220g2-011018.wisc.cloudlab.us"
-"npopescu@c220g2-011309.wisc.cloudlab.us"
+"npopescu@c220g5-111316.wisc.cloudlab.us"
+"npopescu@c220g5-111031.wisc.cloudlab.us"
+"npopescu@c220g5-111028.wisc.cloudlab.us"
+"npopescu@c220g5-120132.wisc.cloudlab.us"
+"npopescu@c220g5-120123.wisc.cloudlab.us"
+"npopescu@c220g5-120120.wisc.cloudlab.us"
+"npopescu@c220g5-111324.wisc.cloudlab.us"
+"npopescu@c220g5-110513.wisc.cloudlab.us"
+"npopescu@c220g5-120109.wisc.cloudlab.us"
+"npopescu@c220g5-110504.wisc.cloudlab.us"
+"npopescu@c220g5-110501.wisc.cloudlab.us"
+"npopescu@c220g5-120105.wisc.cloudlab.us"
+"npopescu@c220g5-120118.wisc.cloudlab.us"
+"npopescu@c220g5-111015.wisc.cloudlab.us"
+"npopescu@c220g5-120117.wisc.cloudlab.us"
+"npopescu@c220g5-120113.wisc.cloudlab.us"
+"npopescu@c220g5-111011.wisc.cloudlab.us"
+"npopescu@c220g5-120125.wisc.cloudlab.us"
 )
 
-numnodes=19
+numnodes=18
 runs=2
-output="cloudlab-output-lto"
+output="results-bcrmpass-embedbitcode-no-lto-off-o3"
 
 usage () {
     echo ""
@@ -93,7 +92,7 @@ done < "$CRATELIST"
 # Copy actual benchmark data over
 
 OUTPUT="$output"
-FNAME="bench-sanity"
+FNAME="bench"
 LOCAL_PATH="$ROOT/crates/crates"
 REMOTE_PATH="/benchdata/rust/bencher_scrape/crates/crates"
 
@@ -103,12 +102,32 @@ do
     for crate in ${CRATES[@]}
     do
         loc_dir="$LOCAL_PATH/$crate/$OUTPUT"
+        loc_names="$LOCAL_PATH/$crate/name-list"
         rem_dir="$REMOTE_PATH/$crate/$OUTPUT"
+        name_file="$REMOTE_PATH/$crate/name-list"
+        rem_unmod="$REMOTE_PATH/$crate/UNMOD/$OUTPUT"
+        rem_bcrmp="$REMOTE_PATH/$crate/BCRMP/$OUTPUT"
         mkdir -p "$loc_dir"
+
+        if [ $i -eq 0 ]
+        then
+            scp "$node:$name_file" "$loc_names"
+
+            BENCHES=()
+            while read -r name
+            do
+                BENCHES=( "${BENCHES[@]}" "$name" )
+            done < $loc_names
+
+            for b in ${BENCHES[@]}
+            do
+                scp "$node:$rem_unmod/$b-pass-list" "$loc_dir/UNMOD-$b-pass-list"
+                scp "$node:$rem_bcrmp/$b-pass-list" "$loc_dir/BCRMP-$b-pass-list"
+            done
+        fi
+
         for r in $(seq 1 $runs)
         do
-            #echo "REMOTE: $node:$rem_dir-$r/$FNAME.data"
-            #echo "LOCAL: $loc_dir/$FNAME-$i-$r.data"
             scp "$node:$rem_dir-$r/$FNAME.data" "$loc_dir/$FNAME-$i-$r.data"
         done
     done
@@ -129,6 +148,6 @@ do
 
 CRUNCH="crunch.py"
 
-python3 "$CRUNCH" "$crate" "$FNAME" "$LOCAL_OUTPUT" "$numnodes" "$runs"
+python3 "$CRUNCH" "$crate" "$FNAME" "$OUTPUT" "$numnodes" "$runs"
 
 done

@@ -8,8 +8,6 @@ bench=0
 comp=0
 # Only one run
 runs=1
-# Don't print transformation passes
-PRNTFLAG=""
 # Names
 name="sanity"
 output="output"
@@ -25,6 +23,12 @@ LTOFLAGS_A="-C embed-bitcode=no -C lto=off"
 
 RUSTFLAGS=""$OPTFLAGS" "$DBGFLAGS" "$LTOFLAGS_A""
 
+# LLVM Print Passes Flag
+PRNTFLAG=""
+
+# LLVM O3 Flag
+O3=""
+
 EXPERIMENTS=( "UNMOD" "BCRMP" )
 
 # *****COMMAND-LINE ARGS*****
@@ -36,6 +40,7 @@ usage () {
 	echo "   -c		Compile benchmarks, without running, for crates with and without"
 	echo "			  remove-bounds-check-pass; for large-scale experiments [default = off]."
 	echo "   -p		Print list of passes that were run during compilation [default = off]."
+	echo "   -m		optiMize using O3 after removing bounds checks [default = off]."
 	echo "   -r <num-runs>  How many runs to execute [default = 1]."
 	echo "   -n <outfile-label>"
 	echo "			How to label the output files of this invocation [default = 'sanity']."
@@ -45,7 +50,7 @@ usage () {
 }
 
 # Parse args
-while getopts "bcpr:n:o:h" opt
+while getopts "bcpmr:n:o:h" opt
 do
 	case "$opt" in
 	b)
@@ -56,6 +61,9 @@ do
 		;;
 	p)
 		PRNTFLAG="--debug-pass=Structure"
+		;;
+	m)
+		O3="--O3"
 		;;
 	r)
 		runs="$(($OPTARG))"
@@ -150,15 +158,7 @@ then
 	for d in ${RANDDIRS[@]}
 	do
 		DEFAULT_TGT=$d"target/release/deps"
-		PRECOMPDIR=$d$exp/$OUTPUT
-		if [ -d $PRECOMPDIR ]
-		then
-			rm -r $PRECOMPDIR
-		fi
-		mkdir -p $PRECOMPDIR
-		# Initial script taken from: 
-		# https://medium.com/@squanderingtime/manually-linking-rust-binaries-to-support-out-of-tree-llvm-passes-8776b1d037a4
-		LINKARGS=$d"link-args"
+		PRECOMPDIR=$d$exp/$output
 
 		# Save a list of the executables to run later
 		EXECLIST=$d"exec-list"
@@ -167,8 +167,15 @@ then
 		# Compile executables
 		if [ $comp -eq 1 ]
 		then
+			
 			cargo clean
 			
+			if [ -d $PRECOMPDIR ]
+			then
+				rm -r $PRECOMPDIR
+			fi
+			mkdir -p $PRECOMPDIR
+
 			# Recurse through benchmark names
 			NAMELIST=$d"name-list"
 			BENCHES=()
@@ -177,6 +184,7 @@ then
 				BENCHES=( "${BENCHES[@]}" "$name" )
 			done < "$NAMELIST"
 			
+			LINKARGS=$d"link-args"
 			rm -f $LINKARGS && touch $LINKARGS
 			rm -f $EXECLIST && touch $EXECLIST
 
@@ -208,9 +216,9 @@ then
 				# If [-p] was specified, also save the list of passes that were run
 				if [ $exp == "UNMOD" ]
 				then
-					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt $PRNTFLAG -o {}bc {}bc 2> $PASSLIST
+					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt $PRNTFLAG $O3 -o {}bc {}bc 2> $PASSLIST
 				else
-					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt -load $PASS -remove-bc -simplifycfg -dce $PRNTFLAG {}bc -o {}bc 2> $PASSLIST
+					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt $O3 -load $PASS -remove-bc -simplifycfg -dce $PRNTFLAG $O3 {}bc -o {}bc 2> $PASSLIST
 				fi
 				
 				# Compile the bitcode to object files
@@ -226,7 +234,7 @@ then
 
 		# Run executables
 		else
-			# Read in executable names from the list we saved during compilation
+			# Read in executable names from the list we saved during compilation step
 			EXECS=()
 			while read -r name
 			do
@@ -235,12 +243,12 @@ then
 
 			OUTDIR=$d$OUTPUT
 			mkdir -p $OUTDIR
-			cd $PRECOMPDIR/deps
 
 			BENCH_RES="$OUTDIR/$exp.bench"
 			rm -f $BENCH_RES && touch $BENCH_RES
 
 			# Run
+			cd $PRECOMPDIR/deps
 			for e in ${EXECS[@]}
 			do
 				./$e >> $BENCH_RES

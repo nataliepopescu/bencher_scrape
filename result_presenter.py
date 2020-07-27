@@ -110,6 +110,12 @@ switcher = {
     "bcrm-o3": {
         "label": "2: -C embed-bitcode=no -C lto=off && opt -o3",
         "dir": bcrm_o3
+    },
+    "diff-bcrm": {
+        "label": "1 vs 2",
+        "y-axis-label": "2 Time per Iteration Relative to 1 [%]",
+        "dir1": bcrm_pass,
+        "dir2": bcrm_o3
     }
 }
 
@@ -162,10 +168,10 @@ def setting_options(version):
     global switcher
     keys = switcher.keys()
     for k in keys:
-        if version == 0 and k.startswith("bcrm"):
+        if version == 0 and "bcrm" in k: #k.startswith("bcrm"):
             label = switcher.get(k).get("label")
             options.append({'label': label, 'value': k})
-        elif version == 1 and (not k.startswith("bcrm")):
+        elif version == 1 and not "bcrm" in k:
             label = switcher.get(k).get("label")
             options.append({'label': label, 'value': k})
     return options
@@ -253,8 +259,12 @@ def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_t
 #    unexp_both = []
 #    unexp_safelib = []
 
-    file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir1") + "/" + data_file
-    file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir2") + "/" + data_file
+    if "bcrm" in crate_opt:
+        file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir1") + "/" + data_file_new
+        file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir2") + "/" + data_file_new
+    else:
+        file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir1") + "/" + data_file
+        file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir2") + "/" + data_file
 
     if ((not os.path.exists(file_baseline)) or is_empty_datafile(file_baseline)) or ((not os.path.exists(file_tocompare)) or is_empty_datafile(file_tocompare)):
         return "\nNo diff data for crate " + str(crate_name) + " with these settings."
@@ -315,12 +325,19 @@ def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_t
         return bar_one
 
 
-    bar_unmod = get_one_bar(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
-    bar_nobc = get_one_bar(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
-    bar_both = get_one_bar(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
-    bar_safelib = get_one_bar(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
+    bar_list = []
+    if "bcrm" in crate_opt:
+        bar_unmod = get_one_bar(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
+        bar_nobc = get_one_bar(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
 
-    bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
+        bar_list = [bar_unmod, bar_nobc]
+    else:
+        bar_unmod = get_one_bar(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
+        bar_nobc = get_one_bar(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
+        bar_both = get_one_bar(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
+        bar_safelib = get_one_bar(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
+
+        bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
 
     fig = go.Figure({
                     'data': bar_list,
@@ -410,7 +427,7 @@ def display_relative(crate_name, crate_opt):
    # unexp_1 = []
    # unexp_3 = []
 
-    if crate_opt.startswith("bcrm"):
+    if "bcrm" in crate_opt: #.startswith("bcrm"):
         filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file_new
     else: 
         filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file
@@ -472,8 +489,8 @@ def display_relative(crate_name, crate_opt):
         return bar_one
 
     
-    bar_list=[]
-    if crate_opt.startswith("bcrm"):
+    bar_list = []
+    if "bcrm" in crate_opt: #.startswith("bcrm"):
         bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
         bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
 

@@ -1,0 +1,2 @@
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	
+bench_simhash	4997863.888888889	8607.633808873046	4974724.205555555	5205.930094823724	

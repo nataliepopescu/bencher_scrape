@@ -193,11 +193,13 @@ then
 			for b in ${BENCHES[@]}
 			do
 				PASSLIST="$PRECOMPDIR/$b-pass-list"
+				REMARKS="$PRECOMPDIR/$b-remarks"
 				rm -f $PASSLIST && touch $PASSLIST
+				rm -f $REMARKS && touch $REMARKS
 
 				# Build main with temporary files preserved and emit LLVM-IR
 				# Also use cargo's '-Z print-link-args' to get the exact linker command
-				RUSTFLAGS=$RUSTFLAGS cargo rustc --verbose --release --bench "$b" -- -Z print-link-args -v -C remark=all -C save-temps --emit=llvm-ir > $LINKARGS
+				RUSTFLAGS=$RUSTFLAGS cargo rustc --verbose --release --bench "$b" -- -Z print-link-args -v -C save-temps --emit=llvm-ir > $LINKARGS
 
 				# Replace instances of "-pie" with "-no-pie", otherwise get 
 				# "relocation R_X86_64_32 against `.rodata' can not be used when 
@@ -218,9 +220,9 @@ then
 				# If [-p] was specified, also save the list of passes that were run
 				if [ $exp == "UNMOD" ]
 				then
-					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt -pass-remarks-output=$PASSLIST $O3 -o {}bc {}bc # 2> $PASSLIST
+					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt -pass-remarks-output=$REMARKS $PRNTFLAG $O3 -o {}bc {}bc 2> $PASSLIST
 				else
-					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt -load $PASS -remove-bc -simplifycfg -dce -pass-remarks-output=$PASSLIST $O3 -o {}bc {}bc # 2> $PASSLIST
+					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt -load $PASS -remove-bc -simplifycfg -dce -pass-remarks-output=$REMARKS $PRNTFLAG $O3 -o {}bc {}bc 2> $PASSLIST
 				fi
 				
 				# Compile the bitcode to object files

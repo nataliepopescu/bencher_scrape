@@ -13,7 +13,9 @@ name="sanity"
 output="output"
 
 # Optimization Level Management
-OPTFLAGS="-C opt-level=3"
+#OPTFLAGS="-C opt-level=3"
+#OPTFLAGS="-C opt-level=0"
+OPTFLAGS="-C no-prepopulate-passes -C passes=name-anon-globals" # NO OPTS at all, stricter than opt-level=0
 
 # Debug Management
 DBGFLAGS="-C debuginfo=2"
@@ -147,7 +149,7 @@ then
 		rm -f $NAMELIST && touch $NAMELIST
 		cd $d
 		cargo clean
-		cargo rustc --verbose --release --bench -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $ERRMSG
+		RUSTFLAGS=$RUSTFLAGS cargo rustc --verbose --release --bench -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $ERRMSG
 		python3 $BNAME_SCRIPT $ERRMSG $NAMELIST
 		cd $ROOT
 	done
@@ -195,7 +197,7 @@ then
 
 				# Build main with temporary files preserved and emit LLVM-IR
 				# Also use cargo's '-Z print-link-args' to get the exact linker command
-				RUSTFLAGS=$RUSTFLAGS cargo rustc --verbose --release --bench "$b" -- -Z print-link-args -v -C save-temps --emit=llvm-ir > $LINKARGS
+				RUSTFLAGS=$RUSTFLAGS cargo rustc --verbose --release --bench "$b" -- -Z print-link-args -v -C remark=all -C save-temps --emit=llvm-ir > $LINKARGS
 
 				# Replace instances of "-pie" with "-no-pie", otherwise get 
 				# "relocation R_X86_64_32 against `.rodata' can not be used when 
@@ -216,9 +218,9 @@ then
 				# If [-p] was specified, also save the list of passes that were run
 				if [ $exp == "UNMOD" ]
 				then
-					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt $PRNTFLAG $O3 -o {}bc {}bc 2> $PASSLIST
+					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt -pass-remarks-output=$PASSLIST $O3 -o {}bc {}bc # 2> $PASSLIST
 				else
-					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt $O3 -load $PASS -remove-bc -simplifycfg -dce $PRNTFLAG $O3 {}bc -o {}bc 2> $PASSLIST
+					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt -load $PASS -remove-bc -simplifycfg -dce -pass-remarks-output=$PASSLIST $O3 -o {}bc {}bc # 2> $PASSLIST
 				fi
 				
 				# Compile the bitcode to object files

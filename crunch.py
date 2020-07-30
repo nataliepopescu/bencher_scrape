@@ -8,14 +8,21 @@ import numpy
 import re
 
 def average(array):
-    # Get length of array
-    length = len(array)
-    arr_sum = 0
-    # Calculate sum
+    ## Get length of array
+    #length = len(array)
+    #arr_sum = 0
+    ## Calculate sum
+    #for a in array:
+    #    arr_sum += a
+    #res = arr_sum / length
+    #return res
+
+    avg = 0
+    t = 1
     for a in array:
-        arr_sum += a
-    res = arr_sum / length
-    return res
+        avg += (a - avg) / t
+        t += 1
+    return avg
 
 
 def stddev(array, arr_avg):

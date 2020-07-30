@@ -49,6 +49,7 @@ bcrm_o0 = "results-bcrmpass-embedbitcode-no-lto-off"
 bcrm_o0_many = "results-bcrmpass-embedbitcode-no-lto-off-many"
 bcrm_o3 = "results-bcrmpass-embedbitcode-no-lto-off-o3"
 bcrm_o3_many = "results-bcrmpass-embedbitcode-no-lto-off-many-o3"
+bcrm_o0_o3 = "results-bcrmpass-o0-embedbitcode-no-lto-off-o3"
 
 switcher = {
     "lto-off-1": {
@@ -106,20 +107,24 @@ switcher = {
         "dir2": agg_inline, # tocompare
     },
     "bcrm-o0": {
-        "label": "1: -C embed-bitcode=no -C lto=off [average of 36 runs]",
+        "label": "1: cargo rustc -C embed-bitcode=no -C lto=off -O3 [average of 36 runs]",
         "dir": bcrm_o0
     },
     "bcrm-o3": {
-        "label": "2: -C embed-bitcode=no -C lto=off && opt -o3 [average of 36 runs]",
+        "label": "2: cargo rustc -C embed-bitcode=no -C lto=off -O3 && opt -O3 [average of 36 runs]",
         "dir": bcrm_o3
     },
     "bcrm-o0-many": {
-        "label": "3: -C embed-bitcode=no -C lto=off [average of 180 runs]",
+        "label": "3: cargo rustc -C embed-bitcode=no -C lto=off -O3 [average of 180 runs]",
         "dir": bcrm_o0_many
     },
     "bcrm-o3-many": {
-        "label": "4: -C embed-bitcode=no -C lto=off && opt -o3 [average of 180 runs]",
+        "label": "4: cargo rustc -C embed-bitcode=no -C lto=off -O3 && opt -O3 [average of 180 runs]",
         "dir": bcrm_o3_many
+    },
+    "bcrm-o0-o3": {
+        "label": "5: cargo rustc -C no-prepopulate-passes -C passes=name-anon-globals -C embed-bitcode=no -C lto=off && opt -O3 [average of 36 runs]",
+        "dir": bcrm_o0_o3
     },
     "diff-bcrm": {
         "label": "1 vs 2",
@@ -256,7 +261,7 @@ def getPerfPassLayout():
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
             options=setting_options(0),
-            value="bcrm-o0"
+            value="bcrm-o0-o3"
         ),
 
         html.Br(),

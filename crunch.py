@@ -40,7 +40,8 @@ def crunch(
     numnodes,
     numruns):
     # Use same headers and will be using similar logic as "aggregate_bench.py" later on
-    headers = ['#','bench-name','unmod-time', 'unmod-error','nobc-time','nobc-error','nobc+sl-time','nobc+sl-error','safelib-time','safelib-error']
+    headers = ['#','bench-name','unmod-time', 'unmod-error','nobc-time','nobc-error'] #'nobc+sl-time','nobc+sl-error','safelib-time','safelib-error']
+    #headers = ['#','bench-name','unmod-time', 'unmod-error','nobc-time','nobc-error','nobc+sl-time','nobc+sl-error','safelib-time','safelib-error']
     
     # Grab the numbers for each [benchmark x rustc] combo (per crate)
     base_file = "./crates/crates/" + crate + "/" + data_file_loc + "/" + data_file
@@ -56,7 +57,7 @@ def crunch(
 
     totalruns = int(numnodes) * int(numruns)
     rows = len(open(get_names_file, 'r').readlines()) - 1
-    cols = 4
+    cols = 2 #4
     matrix = numpy.zeros((rows, cols, totalruns))
 
     get_names = True

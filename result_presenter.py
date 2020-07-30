@@ -45,8 +45,10 @@ lto_thin_1 = "results-lto-thin-1"
 lto_thin_2 = "results-lto-thin-2"
 no_inline = "results-no-inline-lto-off"
 agg_inline = "results-agg-inline-lto-off"
-bcrm_pass = "results-bcrmpass-embedbitcode-no-lto-off"
+bcrm_o0 = "results-bcrmpass-embedbitcode-no-lto-off"
+bcrm_o0_many = "results-bcrmpass-embedbitcode-no-lto-off-many"
 bcrm_o3 = "results-bcrmpass-embedbitcode-no-lto-off-o3"
+bcrm_o3_many = "results-bcrmpass-embedbitcode-no-lto-off-many-o3"
 
 switcher = {
     "lto-off-1": {
@@ -103,19 +105,45 @@ switcher = {
         "dir1": no_inline, # baseline
         "dir2": agg_inline, # tocompare
     },
-    "bcrm-pass": {
-        "label": "1: -C embed-bitcode=no -C lto=off",
-        "dir": bcrm_pass
+    "bcrm-o0": {
+        "label": "1: -C embed-bitcode=no -C lto=off [average of 36 runs]",
+        "dir": bcrm_o0
     },
     "bcrm-o3": {
-        "label": "2: -C embed-bitcode=no -C lto=off && opt -o3",
+        "label": "2: -C embed-bitcode=no -C lto=off && opt -o3 [average of 36 runs]",
         "dir": bcrm_o3
+    },
+    "bcrm-o0-many": {
+        "label": "3: -C embed-bitcode=no -C lto=off [average of 180 runs]",
+        "dir": bcrm_o0_many
+    },
+    "bcrm-o3-many": {
+        "label": "4: -C embed-bitcode=no -C lto=off && opt -o3 [average of 180 runs]",
+        "dir": bcrm_o3_many
     },
     "diff-bcrm": {
         "label": "1 vs 2",
         "y-axis-label": "2 Time per Iteration Relative to 1 [%]",
-        "dir1": bcrm_pass,
+        "dir1": bcrm_o0,
         "dir2": bcrm_o3
+    },
+    "diff-bcrm-o0": {
+        "label": "1 vs 3",
+        "y-axis-label": "3 Time per Iteration Relative to 1 [%]",
+        "dir1": bcrm_o0,
+        "dir2": bcrm_o0_many
+    },
+    "diff-bcrm-many": {
+        "label": "3 vs 4",
+        "y-axis-label": "4 Time per Iteration Relative to 3 [%]",
+        "dir1": bcrm_o0_many,
+        "dir2": bcrm_o3_many
+    },
+    "diff-bcrm-o3": {
+        "label": "2 vs 4",
+        "y-axis-label": "4 Time per Iteration Relative to 2 [%]",
+        "dir1": bcrm_o3,
+        "dir2": bcrm_o3_many
     }
 }
 
@@ -228,7 +256,7 @@ def getPerfPassLayout():
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
             options=setting_options(0),
-            value="bcrm-pass"
+            value="bcrm-o0"
         ),
 
         html.Br(),

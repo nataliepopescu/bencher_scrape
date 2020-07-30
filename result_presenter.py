@@ -149,6 +149,12 @@ switcher = {
         "y-axis-label": "4 Time per Iteration Relative to 2 [%]",
         "dir1": bcrm_o3,
         "dir2": bcrm_o3_many
+    },
+    "diff-bcrm-o0-o3": {
+        "label": "2 vs 5",
+        "y-axis-label": "5 Time per Iteration Relative to 2 [%]",
+        "dir1": bcrm_o3,
+        "dir2": bcrm_o0_o3,
     }
 }
 

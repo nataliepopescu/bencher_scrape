@@ -32,8 +32,8 @@ PRNTFLAG=""
 # LLVM O3 Flag
 O3=""
 
-EXPERIMENTS=( "BCRMP" )
-#EXPERIMENTS=( "UNMOD" "BCRMP" )
+#EXPERIMENTS=( "BCRMP" )
+EXPERIMENTS=( "UNMOD" "BCRMP" )
 
 # *****COMMAND-LINE ARGS*****
 
@@ -120,7 +120,7 @@ do
 	RANDDIRS=( "${RANDDIRS[@]}" "$line" )
 done < "$RAND_DIRLIST"
 
-RANDDIRS=( "/benchdata/rust/bencher_scrape/crates/crates/bucket_queue/" )
+#RANDDIRS=( "/benchdata/rust/bencher_scrape/crates/crates/bucket_queue/" )
 
 # Initialize output directory names depending on # runs
 SUFFIX="$name"

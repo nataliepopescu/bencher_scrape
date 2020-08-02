@@ -7,7 +7,7 @@ This will serve as our baseline for comparison.
 
 Then download, build, and install our modified version [location]. 
 When finished, create a rustup toolchain for it from the repository's
-roo directory: 
+root directory: 
 
 ```sh
 $ rustup toolchain link bcrm build/<target>/stage2

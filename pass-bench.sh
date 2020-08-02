@@ -32,8 +32,8 @@ PRNTFLAG=""
 # LLVM O3 Flag
 O3=""
 
-#EXPERIMENTS=( "BCRMP" )
-EXPERIMENTS=( "nightly-2020-05-07-x86_64-unknown-linux-gnu" "bcrm" )
+EXPERIMENTS=( "bcrm" )
+#EXPERIMENTS=( "nightly-2020-05-07-x86_64-unknown-linux-gnu" "bcrm" )
 
 # *****COMMAND-LINE ARGS*****
 
@@ -233,7 +233,7 @@ then
 
 				# Build with no opts, with temporary files preserved, and emit LLVM-IR
 				# Also use cargo's '-Z print-link-args' to get the exact linker command
-				RUSTFLAGS=$RUSTFLAGS_NONE cargo rustc --verbose --release --bench "$b" -- -Z mir-opt-level=1 -Z print-link-args -v -C save-temps --emit=llvm-ir > $LINKARGS
+				RUSTFLAGS=$RUSTFLAGS_NONE cargo rustc --verbose --release --bench "$b" -- -Z mir-opt-level=1 -Z print-link-args -v -C save-temps --emit=llvm-bc > $LINKARGS
 
 				# Replace instances of "-pie" with "-no-pie", otherwise get 
 				# "relocation R_X86_64_32 against `.rodata' can not be used when 
@@ -254,7 +254,7 @@ then
 				rm *no-opt*
 				
 				# Get bitcode
-				find . -name '*.ll' | xargs -n 1 $LLVM_HOME/bin/llvm-as
+				#find . -name '*.ll' | xargs -n 1 $LLVM_HOME/bin/llvm-as
 				
 				# Run all the bitcode through our pass (phantom if UNMOD)
 				# If [-p] was specified, also save the list of passes that were run

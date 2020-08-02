@@ -1,5 +1,15 @@
 # Setting up Environment
 
+## LLVM
+
+Download, configure, and build the LLVM version 9 from source. 
+See the LLVM documentation for more specific instructions. 
+
+## Remove-bounds-check Pass
+
+Clone [this](https://github.com/vgene/remove-bounds-check-pass) repository, and
+follow the directions listed there to build it. 
+
 ## Rust
 
 Make sure your rust version in rustup is nightly-1.45. 
@@ -14,16 +24,6 @@ $ rustup toolchain link bcrm build/<target>/stage2
 ```
 
 The above creates a toolchain called `bcrm`. 
-
-## LLVM
-
-Download, configure, and build the LLVM version 9 from source. 
-See the LLVM documentation for more specific instructions. 
-
-## Remove-bounds-check Pass
-
-Clone [this](https://github.com/vgene/remove-bounds-check-pass) repository, and
-follow the directions listed there to build it. 
 
 ## Benchmarks
 

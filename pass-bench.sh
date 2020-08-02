@@ -33,7 +33,7 @@ PRNTFLAG=""
 O3=""
 
 #EXPERIMENTS=( "BCRMP" )
-EXPERIMENTS=( "UNMOD" "BCRMP" )
+EXPERIMENTS=( "nightly-2020-05-07-x86_64-unknown-linux-gnu" "bcrm" )
 
 # *****COMMAND-LINE ARGS*****
 
@@ -120,7 +120,7 @@ do
 	RANDDIRS=( "${RANDDIRS[@]}" "$line" )
 done < "$RAND_DIRLIST"
 
-#RANDDIRS=( "/benchdata/rust/bencher_scrape/crates/crates/bucket_queue/" )
+RANDDIRS=( "/benchdata/rust/bencher_scrape/crates/crates/bucket_queue/" )
 
 # Initialize output directory names depending on # runs
 SUFFIX="$name"
@@ -142,6 +142,8 @@ PASS="/benchdata/remove-bounds-check-pass/build/CAT.so"
 
 for exp in ${EXPERIMENTS[@]}
 do
+
+rustup override set $exp
 
 # Get list of benchmark names and
 # the list of llvm passes rustc -O3 runs

@@ -32,8 +32,14 @@ PRNTFLAG=""
 # LLVM O3 Flag
 O3=""
 
+# Two Rustc Versions
+VERSION="nightly-2020-07-05"
+TARGET="x86_64-unknown-linux-gnu"
+UNMOD="$VERSION-$TARGET"
+BCRMP="bcrm"
+
 #EXPERIMENTS=( "bcrm" )
-EXPERIMENTS=( "nightly-2020-05-07-x86_64-unknown-linux-gnu" "bcrm" )
+EXPERIMENTS=( "$UNMOD" "$BCRMP" )
 
 # *****COMMAND-LINE ARGS*****
 
@@ -111,7 +117,7 @@ do
 	RANDDIRS=( "${RANDDIRS[@]}" "$line" )
 done < "$RAND_DIRLIST"
 
-#RANDDIRS=( "/benchdata/rust/bencher_scrape/crates/crates/bucket_queue/" )
+RANDDIRS=( "/benchdata/rust/bencher_scrape/crates/crates/bucket_queue/" )
 
 # Initialize output directory names depending on # runs
 SUFFIX="$name"
@@ -125,7 +131,7 @@ fi
 # *****COMPILE BENCHMARKS*****
 
 LLVM_HOME="/benchdata/llvm-project/build"
-RUSTUP_TOOLCHAIN_LIB="/benchdata/.rustup/toolchains/nightly-2020-05-07-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib"
+RUSTUP_TOOLCHAIN_LIB="/benchdata/.rustup/toolchains/$UNMOD/lib/rustlib/$TARGET/lib"
 NOPIE_SCRIPT=$ROOT/make_no_pie.py
 BNAME_SCRIPT=$ROOT/process_benchnames.py
 CONVERT_ARGS_SCRIPT=$ROOT/convert_rustc_to_opt_args.py
@@ -242,7 +248,7 @@ then
 				# Run all the bitcode through our pass (phantom if UNMOD)
 				# If [-p] was specified, also save the list of passes that were run
 				# ***** UNMOD version *****
-				if [ $exp != 'bcrm' ]
+				if [ $exp == $UNMOD ]
 				then
 					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt $(cat $OPT_ARGS) -pass-remarks-output=$REMARKS $PRNTFLAG $O3 -o {}bc {}bc 2> $OPT_PASSLIST
 				# ***** BCRMP version *****

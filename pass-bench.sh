@@ -14,7 +14,7 @@ output="output"
 
 # Optimization Level Management
 OPTFLAGS_3="-C opt-level=3"
-#OPTFLAGS="-C opt-level=0"
+#OPTFLAGS_0="-C opt-level=0"
 OPTFLAGS_NONE="-C no-prepopulate-passes -C passes=name-anon-globals" # NO OPTS at all, stricter than opt-level=0
 
 # Debug Management
@@ -32,8 +32,8 @@ PRNTFLAG=""
 # LLVM O3 Flag
 O3=""
 
-EXPERIMENTS=( "bcrm" )
-#EXPERIMENTS=( "nightly-2020-05-07-x86_64-unknown-linux-gnu" "bcrm" )
+#EXPERIMENTS=( "bcrm" )
+EXPERIMENTS=( "nightly-2020-05-07-x86_64-unknown-linux-gnu" "bcrm" )
 
 # *****COMMAND-LINE ARGS*****
 
@@ -57,33 +57,24 @@ usage () {
 while getopts "bcpmr:n:o:h" opt
 do
 	case "$opt" in
-	b)
-		bench=1
+	b)	bench=1
 		;;
-	c)
-		comp=1
+	c)	comp=1
 		;;
-	p)
-		PRNTFLAG="--debug-pass=Structure"
+	p)	PRNTFLAG="--debug-pass=Structure"
 		;;
-	m)
-		O3="--O3"
+	m)	O3="--O3"
 		;;
-	r)
-		runs="$(($OPTARG))"
+	r)	runs="$(($OPTARG))"
 		;;
-	n)
-		name="$OPTARG"
+	n)	name="$OPTARG"
 		;;
-	o)
-		output="$OPTARG"
+	o)	output="$OPTARG"
 		;;
-	h)
-		usage
+	h)	usage
 		exit 0
 		;;
-	*)
-		usage
+	*)	usage
 		exit 1
 		;;
 	esac
@@ -120,7 +111,7 @@ do
 	RANDDIRS=( "${RANDDIRS[@]}" "$line" )
 done < "$RAND_DIRLIST"
 
-RANDDIRS=( "/benchdata/rust/bencher_scrape/crates/crates/bucket_queue/" )
+#RANDDIRS=( "/benchdata/rust/bencher_scrape/crates/crates/bucket_queue/" )
 
 # Initialize output directory names depending on # runs
 SUFFIX="$name"
@@ -131,7 +122,7 @@ else
 	OUTPUT="$output"
 fi
 
-# *****COMPILE BENCHMARKS _WITH_ PASS*****
+# *****COMPILE BENCHMARKS*****
 
 LLVM_HOME="/benchdata/llvm-project/build"
 RUSTUP_TOOLCHAIN_LIB="/benchdata/.rustup/toolchains/nightly-2020-05-07-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib"
@@ -142,7 +133,6 @@ PASS="/benchdata/remove-bounds-check-pass/build/CAT.so"
 
 for exp in ${EXPERIMENTS[@]}
 do
-
 rustup override set $exp
 
 # Get list of benchmark names and
@@ -167,7 +157,7 @@ then
 		# Pre-process: list of benchmark names
 		cargo clean
 		# No optimizations because just want to capture error msg
-		RUSTFLAGS=$RUSTFLAGS_NONE cargo rustc --verbose --release --bench -- --emit=llvm-ir 2> $ERRMSG
+		RUSTFLAGS=$RUSTFLAGS_NONE cargo rustc --verbose --release --bench -- --emit=llvm-bc 2> $ERRMSG
 		python3 $BNAME_SCRIPT $ERRMSG $NAMELIST
 
 		# Pre-process: list of rustc optimization args to LLVM (per benchmark)
@@ -184,9 +174,8 @@ then
 			rm -f $RUSTC_PASSLIST && touch $RUSTC_PASSLIST
 
 			# Running with opt-level = O3
-			RUSTFLAGS=$RUSTFLAGS_3 cargo rustc --verbose --release --bench "$b" -- -Z mir-opt-level=0 -C llvm-args=-debug-pass=Structure --emit=llvm-ir 2> $RUSTC_PASSLIST
+			RUSTFLAGS=$RUSTFLAGS_3 cargo rustc --verbose --release --bench "$b" -- --emit=llvm-bc -C llvm-args=-debug-pass=Structure 2> $RUSTC_PASSLIST
 		done
-
 		cd $ROOT
 	done
 fi
@@ -197,7 +186,6 @@ then
 	do
 		DEFAULT_TGT=$d"target/release/deps"
 		PRECOMPDIR=$d$exp/$output
-
 		# Save a list of the executables to run later
 		EXECLIST=$d"exec-list"
 		cd $d
@@ -205,9 +193,7 @@ then
 		# Compile executables
 		if [ $comp -eq 1 ]
 		then
-			
 			cargo clean
-			
 			# Recurse through benchmark names
 			NAMELIST=$d"name-list"
 			BENCHES=()
@@ -231,7 +217,7 @@ then
 				rm -f $OPT_PASSLIST && touch $OPT_PASSLIST
 				rm -f $REMARKS && touch $REMARKS
 
-				# Build with no opts, with temporary files preserved, and emit LLVM-IR
+				# Build with no opts, with temporary files preserved, and emit LLVM-BC
 				# Also use cargo's '-Z print-link-args' to get the exact linker command
 				RUSTFLAGS=$RUSTFLAGS_NONE cargo rustc --verbose --release --bench "$b" -- -Z mir-opt-level=1 -Z print-link-args -v -C save-temps --emit=llvm-bc > $LINKARGS
 
@@ -253,28 +239,15 @@ then
 				# Remove the unoptimized bc or we'll get duplicate symbols at link time
 				rm *no-opt*
 				
-				# Get bitcode
-				#find . -name '*.ll' | xargs -n 1 $LLVM_HOME/bin/llvm-as
-				
 				# Run all the bitcode through our pass (phantom if UNMOD)
 				# If [-p] was specified, also save the list of passes that were run
-				BC_FILES=$(find . -name '*.bc')
-
-				if [ $exp == "UNMOD" ]
+				# ***** UNMOD version *****
+				if [ $exp != 'bcrm' ]
 				then
-				        for f in ${BC_FILES[@]}
-				        do
-				        	#echo $f
-						$LLVM_HOME/bin/opt $(cat $OPT_ARGS) -pass-remarks-output=$REMARKS $PRNTFLAG $O3 $f -o $f 2> $OPT_PASSLIST
-				        done
-					#find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt -pass-remarks-output=$REMARKS $PRNTFLAG $O3 -o {}bc {}bc 2> $OPT_PASSLIST
+					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt $(cat $OPT_ARGS) -pass-remarks-output=$REMARKS $PRNTFLAG $O3 -o {}bc {}bc 2> $OPT_PASSLIST
+				# ***** BCRMP version *****
 				else
-					for f in ${BC_FILES[@]}
-					do
-						echo $f
-						$LLVM_HOME/bin/opt -load $PASS -remove-bc -simplifycfg -dce $(cat $OPT_ARGS) -pass-remarks-output=$REMARKS $PRNTFLAG $O3 $f -o $f 2> $OPT_PASSLIST
-					#find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt -load $PASS -remove-bc -simplifycfg -dce -pass-remarks-output=$REMARKS $PRNTFLAG $O3 -o {}bc {}bc 2> $OPT_PASSLIST
-					done
+					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt -load $PASS -remove-bc -simplifycfg -dce $(cat $OPT_ARGS) -pass-remarks-output=$REMARKS $PRNTFLAG $O3 -o {}bc {}bc 2> $OPT_PASSLIST
 				fi
 				
 				# Compile the bitcode to object files
@@ -284,10 +257,8 @@ then
 				/bin/bash $LINKARGS
 
 			done
-			
 			cd $d
 			mv $DEFAULT_TGT $PRECOMPDIR
-
 		# Run executables
 		else
 			# Read in executable names from the list we saved during compilation step
@@ -299,7 +270,6 @@ then
 
 			OUTDIR=$d$OUTPUT
 			mkdir -p $OUTDIR
-
 			BENCH_RES="$OUTDIR/$exp.bench"
 			rm -f $BENCH_RES && touch $BENCH_RES
 

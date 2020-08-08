@@ -45,11 +45,14 @@ lto_thin_1 = "results-lto-thin-1"
 lto_thin_2 = "results-lto-thin-2"
 no_inline = "results-no-inline-lto-off"
 agg_inline = "results-agg-inline-lto-off"
+# out-of-tree stuff
 bcrm_o0 = "results-bcrmpass-embedbitcode-no-lto-off"
 bcrm_o0_many = "results-bcrmpass-embedbitcode-no-lto-off-many"
 bcrm_o3 = "results-bcrmpass-embedbitcode-no-lto-off-o3"
 bcrm_o3_many = "results-bcrmpass-embedbitcode-no-lto-off-many-o3"
 bcrm_o0_o3 = "results-bcrmpass-o0-embedbitcode-no-lto-off-o3"
+# in-tree stuff
+bcrm_fpm = "results-bcrmpass-first"
 
 switcher = {
     "lto-off-1": {
@@ -125,6 +128,10 @@ switcher = {
     "bcrm-o0-o3": {
         "label": "5: cargo rustc -C no-prepopulate-passes -C passes=name-anon-globals -C embed-bitcode=no -C lto=off && opt -O3 [average of 36 runs]",
         "dir": bcrm_o0_o3
+    },
+    "bcrm-fpm": {
+        "label": "6: cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from FunctionPass Manager) [average of 42 runs]",
+        "dir": bcrm_fpm
     },
     "diff-bcrm": {
         "label": "1 vs 2",
@@ -269,6 +276,14 @@ def getPerfPassLayout():
             options=setting_options(0),
             value="bcrm-o0-o3"
         ),
+
+#        html.Br(),
+#        html.Label('Pick a summary statistic:'),
+#        dcc.RadioItems(id='crate_stat',
+#            options=[{"label": "Mean", "value": "mean"},
+#                {"label": "Median", "value": "median"}],
+#            value="median"
+#        ),
 
         html.Br(),
         html.Label('Lower is better!'),

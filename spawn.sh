@@ -11,11 +11,11 @@ source ~/.bashrc
 
 # *****Comp Version #1*****
 
-OUTNAME="results-bcrmpass-remarks"
+OUTNAME="results-bcrmpass-first"
 
 # Pre-compile
 #./bench.sh -c -o "$OUTNAME"
-./pass-bench.sh -c -m -o "$OUTNAME"
+./pass-bench.sh -c -p -m -o "$OUTNAME"
 
 # Run
 #./bench.sh -b -r 2 -o "$OUTNAME"
@@ -35,12 +35,12 @@ OUTNAME="results-bcrmpass-remarks"
 
 # **************************
 
+#OUTNAME="results-bcrmpass-remarks"
 #SUBDIRS="./crates/crates/*"
-#exp="UNMOD"
 #
 #for d in ${SUBDIRS[@]}
 #do
-#	mkdir -p "$d/$exp/$OUTNAME"
-#	mv "$d/$exp/deps" "$d/$exp/$OUTNAME"
+#	rm -r $d/BCRMP/$OUTNAME
+#	rm -r $d/UNMOD/$OUTNAME
 #done
 

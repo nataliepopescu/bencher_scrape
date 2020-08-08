@@ -1,0 +1,10 @@
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	
+bench_btoi	15.0	0.0	15.0	0.0	
+bench_btou	16.0	0.0	15.023809523809526	0.1524553389864964	
+bench_btou_saturating	14.047619047619047	0.21295885499997996	18.0	0.0	
+bench_from_str	22.04761904761905	0.30491067797299276	23.0	0.0	
+bench_from_str_unchecked	14.0	0.0	14.0	0.0	
+bench_small_btou	5.0	0.0	5.0	0.0	
+bench_small_btou_saturating	6.095238095238095	0.29354352395090366	6.0	0.0	
+bench_small_from_str	12.404761904761905	0.4908459078116263	12.0	0.0	
+bench_small_from_str_unchecked	6.0	0.0	5.0	0.0	

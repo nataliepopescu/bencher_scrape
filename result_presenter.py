@@ -58,27 +58,27 @@ bcrm_mpm = "results-bcrmpass-mpm"
 
 switcher = {
     "lto-off-1": {
-        "label": "1: [MIR modification] -C embed-bitcode=no",
+        "label": "1: [MIR modification] -C embed-bitcode=no -C opt-level=3",
         "dir": lto_off_1
     },
     "lto-off-2": {
-        "label": "2: [MIR modification] -C embed-bitcode=no -C lto=off",
+        "label": "2: [MIR modification] -C embed-bitcode=no -C lto=off -C opt-level=3",
         "dir": lto_off_2
     },
     "lto-thin-1": {
-        "label": "3: [MIR modification] -C embed-bitcode=yes",
+        "label": "3: [MIR modification] -C embed-bitcode=yes -C opt-level=3",
         "dir": lto_thin_1
     },
     "lto-thin-2": {
-        "label": "4: [MIR modification] -C embed-bitcode=yes =C lto=thin",
+        "label": "4: [MIR modification] -C embed-bitcode=yes =C lto=thin -C opt-level=3",
         "dir": lto_thin_2
     },
     "no-inline": {
-        "label": "5: [MIR modification] -C llvm-args=-inline-threshold=0 and -C lto=off",
+        "label": "5: [MIR modification] -C llvm-args=-inline-threshold=0 -C lto=off -C opt-level=3",
         "dir": no_inline
     },
     "agg-inline": {
-        "label": "6: [MIR modification] -C llvm-args=-inline-threshold=300 and -C lto=off",
+        "label": "6: [MIR modification] -C llvm-args=-inline-threshold=300 -C lto=off -C opt-level=3",
         "dir": agg_inline
     },
     "diff-ltos-1": {
@@ -112,19 +112,19 @@ switcher = {
         "dir-tocompare": agg_inline,
     },
     "bcrm-o0": {
-        "label": "7: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -O3 && opt -O0 [average of 36 runs]",
+        "label": "7: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -C opt-level=3 && opt -O0 [average of 36 runs]",
         "dir": bcrm_o0
     },
     "bcrm-o3": {
-        "label": "8: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -O3 && opt -O3 [average of 36 runs]",
+        "label": "8: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -C opt-level=3 && opt -O3 [average of 36 runs]",
         "dir": bcrm_o3
     },
     "bcrm-o0-many": {
-        "label": "9: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -O3 && opt -O0 [average of 180 runs]",
+        "label": "9: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -C opt-level=3 && opt -O0 [average of 180 runs]",
         "dir": bcrm_o0_many
     },
     "bcrm-o3-many": {
-        "label": "10: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -O3 && opt -O3 [average of 180 runs]",
+        "label": "10: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -C opt-level=3 && opt -O3 [average of 180 runs]",
         "dir": bcrm_o3_many
     },
     "diff-bcrm": {
@@ -155,6 +155,12 @@ switcher = {
         "label": "11: [Out-of-Tree LLVM Pass] cargo rustc -C no-prepopulate-passes -C passes=name-anon-globals -C embed-bitcode=no -C lto=off && opt -O3 [average of 36 runs]",
         "dir": bcrm_o0_o3
     },
+    "diff-mir-v-out": {
+        "label": "2 vs 11",
+        "y-axis-label": "11 Time per Iteration Relative to 2 [%]",
+        "dir-baseline": lto_off_2,
+        "dir-tocompare": bcrm_o0_o3,
+    },
     "diff-bcrm-o0-o3": {
         "label": "8 vs 11",
         "y-axis-label": "11 Time per Iteration Relative to 8 [%]",
@@ -180,6 +186,12 @@ switcher = {
         "y-axis-label": "11 Time per Iteration Relative to 13 [%]",
         "dir-baseline": bcrm_mpm,
         "dir-tocompare": bcrm_o0_o3,
+    },
+    "diff-mir-v-in": {
+        "label": "2 vs 13",
+        "y-axis-label": "13 Time per Iteration Relative to 2 [%]",
+        "dir-baseline": lto_off_2,
+        "dir-tocompare": bcrm_mpm,
     },
     "diff-bcrm-fpm-mpm": {
         "label": "12 vs 13",
@@ -341,6 +353,9 @@ def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_t
     if "bcrm" in crate_opt:
         file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-baseline") + "/" + data_file_new
         file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file_new
+    elif "mir" in crate_opt:
+        file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-baseline") + "/" + data_file
+        file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file_new
     else:
         file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-baseline") + "/" + data_file
         file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file
@@ -405,7 +420,7 @@ def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_t
 
 
     bar_list = []
-    if "bcrm" in crate_opt:
+    if ("bcrm" in crate_opt) or ("mir" in crate_opt):
         bar_unmod = get_one_bar(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
         bar_nobc = get_one_bar(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
 

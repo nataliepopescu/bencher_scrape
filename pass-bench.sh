@@ -38,7 +38,8 @@ TARGET="x86_64-unknown-linux-gnu"
 UNMOD="$VERSION-$TARGET"
 BCRMP="bcrm"
 
-#EXPERIMENTS=( "bcrm" )
+#EXPERIMENTS=( "$BCRMP" )
+#EXPERIMENTS=( "$UNMOD" )
 EXPERIMENTS=( "$UNMOD" "$BCRMP" )
 
 # *****COMMAND-LINE ARGS*****
@@ -86,6 +87,9 @@ do
 	esac
 done
 
+cp bashrc ~/.bashrc
+source ~/.bashrc
+
 # *****PRE-PROCESS*****
 for i in $(seq 1 $runs)
 do
@@ -117,7 +121,7 @@ do
 	RANDDIRS=( "${RANDDIRS[@]}" "$line" )
 done < "$RAND_DIRLIST"
 
-RANDDIRS=( "/benchdata/rust/bencher_scrape/crates/crates/bucket_queue/" )
+#RANDDIRS=( "/benchdata/rust/bencher_scrape/crates/crates/bucket_queue/" )
 
 # Initialize output directory names depending on # runs
 SUFFIX="$name"
@@ -133,13 +137,23 @@ fi
 LLVM_HOME="/benchdata/llvm-project/build"
 RUSTUP_TOOLCHAIN_LIB="/benchdata/.rustup/toolchains/$UNMOD/lib/rustlib/$TARGET/lib"
 NOPIE_SCRIPT=$ROOT/make_no_pie.py
+SAVE_EXE_SCRIPT=$ROOT/save_execs.py
 BNAME_SCRIPT=$ROOT/process_benchnames.py
 CONVERT_ARGS_SCRIPT=$ROOT/convert_rustc_to_opt_args.py
-PASS="/benchdata/remove-bounds-check-pass/build/CAT.so"
+#PASS="/benchdata/remove-bounds-check-pass/build/CAT.so"
 
 for exp in ${EXPERIMENTS[@]}
 do
+
 rustup override set $exp
+
+if [ $exp == $UNMOD ]
+then
+	cp bash_profile ~/.bash_profile
+else
+	cp bash_profile_bcrm ~/.bash_profile
+fi
+source ~/.bash_profile
 
 # Get list of benchmark names and
 # the list of llvm passes rustc -O3 runs
@@ -151,6 +165,7 @@ then
 		rm -f $ERRMSG && touch $ERRMSG
 		NAMELIST=$d"name-list"
 		rm -f $NAMELIST && touch $NAMELIST
+		DEFAULT_TGT=$d"target/release/deps"
 		PRECOMPDIR=$d$exp/$output
 		if [ -d $PRECOMPDIR ]
 		then
@@ -178,95 +193,108 @@ then
 		do
 			RUSTC_PASSLIST="$PRECOMPDIR/$b-rustc-pass-list"
 			rm -f $RUSTC_PASSLIST && touch $RUSTC_PASSLIST
+			REMARKS="$PRECOMPDIR/$b-remarks"
+			rm -f $REMARKS && touch $REMARKS
+			LINKARGS="$PRECOMPDIR/$b-link-args"
+			rm -f $LINKARGS && touch $LINKARGS
+			EXECLIST="$PRECOMPDIR/exec-list"
+			rm -f $EXECLIST && touch $EXECLIST
 
 			# Running with opt-level = O3
-			RUSTFLAGS=$RUSTFLAGS_3 cargo rustc --verbose --release --bench "$b" -- --emit=llvm-bc -C llvm-args=-debug-pass=Structure 2> $RUSTC_PASSLIST
+			if [ $exp == $UNMOD ]
+			then
+				RUSTFLAGS=$RUSTFLAGS_3 cargo rustc --verbose --release --bench "$b" -- -Z print-link-args -C "remark=all" -v -C save-temps -C llvm-args=-debug-pass=Structure 2> $RUSTC_PASSLIST > $LINKARGS
+			else
+				RUSTFLAGS=$RUSTFLAGS_3 cargo rustc --verbose --release --bench "$b" -- -Z remove-bc -Z print-link-args -C "remark=all" -v -C save-temps -C llvm-args=-debug-pass=Structure 2> $RUSTC_PASSLIST > $LINKARGS
+			fi
+			python3 $SAVE_EXE_SCRIPT $LINKARGS $EXECLIST
 		done
 		cd $ROOT
+		mv $DEFAULT_TGT $PRECOMPDIR
 	done
 fi
 
-if [ $bench -eq 1 -o $comp -eq 1 ]
+if [ $bench -eq 1 ] # -o $comp -eq 1 ]
 then
 	for d in ${RANDDIRS[@]}
 	do
 		DEFAULT_TGT=$d"target/release/deps"
 		PRECOMPDIR=$d$exp/$output
 		# Save a list of the executables to run later
-		EXECLIST=$d"exec-list"
+		EXECLIST="$PRECOMPDIR/exec-list"
 		cd $d
 
 		# Compile executables
-		if [ $comp -eq 1 ]
-		then
-			cargo clean
-			# Recurse through benchmark names
-			NAMELIST=$d"name-list"
-			BENCHES=()
-			while read -r name
-			do
-				BENCHES=( "${BENCHES[@]}" "$name" )
-			done < "$NAMELIST"
-			
-			LINKARGS=$d"link-args"
-			rm -f $LINKARGS && touch $LINKARGS
-			rm -f $EXECLIST && touch $EXECLIST
-
-			for b in ${BENCHES[@]}
-			do
-				# From previous loop
-				RUSTC_PASSLIST="$PRECOMPDIR/$b-rustc-pass-list"
-
-				# New files
-				OPT_PASSLIST="$PRECOMPDIR/$b-opt-pass-list"
-				REMARKS="$PRECOMPDIR/$b-remarks"
-				rm -f $OPT_PASSLIST && touch $OPT_PASSLIST
-				rm -f $REMARKS && touch $REMARKS
-
-				# Build with no opts, with temporary files preserved, and emit LLVM-BC
-				# Also use cargo's '-Z print-link-args' to get the exact linker command
-				RUSTFLAGS=$RUSTFLAGS_NONE cargo rustc --verbose --release --bench "$b" -- -Z mir-opt-level=1 -Z print-link-args -v -C save-temps --emit=llvm-bc > $LINKARGS
-
-				# Replace instances of "-pie" with "-no-pie", otherwise get 
-				# "relocation R_X86_64_32 against `.rodata' can not be used when 
-				# making a PIE object; recompile with -fPIE" error
-				OUT=$d"tmp"
-				python3 $NOPIE_SCRIPT $LINKARGS $OUT $EXECLIST
-				mv $OUT $LINKARGS
-
-				# Use the saved LLVM opts from the previous rustc -O3 command
-				# and pass to LLVM's 'opt' tool explicitly, so we can insert our
-				# custom pass first
-				OPT_ARGS="$PRECOMPDIR/$b-opt-args"
-				python3 $CONVERT_ARGS_SCRIPT $RUSTC_PASSLIST $OPT_ARGS
-				
-				cd $DEFAULT_TGT
-				
-				# Remove the unoptimized bc or we'll get duplicate symbols at link time
-				rm *no-opt*
-				
-				# Run all the bitcode through our pass (phantom if UNMOD)
-				# If [-p] was specified, also save the list of passes that were run
-				# ***** UNMOD version *****
-				if [ $exp == $UNMOD ]
-				then
-					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt $(cat $OPT_ARGS) -pass-remarks-output=$REMARKS $PRNTFLAG $O3 -o {}bc {}bc 2> $OPT_PASSLIST
-				# ***** BCRMP version *****
-				else
-					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt -load $PASS -remove-bc -simplifycfg -dce $(cat $OPT_ARGS) -pass-remarks-output=$REMARKS $PRNTFLAG $O3 -o {}bc {}bc 2> $OPT_PASSLIST
-				fi
-				
-				# Compile the bitcode to object files
-				find . -name '*.bc' | xargs -n 1 $LLVM_HOME/bin/llc -filetype=obj
-				
-				# Complete the linking with previously saved/process command
-				/bin/bash $LINKARGS
-
-			done
-			cd $d
-			mv $DEFAULT_TGT $PRECOMPDIR
-		# Run executables
-		else
+#		if [ $comp -eq 1 ]
+#		then
+#			cargo clean
+#			# Recurse through benchmark names
+#			NAMELIST=$d"name-list"
+#			BENCHES=()
+#			while read -r name
+#			do
+#				BENCHES=( "${BENCHES[@]}" "$name" )
+#			done < "$NAMELIST"
+#			
+#			LINKARGS=$d"link-args"
+#			rm -f $LINKARGS && touch $LINKARGS
+#			rm -f $EXECLIST && touch $EXECLIST
+#
+#			for b in ${BENCHES[@]}
+#			do
+#				# From previous loop
+#				RUSTC_PASSLIST="$PRECOMPDIR/$b-rustc-pass-list"
+#
+#				# New files
+#				OPT_PASSLIST="$PRECOMPDIR/$b-opt-pass-list"
+#				REMARKS="$PRECOMPDIR/$b-remarks"
+#				rm -f $OPT_PASSLIST && touch $OPT_PASSLIST
+#				rm -f $REMARKS && touch $REMARKS
+#
+#				# Build with no opts, with temporary files preserved, and emit LLVM-BC
+#				# Also use cargo's '-Z print-link-args' to get the exact linker command
+#				RUSTFLAGS=$RUSTFLAGS_NONE cargo rustc --verbose --release --bench "$b" -- -Z mir-opt-level=1 -Z print-link-args -v -C save-temps --emit=llvm-bc > $LINKARGS
+#
+#				# Replace instances of "-pie" with "-no-pie", otherwise get 
+#				# "relocation R_X86_64_32 against `.rodata' can not be used when 
+#				# making a PIE object; recompile with -fPIE" error
+#				OUT=$d"tmp"
+#				python3 $NOPIE_SCRIPT $LINKARGS $OUT $EXECLIST
+#				mv $OUT $LINKARGS
+#
+#				# Use the saved LLVM opts from the previous rustc -O3 command
+#				# and pass to LLVM's 'opt' tool explicitly, so we can insert our
+#				# custom pass first
+#				OPT_ARGS="$PRECOMPDIR/$b-opt-args"
+#				python3 $CONVERT_ARGS_SCRIPT $RUSTC_PASSLIST $OPT_ARGS
+#				
+#				cd $DEFAULT_TGT
+#				
+#				# Remove the unoptimized bc or we'll get duplicate symbols at link time
+#				rm *no-opt*
+#				
+#				# Run all the bitcode through our pass (phantom if UNMOD)
+#				# If [-p] was specified, also save the list of passes that were run
+#				# ***** UNMOD version *****
+#				if [ $exp == $UNMOD ]
+#				then
+#					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt $(cat $OPT_ARGS) -pass-remarks-output=$REMARKS $PRNTFLAG $O3 -o {}bc {}bc 2> $OPT_PASSLIST
+#				# ***** BCRMP version *****
+#				else
+#					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt -load $PASS -remove-bc -simplifycfg -dce $(cat $OPT_ARGS) -pass-remarks-output=$REMARKS $PRNTFLAG $O3 -o {}bc {}bc 2> $OPT_PASSLIST
+#				fi
+#				
+#				# Compile the bitcode to object files
+#				find . -name '*.bc' | xargs -n 1 $LLVM_HOME/bin/llc -filetype=obj
+#				
+#				# Complete the linking with previously saved/process command
+#				/bin/bash $LINKARGS
+#
+#			done
+#			cd $d
+#			mv $DEFAULT_TGT $PRECOMPDIR
+#		# Run executables
+#		else
 			# Read in executable names from the list we saved during compilation step
 			EXECS=()
 			while read -r name
@@ -285,7 +313,7 @@ then
 			do
 				./$e >> $BENCH_RES
 			done
-		fi
+		#fi
 		cd $ROOT
 	done
 fi
@@ -298,8 +326,8 @@ if [ $bench -eq 1 ]
 then
 	for d in ${RANDDIRS[@]}
 	do
-		unmod_res="$d$OUTPUT/UNMOD.bench"
-		bcrmp_res="$d$OUTPUT/BCRMP.bench"
+		unmod_res="$d$OUTPUT/${EXPERIMENTS[0]}.bench"
+		bcrmp_res="$d$OUTPUT/${EXPERIMENTS[1]}.bench"
 		cd $d
 		DATA_FILE="$PWD/$OUTPUT/bench.data"
 		touch $DATA_FILE

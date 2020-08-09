@@ -13,6 +13,8 @@ def get_args(
                 continue
             elif "-write-thinlto-bitcode" in stripped:
                 continue
+            elif "-lower-constant-intrinsics" in stripped:
+                continue
             elif len(stripped) < 200:
                 continue
             split = stripped.split()

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-cp bashrc ~/.bashrc
-cp bash_profile ~/.bash_profile
-source ~/.bashrc
+#cp bashrc ~/.bashrc
+#cp bash_profile ~/.bash_profile
+#source ~/.bashrc
 
 #rustup toolchain link nobc /benchdata/rust/rust-nobc/build/x86_64-unknown-linux-gnu/stage2
 #rustup toolchain link nobc+sl /benchdata/rust/rust-nobc+sl/build/x86_64-unknown-linux-gnu/stage2

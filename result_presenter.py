@@ -53,6 +53,7 @@ bcrm_o3_many = "results-bcrmpass-embedbitcode-no-lto-off-many-o3"
 bcrm_o0_o3 = "results-bcrmpass-o0-embedbitcode-no-lto-off-o3"
 # in-tree stuff
 bcrm_fpm = "results-bcrmpass-first"
+bcrm_mpm = "results-bcrmpass-mpm"
 
 switcher = {
     "lto-off-1": {
@@ -130,8 +131,12 @@ switcher = {
         "dir": bcrm_o0_o3
     },
     "bcrm-fpm": {
-        "label": "6: cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from FunctionPass Manager) [average of 42 runs]",
+        "label": "6: cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from LLVM's FunctionPass Manager) [average of 42 runs]",
         "dir": bcrm_fpm
+    },
+    "bcrm-mpm": {
+        "label": "7: cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from LLVM's ModulePass Manager) [average of 42 runs]",
+        "dir": bcrm_mpm
     },
     "diff-bcrm": {
         "label": "1 vs 2",
@@ -162,6 +167,12 @@ switcher = {
         "y-axis-label": "5 Time per Iteration Relative to 2 [%]",
         "dir1": bcrm_o3,
         "dir2": bcrm_o0_o3,
+    },
+    "diff-bcrm-fpm-mpm": {
+        "label": "6 vs 7",
+        "y-axis-label": "6 Time per Iteration Relative to 7 [%]",
+        "dir1": bcrm_fpm,
+        "dir2": bcrm_mpm,
     }
 }
 

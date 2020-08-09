@@ -112,7 +112,7 @@ switcher = {
         "dir-tocompare": agg_inline,
     },
     "bcrm-o0": {
-        "label": "7: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -O3 [average of 36 runs]",
+        "label": "7: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -O3 && opt -O0 [average of 36 runs]",
         "dir": bcrm_o0
     },
     "bcrm-o3": {
@@ -120,16 +120,12 @@ switcher = {
         "dir": bcrm_o3
     },
     "bcrm-o0-many": {
-        "label": "9: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -O3 [average of 180 runs]",
+        "label": "9: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -O3 && opt -O0 [average of 180 runs]",
         "dir": bcrm_o0_many
     },
     "bcrm-o3-many": {
         "label": "10: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -O3 && opt -O3 [average of 180 runs]",
         "dir": bcrm_o3_many
-    },
-    "bcrm-o0-o3": {
-        "label": "11: [Out-of-Tree LLVM Pass] cargo rustc -C no-prepopulate-passes -C passes=name-anon-globals -C embed-bitcode=no -C lto=off && opt -O3 [average of 36 runs]",
-        "dir": bcrm_o0_o3
     },
     "diff-bcrm": {
         "label": "7 vs 8",
@@ -154,6 +150,10 @@ switcher = {
         "y-axis-label": "10 Time per Iteration Relative to 8 [%]",
         "dir-baseline": bcrm_o3,
         "dir-tocompare": bcrm_o3_many
+    },
+    "bcrm-o0-o3": {
+        "label": "11: [Out-of-Tree LLVM Pass] cargo rustc -C no-prepopulate-passes -C passes=name-anon-globals -C embed-bitcode=no -C lto=off && opt -O3 [average of 36 runs]",
+        "dir": bcrm_o0_o3
     },
     "diff-bcrm-o0-o3": {
         "label": "8 vs 11",

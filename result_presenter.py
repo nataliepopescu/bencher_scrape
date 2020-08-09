@@ -39,140 +39,153 @@ graph_styles = {
     }
 }
 
+# rustc stuff
 lto_off_1 = "results-lto-off-1"
 lto_off_2 = "results-lto-off-2"
 lto_thin_1 = "results-lto-thin-1"
 lto_thin_2 = "results-lto-thin-2"
 no_inline = "results-no-inline-lto-off"
 agg_inline = "results-agg-inline-lto-off"
-# out-of-tree stuff
+# out-of-tree llvm stuff
 bcrm_o0 = "results-bcrmpass-embedbitcode-no-lto-off"
 bcrm_o0_many = "results-bcrmpass-embedbitcode-no-lto-off-many"
 bcrm_o3 = "results-bcrmpass-embedbitcode-no-lto-off-o3"
 bcrm_o3_many = "results-bcrmpass-embedbitcode-no-lto-off-many-o3"
 bcrm_o0_o3 = "results-bcrmpass-o0-embedbitcode-no-lto-off-o3"
-# in-tree stuff
+# in-tree llvm stuff
 bcrm_fpm = "results-bcrmpass-first"
 bcrm_mpm = "results-bcrmpass-mpm"
 
 switcher = {
     "lto-off-1": {
-        "label": "1: -C embed-bitcode=no",
+        "label": "1: [MIR modification] -C embed-bitcode=no",
         "dir": lto_off_1
     },
     "lto-off-2": {
-        "label": "2: -C embed-bitcode=no -C lto=off",
+        "label": "2: [MIR modification] -C embed-bitcode=no -C lto=off",
         "dir": lto_off_2
     },
     "lto-thin-1": {
-        "label": "3: -C embed-bitcode=yes",
+        "label": "3: [MIR modification] -C embed-bitcode=yes",
         "dir": lto_thin_1
     },
     "lto-thin-2": {
-        "label": "4: -C embed-bitcode=yes =C lto=thin",
+        "label": "4: [MIR modification] -C embed-bitcode=yes =C lto=thin",
         "dir": lto_thin_2
     },
     "no-inline": {
-        "label": "5: -C llvm-args=-inline-threshold=0 and -C lto=off",
+        "label": "5: [MIR modification] -C llvm-args=-inline-threshold=0 and -C lto=off",
         "dir": no_inline
     },
     "agg-inline": {
-        "label": "6: -C llvm-args=-inline-threshold=300 and -C lto=off",
+        "label": "6: [MIR modification] -C llvm-args=-inline-threshold=300 and -C lto=off",
         "dir": agg_inline
     },
     "diff-ltos-1": {
         "label": "1 vs 3",
         "y-axis-label": "3 Time per Iteration Relative to 1 [%]",
-        "dir1": lto_off_1, # baseline
-        "dir2": lto_thin_1, # tocompare
+        "dir-baseline": lto_off_1,
+        "dir-tocompare": lto_thin_1,
     },
     "diff-ltos-2": {
         "label": "2 vs 4",
         "y-axis-label": "4 Time per Iteration Relative to 2 [%]",
-        "dir1": lto_off_2, # baseline
-        "dir2": lto_thin_2, # tocompare
+        "dir-baseline": lto_off_2,
+        "dir-tocompare": lto_thin_2,
     },
     "diff-off": {
         "label": "1 vs 2",
         "y-axis-label": "2 Time per Iteration Relative to 1 [%]",
-        "dir1": lto_off_1, # baseline
-        "dir2": lto_off_2, # tocompare
+        "dir-baseline": lto_off_1,
+        "dir-tocompare": lto_off_2,
     },
     "diff-thin": {
         "label": "3 vs 4",
         "y-axis-label": "4 Time per Iteration Relative to 3 [%]",
-        "dir1": lto_thin_1, # baseline
-        "dir2": lto_thin_2, # tocompare
+        "dir-baseline": lto_thin_1,
+        "dir-tocompare": lto_thin_2,
     },
     "diff-inline": {
         "label": "5 vs 6",
         "y-axis-label": "6 Time per Iteration Relative to 5 [%]",
-        "dir1": no_inline, # baseline
-        "dir2": agg_inline, # tocompare
+        "dir-baseline": no_inline,
+        "dir-tocompare": agg_inline,
     },
     "bcrm-o0": {
-        "label": "1: cargo rustc -C embed-bitcode=no -C lto=off -O3 [average of 36 runs]",
+        "label": "7: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -O3 [average of 36 runs]",
         "dir": bcrm_o0
     },
     "bcrm-o3": {
-        "label": "2: cargo rustc -C embed-bitcode=no -C lto=off -O3 && opt -O3 [average of 36 runs]",
+        "label": "8: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -O3 && opt -O3 [average of 36 runs]",
         "dir": bcrm_o3
     },
     "bcrm-o0-many": {
-        "label": "3: cargo rustc -C embed-bitcode=no -C lto=off -O3 [average of 180 runs]",
+        "label": "9: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -O3 [average of 180 runs]",
         "dir": bcrm_o0_many
     },
     "bcrm-o3-many": {
-        "label": "4: cargo rustc -C embed-bitcode=no -C lto=off -O3 && opt -O3 [average of 180 runs]",
+        "label": "10: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -O3 && opt -O3 [average of 180 runs]",
         "dir": bcrm_o3_many
     },
     "bcrm-o0-o3": {
-        "label": "5: cargo rustc -C no-prepopulate-passes -C passes=name-anon-globals -C embed-bitcode=no -C lto=off && opt -O3 [average of 36 runs]",
+        "label": "11: [Out-of-Tree LLVM Pass] cargo rustc -C no-prepopulate-passes -C passes=name-anon-globals -C embed-bitcode=no -C lto=off && opt -O3 [average of 36 runs]",
         "dir": bcrm_o0_o3
     },
+    "diff-bcrm": {
+        "label": "7 vs 8",
+        "y-axis-label": "8 Time per Iteration Relative to 7 [%]",
+        "dir-baseline": bcrm_o0,
+        "dir-tocompare": bcrm_o3
+    },
+    "diff-bcrm-o0": {
+        "label": "7 vs 9",
+        "y-axis-label": "9 Time per Iteration Relative to 7 [%]",
+        "dir-baseline": bcrm_o0,
+        "dir-tocompare": bcrm_o0_many
+    },
+    "diff-bcrm-many": {
+        "label": "9 vs 10",
+        "y-axis-label": "10 Time per Iteration Relative to 9 [%]",
+        "dir-baseline": bcrm_o0_many,
+        "dir-tocompare": bcrm_o3_many
+    },
+    "diff-bcrm-o3": {
+        "label": "8 vs 10",
+        "y-axis-label": "10 Time per Iteration Relative to 8 [%]",
+        "dir-baseline": bcrm_o3,
+        "dir-tocompare": bcrm_o3_many
+    },
+    "diff-bcrm-o0-o3": {
+        "label": "8 vs 11",
+        "y-axis-label": "11 Time per Iteration Relative to 8 [%]",
+        "dir-baseline": bcrm_o3,
+        "dir-tocompare": bcrm_o0_o3,
+    },
     "bcrm-fpm": {
-        "label": "6: cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from LLVM's FunctionPass Manager) [average of 42 runs]",
+        "label": "12: [In-Tree LLVM Pass] cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from LLVM's FunctionPass Manager) [average of 42 runs]",
         "dir": bcrm_fpm
     },
     "bcrm-mpm": {
-        "label": "7: cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from LLVM's ModulePass Manager) [average of 42 runs]",
+        "label": "13: [In-Tree LLVM Pass] cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from LLVM's ModulePass Manager) [average of 42 runs]",
         "dir": bcrm_mpm
     },
-    "diff-bcrm": {
-        "label": "1 vs 2",
-        "y-axis-label": "2 Time per Iteration Relative to 1 [%]",
-        "dir1": bcrm_o0,
-        "dir2": bcrm_o3
+    "diff-bcrm-fpm-o0-o3": {
+        "label": "11 vs 12",
+        "y-axis-label": "11 Time per Iteration Relative to 12 [%]",
+        "dir-baseline": bcrm_fpm,
+        "dir-tocompare": bcrm_o0_o3,
     },
-    "diff-bcrm-o0": {
-        "label": "1 vs 3",
-        "y-axis-label": "3 Time per Iteration Relative to 1 [%]",
-        "dir1": bcrm_o0,
-        "dir2": bcrm_o0_many
-    },
-    "diff-bcrm-many": {
-        "label": "3 vs 4",
-        "y-axis-label": "4 Time per Iteration Relative to 3 [%]",
-        "dir1": bcrm_o0_many,
-        "dir2": bcrm_o3_many
-    },
-    "diff-bcrm-o3": {
-        "label": "2 vs 4",
-        "y-axis-label": "4 Time per Iteration Relative to 2 [%]",
-        "dir1": bcrm_o3,
-        "dir2": bcrm_o3_many
-    },
-    "diff-bcrm-o0-o3": {
-        "label": "2 vs 5",
-        "y-axis-label": "5 Time per Iteration Relative to 2 [%]",
-        "dir1": bcrm_o3,
-        "dir2": bcrm_o0_o3,
+    "diff-bcrm-mpm-o0-o3": {
+        "label": "11 vs 13",
+        "y-axis-label": "11 Time per Iteration Relative to 13 [%]",
+        "dir-baseline": bcrm_mpm,
+        "dir-tocompare": bcrm_o0_o3,
     },
     "diff-bcrm-fpm-mpm": {
-        "label": "6 vs 7",
-        "y-axis-label": "6 Time per Iteration Relative to 7 [%]",
-        "dir1": bcrm_fpm,
-        "dir2": bcrm_mpm,
+        "label": "12 vs 13",
+        "y-axis-label": "12 Time per Iteration Relative to 13 [%]",
+        "dir-baseline": bcrm_mpm,
+        "dir-tocompare": bcrm_fpm,
     }
 }
 
@@ -220,17 +233,17 @@ def crate_options():
     return options
 
 
-def setting_options(version):
+def setting_options(): #version):
     options = []
     global switcher
     keys = switcher.keys()
     for k in keys:
-        if version == 0 and "bcrm" in k: #k.startswith("bcrm"):
-            label = switcher.get(k).get("label")
-            options.append({'label': label, 'value': k})
-        elif version == 1 and not "bcrm" in k:
-            label = switcher.get(k).get("label")
-            options.append({'label': label, 'value': k})
+#        if version == 0 and "bcrm" in k: #k.startswith("bcrm"):
+        label = switcher.get(k).get("label")
+        options.append({'label': label, 'value': k})
+#        elif version == 1 and not "bcrm" in k:
+#            label = switcher.get(k).get("label")
+#            options.append({'label': label, 'value': k})
     return options
 
 
@@ -270,7 +283,8 @@ def getPerfRustcsLayout():
     return layout
 
 
-def getPerfPassLayout():
+#def getPerfPassLayout():
+def getPerfLayout():
 
     layout = html.Div([
         html.Br(),
@@ -284,8 +298,8 @@ def getPerfPassLayout():
         html.Br(),
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
-            options=setting_options(0),
-            value="bcrm-o0-o3"
+            options=setting_options(), #0),
+            value="bcrm-mpm"
         ),
 
 #        html.Br(),
@@ -325,11 +339,11 @@ def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_t
 #    unexp_safelib = []
 
     if "bcrm" in crate_opt:
-        file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir1") + "/" + data_file_new
-        file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir2") + "/" + data_file_new
+        file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-baseline") + "/" + data_file_new
+        file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file_new
     else:
-        file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir1") + "/" + data_file
-        file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir2") + "/" + data_file
+        file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-baseline") + "/" + data_file
+        file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file
 
     if ((not os.path.exists(file_baseline)) or is_empty_datafile(file_baseline)) or ((not os.path.exists(file_tocompare)) or is_empty_datafile(file_tocompare)):
         return "\nNo diff data for crate " + str(crate_name) + " with these settings."
@@ -636,14 +650,18 @@ def display_page(pathname):
         return 404
 
     if pathname == '/':
-        pathname = '/comparePass'
+        pathname = '/compareRMBCEffects'
+    #    pathname = '/comparePass'
 
-    if pathname == '/compareRustcs':
-        layout = getPerfRustcsLayout() #app._resultProvider)
+    if pathname == '/compareRMBCEffects':
+        layout = getPerfLayout()
         return layout
-    if pathname == '/comparePass':
-        layout = getPerfPassLayout() #app._resultProvider)
-        return layout
+    #if pathname == '/compareRustcs':
+    #    layout = getPerfRustcsLayout() #app._resultProvider)
+    #    return layout
+    #if pathname == '/comparePass':
+    #    layout = getPerfPassLayout() #app._resultProvider)
+    #    return layout
     else:
         return 404
 
@@ -658,10 +676,10 @@ if __name__ == '__main__':
 
     app.layout = html.Div([
         dcc.Location(id='url', refresh=False),
-        dcc.Link('Modified Rustc', href='/compareRustcs'),
-        html.Br(),
-        dcc.Link('Out of Tree LLVM Pass', href='/comparePass'),
-        html.Br(),
+    #    dcc.Link('Modified Rustc', href='/compareRustcs'),
+    #    html.Br(),
+    #    dcc.Link('Out of Tree LLVM Pass', href='/comparePass'),
+    #    html.Br(),
         html.Div(id='page-content')
     ])
 

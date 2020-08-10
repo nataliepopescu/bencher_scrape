@@ -28,15 +28,15 @@ graph_styles = {
     1: {
         "bar-name": "Rustc No Slice Bounds Checks",
         "bar-color": "#FFA500"
-    },
-    2: {
-        "bar-name": "Rustc No Slice Bounds Checks + Safe memcpy",
-        "bar-color": "#DDA0DD"
-    },
-    3: {
-        "bar-name": "Rustc Safe memcpy",
-        "bar-color": "#0571B0"
-    }
+    } #,
+#    2: {
+#        "bar-name": "Rustc No Slice Bounds Checks + Safe memcpy",
+#        "bar-color": "#DDA0DD"
+#    },
+#    3: {
+#        "bar-name": "Rustc Safe memcpy",
+#        "bar-color": "#0571B0"
+#    }
 }
 
 # rustc stuff
@@ -420,18 +420,18 @@ def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_t
 
 
     bar_list = []
-    if ("bcrm" in crate_opt) or ("mir" in crate_opt):
-        bar_unmod = get_one_bar(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
-        bar_nobc = get_one_bar(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
+    #if ("bcrm" in crate_opt) or ("mir" in crate_opt):
+    bar_unmod = get_one_bar(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
+    bar_nobc = get_one_bar(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
 
-        bar_list = [bar_unmod, bar_nobc]
-    else:
-        bar_unmod = get_one_bar(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
-        bar_nobc = get_one_bar(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
-        bar_both = get_one_bar(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
-        bar_safelib = get_one_bar(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
+    bar_list = [bar_unmod, bar_nobc]
+    #else:
+    #    bar_unmod = get_one_bar(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
+    #    bar_nobc = get_one_bar(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
+    #    bar_both = get_one_bar(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
+    #    bar_safelib = get_one_bar(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
 
-        bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
+    #    bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
 
     fig = go.Figure({
                     'data': bar_list,
@@ -584,18 +584,18 @@ def display_relative(crate_name, crate_opt):
 
     
     bar_list = []
-    if "bcrm" in crate_opt: #.startswith("bcrm"):
-        bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
-        bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
+    #if "bcrm" in crate_opt: #.startswith("bcrm"):
+    bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
+    bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
 
-        bar_list = [bar_unmod, bar_nobc]
-    else: 
-        bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
-        bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
-        bar_both = get_one_bar_rel(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
-        bar_safelib = get_one_bar_rel(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
+    bar_list = [bar_unmod, bar_nobc]
+    #else: 
+    #    bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
+    #    bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
+    #    bar_both = get_one_bar_rel(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
+    #    bar_safelib = get_one_bar_rel(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
 
-        bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
+    #    bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
 
     fig = go.Figure({
                     'data': bar_list,

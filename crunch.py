@@ -25,6 +25,18 @@ def average(array):
     return avg
 
 
+def geomean(array):
+    locarr = []
+    for a in array:
+        if a == 0:
+            #print("a is zero")
+            locarr.append(10**-100)
+        else: 
+            locarr.append(a)
+    arr = numpy.log(locarr)
+    return numpy.exp(arr.sum() / len(arr))
+
+
 def stddev(array, arr_avg):
     length = len(array)
     sqrs = []
@@ -48,13 +60,16 @@ def crunch(
     numruns):
     # Use same headers and will be using similar logic as "aggregate_bench.py" later on
     headers = ['#','bench-name','unmod-time', 'unmod-error','nobc-time','nobc-error'] #'nobc+sl-time','nobc+sl-error','safelib-time','safelib-error']
+    gm_headers = ['#','bench-name','unmod-time','nobc-time']
     #headers = ['#','bench-name','unmod-time', 'unmod-error','nobc-time','nobc-error','nobc+sl-time','nobc+sl-error','safelib-time','safelib-error']
     
     # Grab the numbers for each [benchmark x rustc] combo (per crate)
     base_file = "./crates/crates/" + crate + "/" + data_file_loc + "/" + data_file
     crunched_output = base_file + "-CRUNCHED.data"
+    geomean_output = base_file + "-GEOMEAN.data"
     # Write headers
     path_wrangle(crunched_output, headers)
+    path_wrangle(geomean_output, gm_headers)
 
     # Each loop here represents a different .data file, meaning that
     # each loop iteration adds to all the arrays _once_ (one data point
@@ -112,11 +127,14 @@ def crunch(
             run += 1
 
     fd_crunched_output = open(crunched_output, 'a')
+    fd_geomean_output = open(geomean_output, 'a')
     # Now that we've populated our matrix, can start crunching numbers
     for r in range(rows):
         row = []
+        gm_row = []
         label = labels[r]
         row.append(label)
+        gm_row.append(label)
         for c in range(cols):
             # Order when print matrix: 
             #   unmod
@@ -124,10 +142,13 @@ def crunch(
             #   nobc+sl
             #   safelib
             avg = average(matrix[r][c])
+            gm = geomean(matrix[r][c])
             stdev = stddev(matrix[r][c], avg)
             row.append(str(avg))
             row.append(str(stdev))
+            gm_row.append(str(gm))
         writerow(fd_crunched_output, row)
+        writerow(fd_geomean_output, gm_row)
 
 def path_wrangle(filepath, headers):
     """ Check for or create path and output file

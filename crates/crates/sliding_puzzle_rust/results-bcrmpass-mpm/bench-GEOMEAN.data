@@ -1,0 +1,14 @@
+#	bench-name	unmod-time	nobc-time	
+cloning_a_fifteen_puzzle	31.651991217940733	33.17099216314544	
+from_decimal_on_a_fifteen_puzzle	498.9253631702716	496.0863536057663	
+from_decimal_unchecked_on_a_fifteen_puzzle	479.661742647972	463.2334870441449	
+moves_for_a_fifteen_puzzle	42.023537090121216	44.1785706566026	
+new_eight_puzzle	387.5795931934187	392.0103629561823	
+new_eighty_puzzle	1238.3930875903225	1250.8938865615635	
+scramble_fifty_moves_on_a_fifteen_puzzle	11016.578520022354	11680.24931373299	
+ten_mutable_slides_on_a_fifteen_puzzle	592.3981122226681	595.3336945881715	
+ten_mutable_unchecked_slides_on_a_fifteen_puzzle	524.1871900458291	530.0745151682701	
+ten_slides_on_a_fifteen_puzzle	940.9505160485743	996.7416639243872	
+ten_unchecked_slides_on_a_fifteen_puzzle	805.2842937366997	821.1354729477615	
+to_decimal_on_a_fifteen_puzzle	332.77213982394636	332.22765998416247	
+to_decimal_unchecked_on_a_fifteen_puzzle	144.24677519530184	144.94160970734285	

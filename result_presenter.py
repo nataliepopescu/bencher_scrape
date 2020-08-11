@@ -18,6 +18,7 @@ import plotly.graph_objects as go
 path_to_crates = "./crates/crates"
 data_file = "bench-sanity-CRUNCHED.data"
 data_file_new = "bench-CRUNCHED.data"
+data_file_geo = "bench-GEOMEAN.data"
 crates = []
 
 graph_styles = {
@@ -245,24 +246,19 @@ def crate_options():
     return options
 
 
-def setting_options(): #version):
+def setting_options(): 
     options = []
     global switcher
     keys = switcher.keys()
     for k in keys:
-#        if version == 0 and "bcrm" in k: #k.startswith("bcrm"):
         label = switcher.get(k).get("label")
         options.append({'label': label, 'value': k})
-#        elif version == 1 and not "bcrm" in k:
-#            label = switcher.get(k).get("label")
-#            options.append({'label': label, 'value': k})
     return options
 
 
 def setting_options_13():
     options = []
     global switcher
-    #keys = switcher.keys()
     k = 'bcrm-mpm'
     label = switcher.get(k).get("label")
     options.append({'label': label, 'value': k})
@@ -293,9 +289,16 @@ def getPerfRustcsLayout():
         html.Br(),
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
-            options=setting_options(), #1),
+            options=setting_options(),
             value="bcrm-fpm"
         ),
+
+       # html.Br(),
+       # html.Label('Statistic:'),
+       # dcc.RadioItems(id='crate_stat',
+       #     options=[{'label': 'Arithmetic Mean', 'value': 'am'}],
+       #     value="am"
+       # ),
 
         html.Br(),
         html.Label('Lower is better!'),
@@ -306,59 +309,71 @@ def getPerfRustcsLayout():
 
 
 def getPerfPassLayout():
-#def getPerfLayout():
 
     layout = html.Div([
         html.Br(),
-        html.Label('Pick a crate:'),
-        dcc.Dropdown(id='crate_name',
-            options=crate_options(),
-            value='KDFs',
-            style={'width': '50%'}
-        ),
-
-        html.Br(),
-        html.Label('Setting:'),
-        dcc.RadioItems(id='crate_opt',
-            options=setting_options_13(), #0),
-            value="bcrm-mpm"
+        html.Label('Across all crates, choose which result you would like to view:'),
+        dcc.RadioItems(id='result_type',
+            options=[
+                    {'label': 'Benchmarks where removal of bounds checks performs BETTER', 'value': 'intuitive'},
+                    {'label': 'Benchmarks where removal of bounds checks performs WORSE', 'value': 'unintuitive'}
+            ],
+            value='intuitive',
+            style={'width': '70%'}
         ),
 
 #        html.Br(),
-#        html.Label('Pick a summary statistic:'),
-#        dcc.RadioItems(id='crate_stat',
-#            options=[{"label": "Mean", "value": "mean"},
-#                {"label": "Median", "value": "median"}],
-#            value="median"
+#        html.Label('Setting:'),
+#        dcc.RadioItems(id='crate_opt',
+#            options=setting_options_13(),
+#            value="bcrm-mpm"
 #        ),
 
         html.Br(),
+        html.Label('Pick a statistic:'),
+        dcc.RadioItems(id='crate_stat',
+            options=[{'label': 'Arithmetic Mean', 'value': 'am'}],
+                    #{'label': 'Geometric Mean', 'value': 'gm'}],
+            value='am'
+        ),
+
+        html.Br(),
         html.Label('Lower is better!'),
-        html.Div(id='crate-content')
+        html.Div(id='crate-content-front')
     ])
 
     return layout
 
 
 @app.callback(dash.dependencies.Output('crate-content', 'children'),
-              [dash.dependencies.Input('crate_name', 'value'),
-               dash.dependencies.Input('crate_opt', 'value')])
+               [dash.dependencies.Input('crate_name', 'value'),
+                dash.dependencies.Input('crate_opt', 'value')])
 def display_crate_info(crate_name, crate_opt):
 
-    #y_axis_txt = switcher.get(crate_opt).get("y-axis-label")
-
-    if crate_opt.startswith("diff"):
-        return display_diff(crate_name, crate_opt) #, dir_lto_thin, dir_lto_thin_rerun, y_axis_txt)
+    if 'diff' in crate_opt:
+        return display_diff(crate_name, crate_opt)
     else:
-        return display_relative(crate_name, crate_opt)
+        return display_relative(crate_name, crate_opt) #, crate_stat)
 
 
-def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_text):
+@app.callback(dash.dependencies.Output('crate-content-front', 'children'),
+              [dash.dependencies.Input('result_type', 'value'),
+               dash.dependencies.Input('crate_stat', 'value')])
+               #dash.dependencies.Input('crate_name', 'value'),
+               #dash.dependencies.Input('crate_opt', 'value')])
+def display_crate_info(result_type, crate_stat): #, crate_name, crate_opt):
 
-#    unexp_unmod = []
-#    unexp_nobc = []
-#    unexp_both = []
-#    unexp_safelib = []
+    #if 'diff' in crate_opt:
+    #    return display_diff(crate_name, crate_opt)
+   # elif significant == 'all':
+   #     print("CRATE NAME IS ~ALL~")
+    #if 'intuitive' in result_type: 
+    return display_significant(result_type, crate_stat)
+   # else:
+   #     return display_relative(crate_name, crate_opt, crate_stat)
+
+
+def display_diff(crate_name, crate_opt):
 
     if "bcrm" in crate_opt:
         file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-baseline") + "/" + data_file_new
@@ -410,16 +425,6 @@ def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_t
             perc_e = (float(error) / div) * 100
             one_y_error_list.append(perc_e)
 
-            # get stats for expectation #2
-#            if perc_time > 0:
-#                switcher_local = {
-#                    0: unexp_unmod,
-#                    1: unexp_nobc, 
-#                    2: unexp_both,
-#                    3: unexp_safelib
-#                }
-#                arr = switcher_local.get(rustc_type)
-#                arr.append(perc_time)
 
         handle_baseline.close()
         handle_tocompare.close()
@@ -473,52 +478,8 @@ def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_t
                         'height': 700}
                     })
 
-#    sum_unexp_0 = 0
-#    len_unexp_0 = len(unexp_unmod)
-#    avg_0 = "None"
-#
-#    if len_unexp_0 > 0: 
-#        for e in unexp_unmod: 
-#            sum_unexp_0 += e
-#        avg_0 = str(sum_unexp_0 / len_unexp_0)
-#
-#    sum_unexp_1 = 0
-#    len_unexp_1 = len(unexp_nobc)
-#    avg_1 = "None"
-#
-#    if len_unexp_1 > 0: 
-#        for e in unexp_nobc: 
-#            sum_unexp_1 += e
-#        avg_1 = str(sum_unexp_1 / len_unexp_1)
-#        
-#    sum_unexp_2 = 0
-#    len_unexp_2 = len(unexp_both)
-#    avg_2 = "None"
-#
-#    if len_unexp_2 > 0: 
-#        for e in unexp_both: 
-#            sum_unexp_2 += e
-#        avg_2 = str(sum_unexp_2 / len_unexp_2)
-#        
-#    sum_unexp_3 = 0
-#    len_unexp_3 = len(unexp_safelib)
-#    avg_3 = "None"
-#
-#    if len_unexp_3 > 0: 
-#        for e in unexp_safelib: 
-#            sum_unexp_3 += e
-#        avg_3 = str(sum_unexp_3 / len_unexp_3)
         
     return html.Div([
-#        html.Br(),
-#        html.Label('Expectation 2 [unmod]: ' + avg_0),
-#        html.Br(),
-#        html.Label('Expectation 2 [nobc]: ' + avg_1),
-#        html.Br(),
-#        html.Label('Expectation 2 [both]: ' + avg_2),
-#        html.Br(),
-#        html.Label('Expectation 2 [safelib]: ' + avg_3),
-#        html.Br(),
         dcc.Graph(
             id='rustc-compare-ltos',
             figure=fig
@@ -526,12 +487,11 @@ def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_t
     ])
 
 
-def display_relative(crate_name, crate_opt):
+def display_relative(crate_name, crate_opt): #, crate_stat):
 
-   # unexp_1 = []
-   # unexp_3 = []
-
-    if "bcrm" in crate_opt: #.startswith("bcrm"):
+    if ("bcrm" in crate_opt): # and ("gm" in crate_stat): 
+        #filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file_geo
+    #elif ("bcrm" in crate_opt) and ("am" in crate_stat):
         filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file_new
     else: 
         filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file
@@ -560,45 +520,65 @@ def display_relative(crate_name, crate_opt):
             vanilla = cols[1]
             vanilla_error = cols[2]
 
+            # Arithmetic Mean with Error bars
+            #if "am" in crate_stat:
             # get the times from the specified (column * 2 + 1)
             col = rustc_type * 2 + 1
             time = cols[col]
             error = cols[col + 1]
-#            one_y_error_list.append(error)
 
             # calculate the percent speedup or slowdown
             div = float(vanilla) if float(vanilla) != 0 else 1
             perc_time = ((float(time) - float(vanilla)) / div) * 100
-            one_perf_list.append(perc_time)
-
-            #div_e = float(vanilla_error) if float(vanilla_error) != 0 else 1
-            #perc_error = ((float(error) - float(vanilla_er
             div_e = float(time) if float(time) != 0 else 1
             perc_e = (float(error) / div_e) * 100
-            #perc_error = perc_e if perc_e > 0 else (0 - perc_e)
-            one_y_error_list.append(perc_e)
 
-            # get stats for expectation #1 and #3
- #           if rustc_type == 1 and perc_time > 0:
- #               unexp_1.append(perc_time)
- #           elif rustc_type == 3 and perc_time < 0:
- #               unexp_3.append(perc_time)
+            if perc_time > 0:
+                if perc_time + perc_e >= float(vanilla_error):
+                    one_perf_list.append(perc_time)
+                    one_y_error_list.append(perc_e)
+                else:
+                    one_perf_list.append(0)
+                    one_y_error_list.append(0)
+            else:
+                if perc_time - perc_e <= (0 - float(vanilla_error)):
+                    one_perf_list.append(perc_time)
+                    one_y_error_list.append(perc_e)
+                else:
+                    one_perf_list.append(0)
+                    one_y_error_list.append(0)
+
+            # Geometric Mean
+#            else: 
+#                col = rustc_type + 1
+#                time = cols[col]
+#
+#                # calculate the percent speedup or slowdown
+#                div = float(vanilla) if float(vanilla) != 0 else 1
+#                perc_time = ((float(time) - float(vanilla)) / div) * 100
+#                one_perf_list.append(perc_time)
 
         handle.close()
 
         color_e = 'black' if rustc_type != 0 else color
 
+        #if "am" in crate_stat:
         bar_one = {'x': one_bmark_list, 'y': one_perf_list, 'error_y': {'type': 'data', 'array': one_y_error_list, 'color': color_e},
                    'type': 'bar', 'name': bar_name, 'marker_color': color}
+        #else: 
+         #   bar_one = {'x': one_bmark_list, 'y': one_perf_list, #'error_y': {'type': 'data', 'array': one_y_error_list, 'color': color_e},
+                   #'type': 'bar', 'name': bar_name, 'marker_color': color}
         return bar_one
 
     
     bar_list = []
     #if "bcrm" in crate_opt: #.startswith("bcrm"):
-    bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
+    #bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
     bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
 
-    bar_list = [bar_unmod, bar_nobc]
+    bar_list = [bar_nobc]
+    #bar_list = [bar_unmod, bar_nobc]
+
     #else: 
     #    bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
     #    bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
@@ -637,32 +617,109 @@ def display_relative(crate_name, crate_opt):
                         'height': 700}
                     })
 
-#    sum_unexp_1 = 0
-#    len_unexp_1 = len(unexp_1)
-#    avg_1 = "None"
-#
-#    if len_unexp_1 > 0: 
-#        for e in unexp_1: 
-#            sum_unexp_1 += e
-#        avg_1 = str(sum_unexp_1 / len_unexp_1)
-#        
-#    sum_unexp_3 = 0
-#    len_unexp_3 = len(unexp_3)
-#    avg_3 = "None"
-#
-#    if len_unexp_3 > 0: 
-#        for e in unexp_3: 
-#            sum_unexp_3 += e
-#        avg_3 = str(sum_unexp_3 / len_unexp_3)
         
     return html.Div([
-#        html.Br(),
-#        html.Label('Expectation 1: ' + avg_1),
-#        html.Br(),
-#        html.Label('Expectation 3: ' + avg_3),
-#        html.Br(),
         dcc.Graph(
             id='rustc-compare-graph-rel',
+            figure=fig
+        )
+    ])
+
+
+def display_significant(result_type, crate_stat):
+
+    one_bmark_list = []
+    one_perf_list = []
+    one_yerror_list= []
+
+    def get_one_bar(bar_name, bar_color):
+
+        global crates
+
+        for c in crates: 
+
+            if crate_stat == 'am':
+                filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_new
+            else: 
+                filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_geo
+
+            if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
+                continue
+
+            # open data file for reading
+            handle = open(filepath, 'r')
+
+            for line in handle: 
+                if line[:1] == '#':
+                    continue
+                cols = line.split()
+
+                name = cols[0]
+
+                if crate_stat == 'am':
+                    vanilla_error = cols[2]
+                    nobc_time = cols[3]
+                    nobc_error = cols[4]
+                else: 
+                    nobc_time = cols[2]
+
+                vanilla_time = cols[1]
+                div = float(vanilla_time) if float(vanilla_time) != 0 else 1
+                perc_time = ((float(nobc_time) - float(vanilla_time)) / div) * 100
+
+                if crate_stat == 'am':
+                    div_e = float(nobc_time) if float(nobc_time) != 0 else 1
+                    perc_error = (float(nobc_error) / div_e) * 100
+
+                    if (result_type == 'unintuitive' and perc_time > 0 and (perc_time + perc_error >= float(vanilla_error))) or (result_type == 'intuitive' and perc_time < 0 and (perc_time - perc_error <= 0 - float(vanilla_error))):
+                        one_bmark_list.append(c + "::" + name)
+                        one_perf_list.append(perc_time)
+                        one_yerror_list.append(perc_error)
+
+            handle.close()
+
+        color_e = 'black'
+        bar_one = {'x': one_bmark_list, 'y': one_perf_list, 'error_y': {'type': 'data', 'array': one_yerror_list, 'color': color_e},
+                    'type': 'bar', 'name': bar_name, 'marker_color': bar_color}
+        return bar_one
+
+
+    bar_list = [get_one_bar(graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))]
+
+    fig = go.Figure({
+                    'data': bar_list,
+                    'layout': {
+                        'legend': {'orientation': 'h', 'x': 0.2, 'y': 1.3},
+                        'yaxis': {
+                            'showline': True, 
+                            'linewidth': 2,
+                            'ticks': "outside",
+                            'mirror': 'all',
+                            'linecolor': 'black',
+                            'gridcolor':'rgb(200,200,200)', 
+                            'nticks': 20,
+                            'title': {'text': " Performance Relative to Vanilla [%]"},
+                        },
+                        'xaxis': {
+                            'linecolor': 'black',
+                            'showline': True, 
+                            'linewidth': 2,
+                            'mirror': 'all',
+                            'nticks': 10,
+                            'showticklabels': True,
+                            'title': {'text': "Benchmarks"},
+                        },
+                        'font': {'family': 'Helvetica', 'color': "Black"},
+                        'plot_bgcolor': 'white',
+                        'autosize': False,
+                        'width': 2450, 
+                        'height': 1000}
+                    })
+
+        
+    return html.Div([
+        dcc.Graph(
+            id='significant-res-graph',
             figure=fig
         )
     ])
@@ -675,7 +732,6 @@ def display_page(pathname):
         return 404
 
     if pathname == '/':
-        #pathname = '/compareRMBCEffects'
         pathname = '/comparePass'
 
     if pathname == '/compareAll':

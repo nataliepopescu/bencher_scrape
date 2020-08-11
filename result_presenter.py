@@ -259,6 +259,16 @@ def setting_options(): #version):
     return options
 
 
+def setting_options_13():
+    options = []
+    global switcher
+    #keys = switcher.keys()
+    k = 'bcrm-mpm'
+    label = switcher.get(k).get("label")
+    options.append({'label': label, 'value': k})
+    return options
+
+
 def is_empty_datafile(filepath):
     handle = open(filepath, 'r')
     for line in handle: 
@@ -283,8 +293,8 @@ def getPerfRustcsLayout():
         html.Br(),
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
-            options=setting_options(1),
-            value="diff-inline"
+            options=setting_options(), #1),
+            value="bcrm-fpm"
         ),
 
         html.Br(),
@@ -295,8 +305,8 @@ def getPerfRustcsLayout():
     return layout
 
 
-#def getPerfPassLayout():
-def getPerfLayout():
+def getPerfPassLayout():
+#def getPerfLayout():
 
     layout = html.Div([
         html.Br(),
@@ -308,9 +318,9 @@ def getPerfLayout():
         ),
 
         html.Br(),
-        html.Label('Pick a setting:'),
+        html.Label('Setting:'),
         dcc.RadioItems(id='crate_opt',
-            options=setting_options(), #0),
+            options=setting_options_13(), #0),
             value="bcrm-mpm"
         ),
 
@@ -665,18 +675,15 @@ def display_page(pathname):
         return 404
 
     if pathname == '/':
-        pathname = '/compareRMBCEffects'
-    #    pathname = '/comparePass'
+        #pathname = '/compareRMBCEffects'
+        pathname = '/comparePass'
 
-    if pathname == '/compareRMBCEffects':
-        layout = getPerfLayout()
+    if pathname == '/compareAll':
+        layout = getPerfRustcsLayout() #app._resultProvider)
         return layout
-    #if pathname == '/compareRustcs':
-    #    layout = getPerfRustcsLayout() #app._resultProvider)
-    #    return layout
-    #if pathname == '/comparePass':
-    #    layout = getPerfPassLayout() #app._resultProvider)
-    #    return layout
+    if pathname == '/comparePass':
+        layout = getPerfPassLayout() #app._resultProvider)
+        return layout
     else:
         return 404
 
@@ -691,10 +698,10 @@ if __name__ == '__main__':
 
     app.layout = html.Div([
         dcc.Location(id='url', refresh=False),
-    #    dcc.Link('Modified Rustc', href='/compareRustcs'),
-    #    html.Br(),
-    #    dcc.Link('Out of Tree LLVM Pass', href='/comparePass'),
-    #    html.Br(),
+        dcc.Link('All Techniques', href='/compareAll'),
+        html.Br(),
+        dcc.Link('In-Tree LLVM Pass', href='/comparePass'),
+        html.Br(),
         html.Div(id='page-content')
     ])
 

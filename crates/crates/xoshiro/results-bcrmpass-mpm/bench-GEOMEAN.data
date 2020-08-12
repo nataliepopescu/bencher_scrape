@@ -1,2 +1,2 @@
-#	bench-name	unmod-time	nobc-time	
-rand_u32_xoshiro	13.999999999999996	13.999999999999996	
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	
+rand_u32_xoshiro	13.999999999999996	1.0	13.999999999999996	1.0	

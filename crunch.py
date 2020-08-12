@@ -8,33 +8,12 @@ import numpy
 import re
 
 def average(array):
-    ## Get length of array
-    #length = len(array)
-    #arr_sum = 0
-    ## Calculate sum
-    #for a in array:
-    #    arr_sum += a
-    #res = arr_sum / length
-    #return res
-
     avg = 0
     t = 1
     for a in array:
         avg += (a - avg) / t
         t += 1
     return avg
-
-
-def geomean(array):
-    locarr = []
-    for a in array:
-        if a == 0:
-            #print("a is zero")
-            locarr.append(10**-100)
-        else: 
-            locarr.append(a)
-    arr = numpy.log(locarr)
-    return numpy.exp(arr.sum() / len(arr))
 
 
 def stddev(array, arr_avg):
@@ -52,6 +31,28 @@ def stddev(array, arr_avg):
     return res
 
 
+def arr_logs(array):
+    locarr = []
+    for a in array:
+        if a == 0:
+            # Instead of 0, replace w a small value... 
+            locarr.append(10**-100)
+        else: 
+            locarr.append(a)
+    return numpy.log(locarr)
+
+
+def geomean(array):
+    arr = arr_logs(array)
+    return numpy.exp(arr.sum() / len(arr))
+
+
+def geo_stddev(array):
+    arr = arr_logs(array)
+    log_avg = arr.sum() / len(arr)
+    return numpy.exp(stddev(arr, log_avg))
+    
+
 def crunch(
     crate,
     data_file,
@@ -60,7 +61,6 @@ def crunch(
     numruns):
     # Use same headers and will be using similar logic as "aggregate_bench.py" later on
     headers = ['#','bench-name','unmod-time', 'unmod-error','nobc-time','nobc-error'] #'nobc+sl-time','nobc+sl-error','safelib-time','safelib-error']
-    gm_headers = ['#','bench-name','unmod-time','nobc-time']
     #headers = ['#','bench-name','unmod-time', 'unmod-error','nobc-time','nobc-error','nobc+sl-time','nobc+sl-error','safelib-time','safelib-error']
     
     # Grab the numbers for each [benchmark x rustc] combo (per crate)
@@ -69,7 +69,7 @@ def crunch(
     geomean_output = base_file + "-GEOMEAN.data"
     # Write headers
     path_wrangle(crunched_output, headers)
-    path_wrangle(geomean_output, gm_headers)
+    path_wrangle(geomean_output, headers)
 
     # Each loop here represents a different .data file, meaning that
     # each loop iteration adds to all the arrays _once_ (one data point
@@ -142,11 +142,13 @@ def crunch(
             #   nobc+sl
             #   safelib
             avg = average(matrix[r][c])
-            gm = geomean(matrix[r][c])
             stdev = stddev(matrix[r][c], avg)
+            gm = geomean(matrix[r][c])
+            gstdev = geo_stddev(matrix[r][c])
             row.append(str(avg))
             row.append(str(stdev))
             gm_row.append(str(gm))
+            gm_row.append(str(gstdev))
         writerow(fd_crunched_output, row)
         writerow(fd_geomean_output, gm_row)
 

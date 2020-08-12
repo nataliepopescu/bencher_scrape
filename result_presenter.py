@@ -212,8 +212,24 @@ def get_crates():
 
 # Geometric mean helper
 def geo_mean_overflow(iterable):
-    a = np.log(iterable)
+    locarr = []
+    for i in iterable:
+        if i == 0:
+            locarr.append(10**-100)
+        else:
+            locarr.append(i)
+    # Convert all elements to positive numbers
+    a = np.log(np.absolute(locarr))
     return np.exp(a.sum() / len(a))
+
+
+def arith_mean_overflow(iterable):
+    rng_avg = 0
+    count = 1
+    for i in iterable:
+        rng_avg += (i - rng_avg) / count
+        count += 1
+    return rng_avg
 
 
 #class ResultProvider:
@@ -256,15 +272,6 @@ def setting_options():
     return options
 
 
-def setting_options_13():
-    options = []
-    global switcher
-    k = 'bcrm-mpm'
-    label = switcher.get(k).get("label")
-    options.append({'label': label, 'value': k})
-    return options
-
-
 def is_empty_datafile(filepath):
     handle = open(filepath, 'r')
     for line in handle: 
@@ -293,12 +300,13 @@ def getPerfRustcsLayout():
             value="bcrm-fpm"
         ),
 
-       # html.Br(),
-       # html.Label('Statistic:'),
-       # dcc.RadioItems(id='crate_stat',
-       #     options=[{'label': 'Arithmetic Mean', 'value': 'am'}],
-       #     value="am"
-       # ),
+        html.Br(),
+        html.Label('Statistic:'),
+        dcc.RadioItems(id='crate_stat',
+            options=[{'label': 'Arithmetic Mean', 'value': 'am'},
+                    {'label': 'Geometric Mean', 'value': 'gm'}],
+            value="am"
+        ),
 
         html.Br(),
         html.Label('Lower is better!'),
@@ -322,19 +330,12 @@ def getPerfPassLayout():
             style={'width': '70%'}
         ),
 
-#        html.Br(),
-#        html.Label('Setting:'),
-#        dcc.RadioItems(id='crate_opt',
-#            options=setting_options_13(),
-#            value="bcrm-mpm"
-#        ),
-
         html.Br(),
         html.Label('Pick a statistic:'),
-        dcc.RadioItems(id='crate_stat',
-            options=[{'label': 'Arithmetic Mean', 'value': 'am'}],
-                    #{'label': 'Geometric Mean', 'value': 'gm'}],
-            value='am'
+        dcc.RadioItems(id='stat_type',
+            options=[{'label': 'Arithmetic Mean', 'value': 'am'},
+                    {'label': 'Geometric Mean', 'value': 'gm'}],
+            value='gm'
         ),
 
         html.Br(),
@@ -347,30 +348,22 @@ def getPerfPassLayout():
 
 @app.callback(dash.dependencies.Output('crate-content', 'children'),
                [dash.dependencies.Input('crate_name', 'value'),
-                dash.dependencies.Input('crate_opt', 'value')])
-def display_crate_info(crate_name, crate_opt):
+                dash.dependencies.Input('crate_opt', 'value'),
+                dash.dependencies.Input('crate_stat', 'value')])
+def display_crate_info(crate_name, crate_opt, crate_stat):
 
     if 'diff' in crate_opt:
         return display_diff(crate_name, crate_opt)
     else:
-        return display_relative(crate_name, crate_opt) #, crate_stat)
+        return display_relative(crate_name, crate_opt, crate_stat)
 
 
 @app.callback(dash.dependencies.Output('crate-content-front', 'children'),
               [dash.dependencies.Input('result_type', 'value'),
-               dash.dependencies.Input('crate_stat', 'value')])
-               #dash.dependencies.Input('crate_name', 'value'),
-               #dash.dependencies.Input('crate_opt', 'value')])
-def display_crate_info(result_type, crate_stat): #, crate_name, crate_opt):
+               dash.dependencies.Input('stat_type', 'value')])
+def display_crate_info(result_type, stat_type):
 
-    #if 'diff' in crate_opt:
-    #    return display_diff(crate_name, crate_opt)
-   # elif significant == 'all':
-   #     print("CRATE NAME IS ~ALL~")
-    #if 'intuitive' in result_type: 
-    return display_significant(result_type, crate_stat)
-   # else:
-   #     return display_relative(crate_name, crate_opt, crate_stat)
+    return display_significant(result_type, stat_type)
 
 
 def display_diff(crate_name, crate_opt):
@@ -487,11 +480,11 @@ def display_diff(crate_name, crate_opt):
     ])
 
 
-def display_relative(crate_name, crate_opt): #, crate_stat):
+def display_relative(crate_name, crate_opt, crate_stat):
 
-    if ("bcrm" in crate_opt): # and ("gm" in crate_stat): 
-        #filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file_geo
-    #elif ("bcrm" in crate_opt) and ("am" in crate_stat):
+    if ("bcrm" in crate_opt) and ("gm" in crate_stat): 
+        filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file_geo
+    elif ("bcrm" in crate_opt) and ("am" in crate_stat):
         filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file_new
     else: 
         filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file
@@ -520,8 +513,6 @@ def display_relative(crate_name, crate_opt): #, crate_stat):
             vanilla = cols[1]
             vanilla_error = cols[2]
 
-            # Arithmetic Mean with Error bars
-            #if "am" in crate_stat:
             # get the times from the specified (column * 2 + 1)
             col = rustc_type * 2 + 1
             time = cols[col]
@@ -548,26 +539,13 @@ def display_relative(crate_name, crate_opt): #, crate_stat):
                     one_perf_list.append(0)
                     one_y_error_list.append(0)
 
-            # Geometric Mean
-#            else: 
-#                col = rustc_type + 1
-#                time = cols[col]
-#
-#                # calculate the percent speedup or slowdown
-#                div = float(vanilla) if float(vanilla) != 0 else 1
-#                perc_time = ((float(time) - float(vanilla)) / div) * 100
-#                one_perf_list.append(perc_time)
-
         handle.close()
 
         color_e = 'black' if rustc_type != 0 else color
 
-        #if "am" in crate_stat:
         bar_one = {'x': one_bmark_list, 'y': one_perf_list, 'error_y': {'type': 'data', 'array': one_y_error_list, 'color': color_e},
                    'type': 'bar', 'name': bar_name, 'marker_color': color}
-        #else: 
-         #   bar_one = {'x': one_bmark_list, 'y': one_perf_list, #'error_y': {'type': 'data', 'array': one_y_error_list, 'color': color_e},
-                   #'type': 'bar', 'name': bar_name, 'marker_color': color}
+
         return bar_one
 
     
@@ -626,7 +604,7 @@ def display_relative(crate_name, crate_opt): #, crate_stat):
     ])
 
 
-def display_significant(result_type, crate_stat):
+def display_significant(result_type, stat_type):
 
     one_bmark_list = []
     one_perf_list = []
@@ -638,7 +616,7 @@ def display_significant(result_type, crate_stat):
 
         for c in crates: 
 
-            if crate_stat == 'am':
+            if stat_type == 'am':
                 filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_new
             else: 
                 filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_geo
@@ -656,25 +634,21 @@ def display_significant(result_type, crate_stat):
 
                 name = cols[0]
 
-                if crate_stat == 'am':
-                    vanilla_error = cols[2]
-                    nobc_time = cols[3]
-                    nobc_error = cols[4]
-                else: 
-                    nobc_time = cols[2]
-
                 vanilla_time = cols[1]
+                vanilla_error = cols[2]
+                nobc_time = cols[3]
+                nobc_error = cols[4]
+
                 div = float(vanilla_time) if float(vanilla_time) != 0 else 1
                 perc_time = ((float(nobc_time) - float(vanilla_time)) / div) * 100
 
-                if crate_stat == 'am':
-                    div_e = float(nobc_time) if float(nobc_time) != 0 else 1
-                    perc_error = (float(nobc_error) / div_e) * 100
+                div_e = float(nobc_time) if float(nobc_time) != 0 else 1
+                perc_error = (float(nobc_error) / div_e) * 100
 
-                    if (result_type == 'unintuitive' and perc_time > 0 and (perc_time + perc_error >= float(vanilla_error))) or (result_type == 'intuitive' and perc_time < 0 and (perc_time - perc_error <= 0 - float(vanilla_error))):
-                        one_bmark_list.append(c + "::" + name)
-                        one_perf_list.append(perc_time)
-                        one_yerror_list.append(perc_error)
+                if (result_type == 'unintuitive' and perc_time > 0 and (perc_time + perc_error >= float(vanilla_error))) or (result_type == 'intuitive' and perc_time < 0 and (perc_time - perc_error <= 0 - float(vanilla_error))):
+                    one_bmark_list.append(c + "::" + name)
+                    one_perf_list.append(perc_time)
+                    one_yerror_list.append(perc_error)
 
             handle.close()
 
@@ -716,8 +690,22 @@ def display_significant(result_type, crate_stat):
                         'height': 1000}
                     })
 
+    if stat_type == 'am' and result_type == 'intuitive': 
+        # Make negative number
+        mean_of_mean = 0 - arith_mean_overflow(one_perf_list)
+    elif stat_type == 'am' and result_type == 'unintuitive': 
+        # Keep as a positive number
+        mean_of_mean = arith_mean_overflow(one_perf_list)
+    elif stat_type == 'gm' and result_type == 'intuitive': 
+        # Make negative number
+        mean_of_mean = 0 - geo_mean_overflow(one_perf_list)
+    else:
+        # Keep as a positive number
+        mean_of_mean = geo_mean_overflow(one_perf_list)
         
     return html.Div([
+        html.Label('Mean of the means: ' + str(mean_of_mean)),
+        html.Br(),
         dcc.Graph(
             id='significant-res-graph',
             figure=fig

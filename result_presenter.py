@@ -219,7 +219,7 @@ def geo_mean_overflow(iterable):
         else:
             locarr.append(i)
     # Convert all elements to positive numbers
-    a = np.log(np.absolute(locarr))
+    a = np.log(locarr)
     return np.exp(a.sum() / len(a))
 
 
@@ -335,7 +335,7 @@ def getPerfPassLayout():
         dcc.RadioItems(id='stat_type',
             options=[{'label': 'Arithmetic Mean', 'value': 'am'},
                     {'label': 'Geometric Mean', 'value': 'gm'}],
-            value='gm'
+            value='am'
         ),
 
         html.Br(),
@@ -524,20 +524,20 @@ def display_relative(crate_name, crate_opt, crate_stat):
             div_e = float(time) if float(time) != 0 else 1
             perc_e = (float(error) / div_e) * 100
 
-            if perc_time > 0:
-                if perc_time + perc_e >= float(vanilla_error):
-                    one_perf_list.append(perc_time)
-                    one_y_error_list.append(perc_e)
-                else:
-                    one_perf_list.append(0)
-                    one_y_error_list.append(0)
-            else:
-                if perc_time - perc_e <= (0 - float(vanilla_error)):
-                    one_perf_list.append(perc_time)
-                    one_y_error_list.append(perc_e)
-                else:
-                    one_perf_list.append(0)
-                    one_y_error_list.append(0)
+            #if perc_time > 0:
+            #    if perc_time + perc_e >= float(vanilla_error):
+            one_perf_list.append(perc_time)
+            one_y_error_list.append(perc_e)
+            #    else:
+            #        one_perf_list.append(0)
+            #        one_y_error_list.append(0)
+            #else:
+            #    if perc_time - perc_e <= (0 - float(vanilla_error)):
+            #        one_perf_list.append(perc_time)
+            #        one_y_error_list.append(perc_e)
+            #    else:
+            #        one_perf_list.append(0)
+            #        one_y_error_list.append(0)
 
         handle.close()
 
@@ -608,7 +608,10 @@ def display_significant(result_type, stat_type):
 
     one_bmark_list = []
     one_perf_list = []
-    one_yerror_list= []
+    one_yerror_list = []
+
+    vanilla_means = []
+    nobc_means = []
 
     def get_one_bar(bar_name, bar_color):
 
@@ -645,10 +648,41 @@ def display_significant(result_type, stat_type):
                 div_e = float(nobc_time) if float(nobc_time) != 0 else 1
                 perc_error = (float(nobc_error) / div_e) * 100
 
-                if (result_type == 'unintuitive' and perc_time > 0 and (perc_time + perc_error >= float(vanilla_error))) or (result_type == 'intuitive' and perc_time < 0 and (perc_time - perc_error <= 0 - float(vanilla_error))):
-                    one_bmark_list.append(c + "::" + name)
-                    one_perf_list.append(perc_time)
-                    one_yerror_list.append(perc_error)
+                vanilla_means.append(float(vanilla_time))
+                nobc_means.append(float(nobc_time))
+
+                # if positive and unintuitive
+                if result_type == 'unintuitive' and perc_time > 0:
+                    # perc_time is within vanilla stdev
+                    if perc_time < float(vanilla_error): 
+                        continue
+                    # stdev magnitude is larger than perc_time magnitude
+                    elif perc_time < float(perc_error):
+                        continue
+                    # perc_time magnitude is less than 3%
+                    elif perc_time < 3:
+                        continue
+                    else:
+                        one_bmark_list.append(c + "::" + name)
+                        one_perf_list.append(perc_time)
+                        one_yerror_list.append(perc_error)
+                # if negative and intuitive
+                elif result_type == 'intuitive' and perc_time < 0:
+                    # perc_time is within vanilla stdev
+                    if abs(perc_time) < float(vanilla_error): 
+                        continue
+                    # stdev magnitude is larger than perc_time magnitude
+                    elif abs(perc_time) < float(perc_error):
+                        continue
+                    # perc_time magnitude is less than 3%
+                    elif abs(perc_time) < 3:
+                        continue
+                    else:
+                        one_bmark_list.append(c + "::" + name)
+                        one_perf_list.append(perc_time)
+                        one_yerror_list.append(perc_error)
+
+                #if (result_type == 'unintuitive' and perc_time > 0 and (perc_time + perc_error >= float(vanilla_error))) or (result_type == 'intuitive' and perc_time < 0 and (perc_time - perc_error <= 0 - float(vanilla_error))):
 
             handle.close()
 
@@ -690,21 +724,16 @@ def display_significant(result_type, stat_type):
                         'height': 1000}
                     })
 
-    if stat_type == 'am' and result_type == 'intuitive': 
-        # Make negative number
-        mean_of_mean = 0 - arith_mean_overflow(one_perf_list)
-    elif stat_type == 'am' and result_type == 'unintuitive': 
-        # Keep as a positive number
-        mean_of_mean = arith_mean_overflow(one_perf_list)
-    elif stat_type == 'gm' and result_type == 'intuitive': 
-        # Make negative number
-        mean_of_mean = 0 - geo_mean_overflow(one_perf_list)
+    if stat_type == 'am': 
+        mean_of_vanilla_means = arith_mean_overflow(vanilla_means)
+        mean_of_nobc_means = arith_mean_overflow(nobc_means)
     else:
-        # Keep as a positive number
-        mean_of_mean = geo_mean_overflow(one_perf_list)
+        mean_of_vanilla_means = geo_mean_overflow(vanilla_means)
+        mean_of_nobc_means = geo_mean_overflow(nobc_means)
         
     return html.Div([
-        html.Label('Mean of the means: ' + str(mean_of_mean)),
+        html.Label('Mean of the Vanilla means [ns/iter]: ' + str(mean_of_vanilla_means)),
+        html.Label('Mean of the NOBC means [ns/iter]: ' + str(mean_of_nobc_means)),
         html.Br(),
         dcc.Graph(
             id='significant-res-graph',

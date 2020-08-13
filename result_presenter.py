@@ -361,7 +361,7 @@ def display_diff(crate_name, crate_opt):
         file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file
 
     if ((not os.path.exists(file_baseline)) or is_empty_datafile(file_baseline)) or ((not os.path.exists(file_tocompare)) or is_empty_datafile(file_tocompare)):
-        return "\nNo diff data for [" + str(crate_name) + "] with these settings."
+        return "\n\nNo diff data for [" + str(crate_name) + "] with these settings."
 
     def get_one_bar(rustc_type, bar_name, color):
         one_bmark_list = []
@@ -470,7 +470,7 @@ def display_relative(crate_name, crate_opt):
         filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file
 
     if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
-        return "\nNo relative data for [" + str(crate_name) + "] with these settings."
+        return "\n\nNo relative data for [" + str(crate_name) + "] with these settings."
 
     speedup_arr = []
 
@@ -733,8 +733,9 @@ def display_significant(result_type): #, stat_type):
         html.Br(),
         html.Label('Mean of the Vanilla means [ns/iter]: ' + str(mean_of_vanilla_means)),
         html.Label('Mean of the NOBC means [ns/iter]: ' + str(mean_of_nobc_means)),
+        html.Br(),
         html.Label('Average Speedup = ' + str(avg_speedup)),
-        html.Label('Bottom-line Speedup = ' + str(max_ben)),
+        html.Label('Potential Speedup = ' + str(max_ben)),
         html.Br(),
         dcc.Graph(
             id='significant-res-graph',

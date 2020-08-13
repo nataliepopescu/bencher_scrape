@@ -297,15 +297,7 @@ def getPerfRustcsLayout():
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
             options=setting_options(),
-            value="bcrm-fpm"
-        ),
-
-        html.Br(),
-        html.Label('Statistic:'),
-        dcc.RadioItems(id='crate_stat',
-            options=[{'label': 'Arithmetic Mean', 'value': 'am'},
-                    {'label': 'Geometric Mean', 'value': 'gm'}],
-            value="am"
+            value="bcrm-mpm"
         ),
 
         html.Br(),
@@ -330,14 +322,6 @@ def getPerfPassLayout():
             style={'width': '70%'}
         ),
 
-#        html.Br(),
-#        html.Label('Pick a statistic:'),
-#        dcc.RadioItems(id='stat_type',
-#            options=[{'label': 'Arithmetic Mean', 'value': 'am'},
-#                    {'label': 'Geometric Mean', 'value': 'gm'}],
-#            value='am'
-#        ),
-
         html.Br(),
         html.Label('Lower is better!'),
         html.Div(id='crate-content-front')
@@ -348,22 +332,20 @@ def getPerfPassLayout():
 
 @app.callback(dash.dependencies.Output('crate-content', 'children'),
                [dash.dependencies.Input('crate_name', 'value'),
-                dash.dependencies.Input('crate_opt', 'value'),
-                dash.dependencies.Input('crate_stat', 'value')])
-def display_crate_info(crate_name, crate_opt, crate_stat):
+                dash.dependencies.Input('crate_opt', 'value')])
+def display_crate_info(crate_name, crate_opt):
 
     if 'diff' in crate_opt:
         return display_diff(crate_name, crate_opt)
     else:
-        return display_relative(crate_name, crate_opt, crate_stat)
+        return display_relative(crate_name, crate_opt)
 
 
 @app.callback(dash.dependencies.Output('crate-content-front', 'children'),
               [dash.dependencies.Input('result_type', 'value')])
-               #dash.dependencies.Input('stat_type', 'value')])
-def display_crate_info(result_type): #, stat_type):
+def display_crate_info(result_type):
 
-    return display_significant(result_type) #, stat_type)
+    return display_significant(result_type)
 
 
 def display_diff(crate_name, crate_opt):
@@ -379,7 +361,7 @@ def display_diff(crate_name, crate_opt):
         file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file
 
     if ((not os.path.exists(file_baseline)) or is_empty_datafile(file_baseline)) or ((not os.path.exists(file_tocompare)) or is_empty_datafile(file_tocompare)):
-        return "\nNo diff data for crate " + str(crate_name) + " with these settings."
+        return "\nNo diff data for [" + str(crate_name) + "] with these settings."
 
     def get_one_bar(rustc_type, bar_name, color):
         one_bmark_list = []
@@ -480,17 +462,17 @@ def display_diff(crate_name, crate_opt):
     ])
 
 
-def display_relative(crate_name, crate_opt, crate_stat):
+def display_relative(crate_name, crate_opt): 
 
-    if ("bcrm" in crate_opt) and ("gm" in crate_stat): 
-        filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file_geo
-    elif ("bcrm" in crate_opt) and ("am" in crate_stat):
+    if "bcrm" in crate_opt:
         filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file_new
     else: 
         filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file
 
     if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
-        return "\nNo relative data for crate " + str(crate_name) + " with these settings."
+        return "\nNo relative data for [" + str(crate_name) + "] with these settings."
+
+    speedup_arr = []
 
     def get_one_bar_rel(rustc_type, bar_name, color):
         one_bmark_list = []
@@ -524,20 +506,12 @@ def display_relative(crate_name, crate_opt, crate_stat):
             div_e = float(time) if float(time) != 0 else 1
             perc_e = (float(error) / div_e) * 100
 
-            #if perc_time > 0:
-            #    if perc_time + perc_e >= float(vanilla_error):
+            # calculate actual speedup
+            speedup = 1 / (1 + (perc_time / 100))
+            speedup_arr.append(speedup)
+
             one_perf_list.append(perc_time)
             one_y_error_list.append(perc_e)
-            #    else:
-            #        one_perf_list.append(0)
-            #        one_y_error_list.append(0)
-            #else:
-            #    if perc_time - perc_e <= (0 - float(vanilla_error)):
-            #        one_perf_list.append(perc_time)
-            #        one_y_error_list.append(perc_e)
-            #    else:
-            #        one_perf_list.append(0)
-            #        one_y_error_list.append(0)
 
         handle.close()
 
@@ -595,8 +569,11 @@ def display_relative(crate_name, crate_opt, crate_stat):
                         'height': 700}
                     })
 
-        
+    geo_speedup = geo_mean_overflow(speedup_arr)
+
     return html.Div([
+        html.Br(),
+        html.Label('Average Speedup for [' + crate_name + ']: ' + str(geo_speedup)),
         dcc.Graph(
             id='rustc-compare-graph-rel',
             figure=fig
@@ -657,6 +634,7 @@ def display_significant(result_type): #, stat_type):
 
                 div_e = float(nobc_time) if float(nobc_time) != 0 else 1
                 perc_error = (float(nobc_error) / div_e) * 100
+                vanilla_perc_error = (float(vanilla_error) / div) * 100
 
                 vanilla_means.append(float(vanilla_time))
                 nobc_means.append(float(nobc_time))
@@ -664,7 +642,11 @@ def display_significant(result_type): #, stat_type):
                 # if positive and unintuitive
                 if result_type == 'unintuitive' and perc_time > 0:
                     # perc_time is within vanilla stdev
-                    if perc_time < float(vanilla_error): 
+                    if perc_time < float(vanilla_perc_error): 
+                        #print("bmark = " + c + "::" + name)
+                        #print("perc_time = " + str(perc_time))
+                        #print("vanilla_error = " + str(vanilla_error))
+                        #print("vanilla_perc_error = " + str(vanilla_perc_error))
                         continue
                     # stdev magnitude is larger than perc_time magnitude
                     elif perc_time < float(perc_error):
@@ -679,7 +661,11 @@ def display_significant(result_type): #, stat_type):
                 # if negative and intuitive
                 elif result_type == 'intuitive' and perc_time < 0:
                     # perc_time is within vanilla stdev
-                    if abs(perc_time) < float(vanilla_error): 
+                    if abs(perc_time) < float(vanilla_perc_error): 
+                        #print("bmark = " + c + "::" + name)
+                        #print("perc_time = " + str(perc_time))
+                        #print("vanilla_error = " + str(vanilla_error))
+                        #print("vanilla_perc_error = " + str(vanilla_perc_error))
                         continue
                     # stdev magnitude is larger than perc_time magnitude
                     elif abs(perc_time) < float(perc_error):

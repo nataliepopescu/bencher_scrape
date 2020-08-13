@@ -33,10 +33,12 @@ PRNTFLAG=""
 O3=""
 
 # Two Rustc Versions
-VERSION="nightly-2020-07-05"
+#VERSION="nightly-2020-07-05"
 TARGET="x86_64-unknown-linux-gnu"
-UNMOD="$VERSION-$TARGET"
-BCRMP="bcrm"
+#UNMOD="$VERSION-$TARGET"
+#BCRMP="bcrm"
+UNMOD="UNMOD"
+BCRMP="BCRMP"
 
 #EXPERIMENTS=( "$BCRMP" )
 #EXPERIMENTS=( "$UNMOD" )
@@ -121,8 +123,6 @@ do
 	RANDDIRS=( "${RANDDIRS[@]}" "$line" )
 done < "$RAND_DIRLIST"
 
-#RANDDIRS=( "/benchdata/rust/bencher_scrape/crates/crates/bucket_queue/" )
-
 # Initialize output directory names depending on # runs
 SUFFIX="$name"
 if [ $runs -gt 1 -a $comp -eq 0 ]
@@ -145,18 +145,24 @@ CONVERT_ARGS_SCRIPT=$ROOT/convert_rustc_to_opt_args.py
 for exp in ${EXPERIMENTS[@]}
 do
 
-rustup override set $exp
-
-if [ $exp == $UNMOD ]
-then
-	cp bash_profile ~/.bash_profile
-else
-	cp bash_profile_bcrm ~/.bash_profile
-fi
-source ~/.bash_profile
+#rustup override set $exp
+#echo ""
+#echo "SETTING TOOLCHAIN"
+#echo ""
+#
+#if [ $exp == $UNMOD ]
+#then
+#	cp bash_profile ~/.bash_profile
+#else
+#	cp bash_profile_bcrm ~/.bash_profile
+#fi
+#source ~/.bash_profile
 
 # Get list of benchmark names and
 # the list of llvm passes rustc -O3 runs
+#                           WORSE                                                     BETTER
+#RANDDIRS=( "/benchdata/rust/bencher_scrape/crates/crates/rust-btoi/" "/benchdata/rust/bencher_scrape/crates/crates/optional/" )
+#RANDDIRS=( "/benchdata/rust/bencher_scrape/crates/crates/arrayvec/" )
 if [ $comp -eq 1 ]
 then
 	for d in ${RANDDIRS[@]}
@@ -203,9 +209,9 @@ then
 			# Running with opt-level = O3
 			if [ $exp == $UNMOD ]
 			then
-				RUSTFLAGS=$RUSTFLAGS_3 cargo rustc --verbose --release --bench "$b" -- -Z print-link-args -C "remark=all" -v -C save-temps -C llvm-args=-debug-pass=Structure 2> $RUSTC_PASSLIST > $LINKARGS
+				RUSTFLAGS=$RUSTFLAGS_3 cargo rustc --verbose --release --bench "$b" -- -Z print-link-args -C "remark=all" -v -C save-temps --emit=llvm-ir -C llvm-args=-debug-pass=Structure 2> $RUSTC_PASSLIST > $LINKARGS
 			else
-				RUSTFLAGS=$RUSTFLAGS_3 cargo rustc --verbose --release --bench "$b" -- -Z remove-bc -Z print-link-args -C "remark=all" -v -C save-temps -C llvm-args=-debug-pass=Structure 2> $RUSTC_PASSLIST > $LINKARGS
+				RUSTFLAGS=$RUSTFLAGS_3 cargo rustc --verbose --release --bench "$b" -- -Z remove-bc -Z print-link-args -C "remark=all" -v -C save-temps --emit=llvm-ir -C llvm-args=-debug-pass=Structure 2> $RUSTC_PASSLIST > $LINKARGS
 			fi
 			python3 $SAVE_EXE_SCRIPT $LINKARGS $EXECLIST
 		done

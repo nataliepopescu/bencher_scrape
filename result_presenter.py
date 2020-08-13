@@ -18,6 +18,7 @@ import plotly.graph_objects as go
 path_to_crates = "./crates/crates"
 data_file = "bench-sanity-CRUNCHED.data"
 data_file_new = "bench-CRUNCHED.data"
+data_file_geo = "bench-GEOMEAN.data"
 crates = []
 
 graph_styles = {
@@ -28,140 +29,176 @@ graph_styles = {
     1: {
         "bar-name": "Rustc No Slice Bounds Checks",
         "bar-color": "#FFA500"
-    },
-    2: {
-        "bar-name": "Rustc No Slice Bounds Checks + Safe memcpy",
-        "bar-color": "#DDA0DD"
-    },
-    3: {
-        "bar-name": "Rustc Safe memcpy",
-        "bar-color": "#0571B0"
-    }
+    } #,
+#    2: {
+#        "bar-name": "Rustc No Slice Bounds Checks + Safe memcpy",
+#        "bar-color": "#DDA0DD"
+#    },
+#    3: {
+#        "bar-name": "Rustc Safe memcpy",
+#        "bar-color": "#0571B0"
+#    }
 }
 
+# rustc stuff
 lto_off_1 = "results-lto-off-1"
 lto_off_2 = "results-lto-off-2"
 lto_thin_1 = "results-lto-thin-1"
 lto_thin_2 = "results-lto-thin-2"
 no_inline = "results-no-inline-lto-off"
 agg_inline = "results-agg-inline-lto-off"
-# out-of-tree stuff
+# out-of-tree llvm stuff
 bcrm_o0 = "results-bcrmpass-embedbitcode-no-lto-off"
 bcrm_o0_many = "results-bcrmpass-embedbitcode-no-lto-off-many"
 bcrm_o3 = "results-bcrmpass-embedbitcode-no-lto-off-o3"
 bcrm_o3_many = "results-bcrmpass-embedbitcode-no-lto-off-many-o3"
 bcrm_o0_o3 = "results-bcrmpass-o0-embedbitcode-no-lto-off-o3"
-# in-tree stuff
+# in-tree llvm stuff
 bcrm_fpm = "results-bcrmpass-first"
+bcrm_mpm = "results-bcrmpass-mpm"
 
 switcher = {
     "lto-off-1": {
-        "label": "1: -C embed-bitcode=no",
+        "label": "1: [MIR modification] -C embed-bitcode=no -C opt-level=3",
         "dir": lto_off_1
     },
     "lto-off-2": {
-        "label": "2: -C embed-bitcode=no -C lto=off",
+        "label": "2: [MIR modification] -C embed-bitcode=no -C lto=off -C opt-level=3",
         "dir": lto_off_2
     },
     "lto-thin-1": {
-        "label": "3: -C embed-bitcode=yes",
+        "label": "3: [MIR modification] -C embed-bitcode=yes -C opt-level=3",
         "dir": lto_thin_1
     },
     "lto-thin-2": {
-        "label": "4: -C embed-bitcode=yes =C lto=thin",
+        "label": "4: [MIR modification] -C embed-bitcode=yes =C lto=thin -C opt-level=3",
         "dir": lto_thin_2
     },
     "no-inline": {
-        "label": "5: -C llvm-args=-inline-threshold=0 and -C lto=off",
+        "label": "5: [MIR modification] -C llvm-args=-inline-threshold=0 -C lto=off -C opt-level=3",
         "dir": no_inline
     },
     "agg-inline": {
-        "label": "6: -C llvm-args=-inline-threshold=300 and -C lto=off",
+        "label": "6: [MIR modification] -C llvm-args=-inline-threshold=300 -C lto=off -C opt-level=3",
         "dir": agg_inline
     },
     "diff-ltos-1": {
         "label": "1 vs 3",
         "y-axis-label": "3 Time per Iteration Relative to 1 [%]",
-        "dir1": lto_off_1, # baseline
-        "dir2": lto_thin_1, # tocompare
+        "dir-baseline": lto_off_1,
+        "dir-tocompare": lto_thin_1,
     },
     "diff-ltos-2": {
         "label": "2 vs 4",
         "y-axis-label": "4 Time per Iteration Relative to 2 [%]",
-        "dir1": lto_off_2, # baseline
-        "dir2": lto_thin_2, # tocompare
+        "dir-baseline": lto_off_2,
+        "dir-tocompare": lto_thin_2,
     },
     "diff-off": {
         "label": "1 vs 2",
         "y-axis-label": "2 Time per Iteration Relative to 1 [%]",
-        "dir1": lto_off_1, # baseline
-        "dir2": lto_off_2, # tocompare
+        "dir-baseline": lto_off_1,
+        "dir-tocompare": lto_off_2,
     },
     "diff-thin": {
         "label": "3 vs 4",
         "y-axis-label": "4 Time per Iteration Relative to 3 [%]",
-        "dir1": lto_thin_1, # baseline
-        "dir2": lto_thin_2, # tocompare
+        "dir-baseline": lto_thin_1,
+        "dir-tocompare": lto_thin_2,
     },
     "diff-inline": {
         "label": "5 vs 6",
         "y-axis-label": "6 Time per Iteration Relative to 5 [%]",
-        "dir1": no_inline, # baseline
-        "dir2": agg_inline, # tocompare
+        "dir-baseline": no_inline,
+        "dir-tocompare": agg_inline,
     },
     "bcrm-o0": {
-        "label": "1: cargo rustc -C embed-bitcode=no -C lto=off -O3 [average of 36 runs]",
+        "label": "7: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -C opt-level=3 && opt -O0 [average of 36 runs]",
         "dir": bcrm_o0
     },
     "bcrm-o3": {
-        "label": "2: cargo rustc -C embed-bitcode=no -C lto=off -O3 && opt -O3 [average of 36 runs]",
+        "label": "8: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -C opt-level=3 && opt -O3 [average of 36 runs]",
         "dir": bcrm_o3
     },
     "bcrm-o0-many": {
-        "label": "3: cargo rustc -C embed-bitcode=no -C lto=off -O3 [average of 180 runs]",
+        "label": "9: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -C opt-level=3 && opt -O0 [average of 180 runs]",
         "dir": bcrm_o0_many
     },
     "bcrm-o3-many": {
-        "label": "4: cargo rustc -C embed-bitcode=no -C lto=off -O3 && opt -O3 [average of 180 runs]",
+        "label": "10: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -C opt-level=3 && opt -O3 [average of 180 runs]",
         "dir": bcrm_o3_many
     },
-    "bcrm-o0-o3": {
-        "label": "5: cargo rustc -C no-prepopulate-passes -C passes=name-anon-globals -C embed-bitcode=no -C lto=off && opt -O3 [average of 36 runs]",
-        "dir": bcrm_o0_o3
-    },
-    "bcrm-fpm": {
-        "label": "6: cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from FunctionPass Manager) [average of 42 runs]",
-        "dir": bcrm_fpm
-    },
     "diff-bcrm": {
-        "label": "1 vs 2",
-        "y-axis-label": "2 Time per Iteration Relative to 1 [%]",
-        "dir1": bcrm_o0,
-        "dir2": bcrm_o3
+        "label": "7 vs 8",
+        "y-axis-label": "8 Time per Iteration Relative to 7 [%]",
+        "dir-baseline": bcrm_o0,
+        "dir-tocompare": bcrm_o3
     },
     "diff-bcrm-o0": {
-        "label": "1 vs 3",
-        "y-axis-label": "3 Time per Iteration Relative to 1 [%]",
-        "dir1": bcrm_o0,
-        "dir2": bcrm_o0_many
+        "label": "7 vs 9",
+        "y-axis-label": "9 Time per Iteration Relative to 7 [%]",
+        "dir-baseline": bcrm_o0,
+        "dir-tocompare": bcrm_o0_many
     },
     "diff-bcrm-many": {
-        "label": "3 vs 4",
-        "y-axis-label": "4 Time per Iteration Relative to 3 [%]",
-        "dir1": bcrm_o0_many,
-        "dir2": bcrm_o3_many
+        "label": "9 vs 10",
+        "y-axis-label": "10 Time per Iteration Relative to 9 [%]",
+        "dir-baseline": bcrm_o0_many,
+        "dir-tocompare": bcrm_o3_many
     },
     "diff-bcrm-o3": {
-        "label": "2 vs 4",
-        "y-axis-label": "4 Time per Iteration Relative to 2 [%]",
-        "dir1": bcrm_o3,
-        "dir2": bcrm_o3_many
+        "label": "8 vs 10",
+        "y-axis-label": "10 Time per Iteration Relative to 8 [%]",
+        "dir-baseline": bcrm_o3,
+        "dir-tocompare": bcrm_o3_many
+    },
+    "bcrm-o0-o3": {
+        "label": "11: [Out-of-Tree LLVM Pass] cargo rustc -C no-prepopulate-passes -C passes=name-anon-globals -C embed-bitcode=no -C lto=off && opt -O3 [average of 36 runs]",
+        "dir": bcrm_o0_o3
+    },
+    "diff-mir-v-out": {
+        "label": "2 vs 11",
+        "y-axis-label": "11 Time per Iteration Relative to 2 [%]",
+        "dir-baseline": lto_off_2,
+        "dir-tocompare": bcrm_o0_o3,
     },
     "diff-bcrm-o0-o3": {
-        "label": "2 vs 5",
-        "y-axis-label": "5 Time per Iteration Relative to 2 [%]",
-        "dir1": bcrm_o3,
-        "dir2": bcrm_o0_o3,
+        "label": "8 vs 11",
+        "y-axis-label": "11 Time per Iteration Relative to 8 [%]",
+        "dir-baseline": bcrm_o3,
+        "dir-tocompare": bcrm_o0_o3,
+    },
+    "bcrm-fpm": {
+        "label": "12: [In-Tree LLVM Pass] cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from LLVM's FunctionPass Manager) [average of 42 runs]",
+        "dir": bcrm_fpm
+    },
+    "bcrm-mpm": {
+        "label": "13: [In-Tree LLVM Pass] cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from LLVM's ModulePass Manager) [average of 42 runs]",
+        "dir": bcrm_mpm
+    },
+    "diff-bcrm-fpm-o0-o3": {
+        "label": "11 vs 12",
+        "y-axis-label": "11 Time per Iteration Relative to 12 [%]",
+        "dir-baseline": bcrm_fpm,
+        "dir-tocompare": bcrm_o0_o3,
+    },
+    "diff-bcrm-mpm-o0-o3": {
+        "label": "11 vs 13",
+        "y-axis-label": "11 Time per Iteration Relative to 13 [%]",
+        "dir-baseline": bcrm_mpm,
+        "dir-tocompare": bcrm_o0_o3,
+    },
+    "diff-mir-v-in": {
+        "label": "2 vs 13",
+        "y-axis-label": "13 Time per Iteration Relative to 2 [%]",
+        "dir-baseline": lto_off_2,
+        "dir-tocompare": bcrm_mpm,
+    },
+    "diff-bcrm-fpm-mpm": {
+        "label": "12 vs 13",
+        "y-axis-label": "12 Time per Iteration Relative to 13 [%]",
+        "dir-baseline": bcrm_mpm,
+        "dir-tocompare": bcrm_fpm,
     }
 }
 
@@ -175,8 +212,24 @@ def get_crates():
 
 # Geometric mean helper
 def geo_mean_overflow(iterable):
-    a = np.log(iterable)
+    locarr = []
+    for i in iterable:
+        if i == 0:
+            locarr.append(10**-100)
+        else:
+            locarr.append(i)
+    # Convert all elements to positive numbers
+    a = np.log(locarr)
     return np.exp(a.sum() / len(a))
+
+
+def arith_mean_overflow(iterable):
+    rng_avg = 0
+    count = 1
+    for i in iterable:
+        rng_avg += (i - rng_avg) / count
+        count += 1
+    return rng_avg
 
 
 #class ResultProvider:
@@ -209,17 +262,13 @@ def crate_options():
     return options
 
 
-def setting_options(version):
+def setting_options(): 
     options = []
     global switcher
     keys = switcher.keys()
     for k in keys:
-        if version == 0 and "bcrm" in k: #k.startswith("bcrm"):
-            label = switcher.get(k).get("label")
-            options.append({'label': label, 'value': k})
-        elif version == 1 and not "bcrm" in k:
-            label = switcher.get(k).get("label")
-            options.append({'label': label, 'value': k})
+        label = switcher.get(k).get("label")
+        options.append({'label': label, 'value': k})
     return options
 
 
@@ -247,8 +296,8 @@ def getPerfRustcsLayout():
         html.Br(),
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
-            options=setting_options(1),
-            value="diff-inline"
+            options=setting_options(),
+            value="bcrm-mpm"
         ),
 
         html.Br(),
@@ -263,65 +312,57 @@ def getPerfPassLayout():
 
     layout = html.Div([
         html.Br(),
-        html.Label('Pick a crate:'),
-        dcc.Dropdown(id='crate_name',
-            options=crate_options(),
-            value='KDFs',
-            style={'width': '50%'}
+        html.Label('Across all crates, choose which result you would like to view:'),
+        dcc.RadioItems(id='result_type',
+            options=[
+                    {'label': 'Benchmarks where removal of bounds checks performs BETTER', 'value': 'intuitive'},
+                    {'label': 'Benchmarks where removal of bounds checks performs WORSE', 'value': 'unintuitive'},
+                    {'label': 'Benchmarks where removal of bounds checks performs trivially (i.e. everything else)', 'value': 'other'},
+            ],
+            value='intuitive',
+            style={'width': '70%'}
         ),
-
-        html.Br(),
-        html.Label('Pick a setting:'),
-        dcc.RadioItems(id='crate_opt',
-            options=setting_options(0),
-            value="bcrm-o0-o3"
-        ),
-
-#        html.Br(),
-#        html.Label('Pick a summary statistic:'),
-#        dcc.RadioItems(id='crate_stat',
-#            options=[{"label": "Mean", "value": "mean"},
-#                {"label": "Median", "value": "median"}],
-#            value="median"
-#        ),
 
         html.Br(),
         html.Label('Lower is better!'),
-        html.Div(id='crate-content')
+        html.Div(id='crate-content-front')
     ])
 
     return layout
 
 
 @app.callback(dash.dependencies.Output('crate-content', 'children'),
-              [dash.dependencies.Input('crate_name', 'value'),
-               dash.dependencies.Input('crate_opt', 'value')])
+               [dash.dependencies.Input('crate_name', 'value'),
+                dash.dependencies.Input('crate_opt', 'value')])
 def display_crate_info(crate_name, crate_opt):
 
-    #y_axis_txt = switcher.get(crate_opt).get("y-axis-label")
-
-    if crate_opt.startswith("diff"):
-        return display_diff(crate_name, crate_opt) #, dir_lto_thin, dir_lto_thin_rerun, y_axis_txt)
+    if 'diff' in crate_opt:
+        return display_diff(crate_name, crate_opt)
     else:
         return display_relative(crate_name, crate_opt)
 
 
-def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_text):
+@app.callback(dash.dependencies.Output('crate-content-front', 'children'),
+              [dash.dependencies.Input('result_type', 'value')])
+def display_crate_info(result_type):
 
-#    unexp_unmod = []
-#    unexp_nobc = []
-#    unexp_both = []
-#    unexp_safelib = []
+    return display_significant(result_type)
+
+
+def display_diff(crate_name, crate_opt):
 
     if "bcrm" in crate_opt:
-        file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir1") + "/" + data_file_new
-        file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir2") + "/" + data_file_new
+        file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-baseline") + "/" + data_file_new
+        file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file_new
+    elif "mir" in crate_opt:
+        file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-baseline") + "/" + data_file
+        file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file_new
     else:
-        file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir1") + "/" + data_file
-        file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir2") + "/" + data_file
+        file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-baseline") + "/" + data_file
+        file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file
 
     if ((not os.path.exists(file_baseline)) or is_empty_datafile(file_baseline)) or ((not os.path.exists(file_tocompare)) or is_empty_datafile(file_tocompare)):
-        return "\nNo diff data for crate " + str(crate_name) + " with these settings."
+        return "\n\nNo diff data for [" + str(crate_name) + "] with these settings."
 
     def get_one_bar(rustc_type, bar_name, color):
         one_bmark_list = []
@@ -360,16 +401,6 @@ def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_t
             perc_e = (float(error) / div) * 100
             one_y_error_list.append(perc_e)
 
-            # get stats for expectation #2
-#            if perc_time > 0:
-#                switcher_local = {
-#                    0: unexp_unmod,
-#                    1: unexp_nobc, 
-#                    2: unexp_both,
-#                    3: unexp_safelib
-#                }
-#                arr = switcher_local.get(rustc_type)
-#                arr.append(perc_time)
 
         handle_baseline.close()
         handle_tocompare.close()
@@ -380,18 +411,18 @@ def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_t
 
 
     bar_list = []
-    if "bcrm" in crate_opt:
-        bar_unmod = get_one_bar(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
-        bar_nobc = get_one_bar(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
+    #if ("bcrm" in crate_opt) or ("mir" in crate_opt):
+    bar_unmod = get_one_bar(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
+    bar_nobc = get_one_bar(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
 
-        bar_list = [bar_unmod, bar_nobc]
-    else:
-        bar_unmod = get_one_bar(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
-        bar_nobc = get_one_bar(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
-        bar_both = get_one_bar(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
-        bar_safelib = get_one_bar(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
+    bar_list = [bar_unmod, bar_nobc]
+    #else:
+    #    bar_unmod = get_one_bar(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
+    #    bar_nobc = get_one_bar(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
+    #    bar_both = get_one_bar(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
+    #    bar_safelib = get_one_bar(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
 
-        bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
+    #    bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
 
     fig = go.Figure({
                     'data': bar_list,
@@ -423,52 +454,8 @@ def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_t
                         'height': 700}
                     })
 
-#    sum_unexp_0 = 0
-#    len_unexp_0 = len(unexp_unmod)
-#    avg_0 = "None"
-#
-#    if len_unexp_0 > 0: 
-#        for e in unexp_unmod: 
-#            sum_unexp_0 += e
-#        avg_0 = str(sum_unexp_0 / len_unexp_0)
-#
-#    sum_unexp_1 = 0
-#    len_unexp_1 = len(unexp_nobc)
-#    avg_1 = "None"
-#
-#    if len_unexp_1 > 0: 
-#        for e in unexp_nobc: 
-#            sum_unexp_1 += e
-#        avg_1 = str(sum_unexp_1 / len_unexp_1)
-#        
-#    sum_unexp_2 = 0
-#    len_unexp_2 = len(unexp_both)
-#    avg_2 = "None"
-#
-#    if len_unexp_2 > 0: 
-#        for e in unexp_both: 
-#            sum_unexp_2 += e
-#        avg_2 = str(sum_unexp_2 / len_unexp_2)
-#        
-#    sum_unexp_3 = 0
-#    len_unexp_3 = len(unexp_safelib)
-#    avg_3 = "None"
-#
-#    if len_unexp_3 > 0: 
-#        for e in unexp_safelib: 
-#            sum_unexp_3 += e
-#        avg_3 = str(sum_unexp_3 / len_unexp_3)
         
     return html.Div([
-#        html.Br(),
-#        html.Label('Expectation 2 [unmod]: ' + avg_0),
-#        html.Br(),
-#        html.Label('Expectation 2 [nobc]: ' + avg_1),
-#        html.Br(),
-#        html.Label('Expectation 2 [both]: ' + avg_2),
-#        html.Br(),
-#        html.Label('Expectation 2 [safelib]: ' + avg_3),
-#        html.Br(),
         dcc.Graph(
             id='rustc-compare-ltos',
             figure=fig
@@ -476,18 +463,17 @@ def display_diff(crate_name, crate_opt): #, dir_baseline, dir_tocompare, graph_t
     ])
 
 
-def display_relative(crate_name, crate_opt):
+def display_relative(crate_name, crate_opt): 
 
-   # unexp_1 = []
-   # unexp_3 = []
-
-    if "bcrm" in crate_opt: #.startswith("bcrm"):
+    if "bcrm" in crate_opt:
         filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file_new
     else: 
         filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file
 
     if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
-        return "\nNo relative data for crate " + str(crate_name) + " with these settings."
+        return "\n\nNo relative data for [" + str(crate_name) + "] with these settings."
+
+    speedup_arr = []
 
     def get_one_bar_rel(rustc_type, bar_name, color):
         one_bmark_list = []
@@ -514,25 +500,19 @@ def display_relative(crate_name, crate_opt):
             col = rustc_type * 2 + 1
             time = cols[col]
             error = cols[col + 1]
-#            one_y_error_list.append(error)
 
             # calculate the percent speedup or slowdown
             div = float(vanilla) if float(vanilla) != 0 else 1
             perc_time = ((float(time) - float(vanilla)) / div) * 100
-            one_perf_list.append(perc_time)
-
-            #div_e = float(vanilla_error) if float(vanilla_error) != 0 else 1
-            #perc_error = ((float(error) - float(vanilla_er
             div_e = float(time) if float(time) != 0 else 1
             perc_e = (float(error) / div_e) * 100
-            #perc_error = perc_e if perc_e > 0 else (0 - perc_e)
-            one_y_error_list.append(perc_e)
 
-            # get stats for expectation #1 and #3
- #           if rustc_type == 1 and perc_time > 0:
- #               unexp_1.append(perc_time)
- #           elif rustc_type == 3 and perc_time < 0:
- #               unexp_3.append(perc_time)
+            # calculate actual speedup
+            speedup = 1 / (1 + (perc_time / 100))
+            speedup_arr.append(speedup)
+
+            one_perf_list.append(perc_time)
+            one_y_error_list.append(perc_e)
 
         handle.close()
 
@@ -540,22 +520,25 @@ def display_relative(crate_name, crate_opt):
 
         bar_one = {'x': one_bmark_list, 'y': one_perf_list, 'error_y': {'type': 'data', 'array': one_y_error_list, 'color': color_e},
                    'type': 'bar', 'name': bar_name, 'marker_color': color}
+
         return bar_one
 
     
     bar_list = []
-    if "bcrm" in crate_opt: #.startswith("bcrm"):
-        bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
-        bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
+    #if "bcrm" in crate_opt: #.startswith("bcrm"):
+    #bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
+    bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
 
-        bar_list = [bar_unmod, bar_nobc]
-    else: 
-        bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
-        bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
-        bar_both = get_one_bar_rel(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
-        bar_safelib = get_one_bar_rel(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
+    bar_list = [bar_nobc]
+    #bar_list = [bar_unmod, bar_nobc]
 
-        bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
+    #else: 
+    #    bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
+    #    bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
+    #    bar_both = get_one_bar_rel(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
+    #    bar_safelib = get_one_bar_rel(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
+
+    #    bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
 
     fig = go.Figure({
                     'data': bar_list,
@@ -587,32 +570,182 @@ def display_relative(crate_name, crate_opt):
                         'height': 700}
                     })
 
-#    sum_unexp_1 = 0
-#    len_unexp_1 = len(unexp_1)
-#    avg_1 = "None"
-#
-#    if len_unexp_1 > 0: 
-#        for e in unexp_1: 
-#            sum_unexp_1 += e
-#        avg_1 = str(sum_unexp_1 / len_unexp_1)
-#        
-#    sum_unexp_3 = 0
-#    len_unexp_3 = len(unexp_3)
-#    avg_3 = "None"
-#
-#    if len_unexp_3 > 0: 
-#        for e in unexp_3: 
-#            sum_unexp_3 += e
-#        avg_3 = str(sum_unexp_3 / len_unexp_3)
-        
+    geo_speedup = geo_mean_overflow(speedup_arr)
+
     return html.Div([
-#        html.Br(),
-#        html.Label('Expectation 1: ' + avg_1),
-#        html.Br(),
-#        html.Label('Expectation 3: ' + avg_3),
-#        html.Br(),
+        html.Br(),
+        html.Label('Average Speedup for [' + crate_name + ']: ' + str(geo_speedup)),
         dcc.Graph(
             id='rustc-compare-graph-rel',
+            figure=fig
+        )
+    ])
+
+
+def display_significant(result_type):
+
+    one_bmark_list = []
+    one_perf_list = []
+    one_yerror_list = []
+
+    speedup_arr_setting = []
+    speedup_arr = []
+    max_benefit = []
+
+    def get_one_bar(bar_name, bar_color):
+
+        global crates
+        bmark_ctr = 0
+
+        for c in crates: 
+
+            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_new
+
+            if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
+                continue
+
+            # open data file for reading
+            handle = open(filepath, 'r')
+
+            for line in handle: 
+                if line[:1] == '#':
+                    continue
+                cols = line.split()
+
+                name = cols[0]
+                bmark_ctr += 1
+
+                vanilla_time = cols[1]
+                vanilla_error = cols[2]
+                nobc_time = cols[3]
+                nobc_error = cols[4]
+
+                div = float(vanilla_time) if float(vanilla_time) != 0 else 1
+                perc_time = ((float(nobc_time) - float(vanilla_time)) / div) * 100
+
+                speedup = 1 / (1 + (perc_time / 100))
+                if result_type == 'unintuitive' and speedup < 1: 
+                    speedup_arr_setting.append(speedup)
+                elif result_type == 'intuitive' and speedup >= 1:
+                    speedup_arr_setting.append(speedup)
+
+                speedup_arr.append(speedup)
+                if speedup >= 1: 
+                    max_benefit.append(speedup)
+                else: 
+                    max_benefit.append(1)
+
+                div_e = float(nobc_time) if float(nobc_time) != 0 else 1
+                perc_error = (float(nobc_error) / div_e) * 100
+                vanilla_perc_error = (float(vanilla_error) / div) * 100
+
+                # if positive and unintuitive
+                if result_type == 'unintuitive' and perc_time > 0:
+                    # perc_time is within vanilla stdev
+                    if perc_time < float(vanilla_perc_error): 
+                        #print("bmark = " + c + "::" + name)
+                        #print("perc_time = " + str(perc_time))
+                        #print("vanilla_error = " + str(vanilla_error))
+                        #print("vanilla_perc_error = " + str(vanilla_perc_error))
+                        continue
+                    # stdev magnitude is larger than perc_time magnitude
+                    elif perc_time < float(perc_error):
+                        continue
+                    # perc_time magnitude is less than 3%
+                    elif perc_time < 3:
+                        continue
+                    else:
+                        one_bmark_list.append(c + "::" + name)
+                        one_perf_list.append(perc_time)
+                        one_yerror_list.append(perc_error)
+                # if negative and intuitive
+                elif result_type == 'intuitive' and perc_time < 0:
+                    # perc_time is within vanilla stdev
+                    if abs(perc_time) < float(vanilla_perc_error): 
+                        #print("bmark = " + c + "::" + name)
+                        #print("perc_time = " + str(perc_time))
+                        #print("vanilla_error = " + str(vanilla_error))
+                        #print("vanilla_perc_error = " + str(vanilla_perc_error))
+                        continue
+                    # stdev magnitude is larger than perc_time magnitude
+                    elif abs(perc_time) < float(perc_error):
+                        continue
+                    # perc_time magnitude is less than 3%
+                    elif abs(perc_time) < 3:
+                        continue
+                    else:
+                        one_bmark_list.append(c + "::" + name)
+                        one_perf_list.append(perc_time)
+                        one_yerror_list.append(perc_error)
+                # add all other benchmarks to this graph
+                elif result_type == 'other': # and perc_time < 0:
+                    if abs(perc_time) < float(vanilla_perc_error) or abs(perc_time) < float(perc_error) or abs(perc_time) < 3:
+                        one_bmark_list.append(c + "::" + name)
+                        one_perf_list.append(perc_time)
+                        one_yerror_list.append(perc_error)
+
+
+            handle.close()
+
+        color_e = 'black'
+        bar_one = {'x': one_bmark_list, 'y': one_perf_list, 'error_y': {'type': 'data', 'array': one_yerror_list, 'color': color_e},
+                    'type': 'bar', 'name': bar_name, 'marker_color': bar_color}        
+        return {0: bar_one, 1: len(one_bmark_list), 2: bmark_ctr}
+
+
+    results = get_one_bar(graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
+    bar_list = results.get(0)
+    num_bmarks = results.get(1)
+    total_num_bmarks = results.get(2)
+
+    fig = go.Figure({
+                    'data': bar_list,
+                    'layout': {
+                        'legend': {'orientation': 'h', 'x': 0.2, 'y': 1.3},
+                        'yaxis': {
+                            'showline': True, 
+                            'linewidth': 2,
+                            'ticks': "outside",
+                            'mirror': 'all',
+                            'linecolor': 'black',
+                            'gridcolor':'rgb(200,200,200)', 
+                            'nticks': 20,
+                            'title': {'text': " Performance Relative to Vanilla [%]"},
+                        },
+                        'xaxis': {
+                            'linecolor': 'black',
+                            'showline': True, 
+                            'linewidth': 2,
+                            'mirror': 'all',
+                            'nticks': 10,
+                            'showticklabels': True,
+                            'title': {'text': "Benchmarks"},
+                        },
+                        'font': {'family': 'Helvetica', 'color': "Black"},
+                        'plot_bgcolor': 'white',
+                        'autosize': False,
+                        'width': 2450, 
+                        'height': 1000}
+                    })
+
+    if result_type == 'other':
+        avg_speedup_setting = "Not calculated"
+    else: 
+        avg_speedup_setting = geo_mean_overflow(speedup_arr_setting)
+    avg_speedup = geo_mean_overflow(speedup_arr)
+    max_ben = geo_mean_overflow(max_benefit)
+        
+    return html.Div([
+        html.Br(),
+        html.Label('Number of Benchmarks in this graph: ' + str(num_bmarks)),
+        html.Label('Total Number of Benchmarks: ' + str(total_num_bmarks)),
+        html.Br(),
+        html.Label('Average Speedup [of benchmarks in graph] = ' + str(avg_speedup_setting)),
+        html.Label('Average Speedup [total] = ' + str(avg_speedup)),
+        html.Label('Potential Speedup [total] = ' + str(max_ben)),
+        html.Br(),
+        dcc.Graph(
+            id='significant-res-graph',
             figure=fig
         )
     ])
@@ -627,7 +760,7 @@ def display_page(pathname):
     if pathname == '/':
         pathname = '/comparePass'
 
-    if pathname == '/compareRustcs':
+    if pathname == '/compareAll':
         layout = getPerfRustcsLayout() #app._resultProvider)
         return layout
     if pathname == '/comparePass':
@@ -647,9 +780,9 @@ if __name__ == '__main__':
 
     app.layout = html.Div([
         dcc.Location(id='url', refresh=False),
-        dcc.Link('Modified Rustc', href='/compareRustcs'),
+        dcc.Link('All Techniques', href='/compareAll'),
         html.Br(),
-        dcc.Link('Out of Tree LLVM Pass', href='/comparePass'),
+        dcc.Link('In-Tree LLVM Pass', href='/comparePass'),
         html.Br(),
         html.Div(id='page-content')
     ])

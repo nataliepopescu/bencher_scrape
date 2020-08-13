@@ -652,6 +652,8 @@ def display_significant(result_type): #, stat_type):
                 speedup_arr.append(speedup)
                 if speedup >= 1: 
                     max_benefit.append(speedup)
+                else: 
+                    max_benefit.append(1)
 
                 div_e = float(nobc_time) if float(nobc_time) != 0 else 1
                 perc_error = (float(nobc_error) / div_e) * 100

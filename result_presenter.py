@@ -330,13 +330,13 @@ def getPerfPassLayout():
             style={'width': '70%'}
         ),
 
-        html.Br(),
-        html.Label('Pick a statistic:'),
-        dcc.RadioItems(id='stat_type',
-            options=[{'label': 'Arithmetic Mean', 'value': 'am'},
-                    {'label': 'Geometric Mean', 'value': 'gm'}],
-            value='am'
-        ),
+#        html.Br(),
+#        html.Label('Pick a statistic:'),
+#        dcc.RadioItems(id='stat_type',
+#            options=[{'label': 'Arithmetic Mean', 'value': 'am'},
+#                    {'label': 'Geometric Mean', 'value': 'gm'}],
+#            value='am'
+#        ),
 
         html.Br(),
         html.Label('Lower is better!'),
@@ -359,11 +359,11 @@ def display_crate_info(crate_name, crate_opt, crate_stat):
 
 
 @app.callback(dash.dependencies.Output('crate-content-front', 'children'),
-              [dash.dependencies.Input('result_type', 'value'),
-               dash.dependencies.Input('stat_type', 'value')])
-def display_crate_info(result_type, stat_type):
+              [dash.dependencies.Input('result_type', 'value')])
+               #dash.dependencies.Input('stat_type', 'value')])
+def display_crate_info(result_type): #, stat_type):
 
-    return display_significant(result_type, stat_type)
+    return display_significant(result_type) #, stat_type)
 
 
 def display_diff(crate_name, crate_opt):
@@ -604,7 +604,7 @@ def display_relative(crate_name, crate_opt, crate_stat):
     ])
 
 
-def display_significant(result_type, stat_type):
+def display_significant(result_type): #, stat_type):
 
     one_bmark_list = []
     one_perf_list = []
@@ -613,16 +613,19 @@ def display_significant(result_type, stat_type):
     vanilla_means = []
     nobc_means = []
 
+    speedup_arr = []
+    max_benefit = []
+
     def get_one_bar(bar_name, bar_color):
 
         global crates
 
         for c in crates: 
 
-            if stat_type == 'am':
-                filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_new
-            else: 
-                filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_geo
+            #if stat_type == 'am':
+            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_new
+            #else: 
+            #    filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_geo
 
             if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
                 continue
@@ -644,6 +647,11 @@ def display_significant(result_type, stat_type):
 
                 div = float(vanilla_time) if float(vanilla_time) != 0 else 1
                 perc_time = ((float(nobc_time) - float(vanilla_time)) / div) * 100
+
+                speedup = 1 / (1 + (perc_time / 100))
+                speedup_arr.append(speedup)
+                if speedup >= 1: 
+                    max_benefit.append(speedup)
 
                 div_e = float(nobc_time) if float(nobc_time) != 0 else 1
                 perc_error = (float(nobc_error) / div_e) * 100
@@ -724,16 +732,21 @@ def display_significant(result_type, stat_type):
                         'height': 1000}
                     })
 
-    if stat_type == 'am': 
-        mean_of_vanilla_means = arith_mean_overflow(vanilla_means)
-        mean_of_nobc_means = arith_mean_overflow(nobc_means)
-    else:
-        mean_of_vanilla_means = geo_mean_overflow(vanilla_means)
-        mean_of_nobc_means = geo_mean_overflow(nobc_means)
+    #if stat_type == 'am': 
+    mean_of_vanilla_means = arith_mean_overflow(vanilla_means)
+    mean_of_nobc_means = arith_mean_overflow(nobc_means)
+    avg_speedup = geo_mean_overflow(speedup_arr)
+    max_ben = geo_mean_overflow(max_benefit)
+    #else:
+    #    mean_of_vanilla_means = geo_mean_overflow(vanilla_means)
+    #    mean_of_nobc_means = geo_mean_overflow(nobc_means)
         
     return html.Div([
+        html.Br(),
         html.Label('Mean of the Vanilla means [ns/iter]: ' + str(mean_of_vanilla_means)),
         html.Label('Mean of the NOBC means [ns/iter]: ' + str(mean_of_nobc_means)),
+        html.Label('Average Speedup = ' + str(avg_speedup)),
+        html.Label('Bottom-line Speedup = ' + str(max_ben)),
         html.Br(),
         dcc.Graph(
             id='significant-res-graph',

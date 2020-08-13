@@ -316,7 +316,8 @@ def getPerfPassLayout():
         dcc.RadioItems(id='result_type',
             options=[
                     {'label': 'Benchmarks where removal of bounds checks performs BETTER', 'value': 'intuitive'},
-                    {'label': 'Benchmarks where removal of bounds checks performs WORSE', 'value': 'unintuitive'}
+                    {'label': 'Benchmarks where removal of bounds checks performs WORSE', 'value': 'unintuitive'},
+                    {'label': 'Benchmarks where removal of bounds checks performs trivially (i.e. everything else)', 'value': 'other'},
             ],
             value='intuitive',
             style={'width': '70%'}
@@ -581,28 +582,24 @@ def display_relative(crate_name, crate_opt):
     ])
 
 
-def display_significant(result_type): #, stat_type):
+def display_significant(result_type):
 
     one_bmark_list = []
     one_perf_list = []
     one_yerror_list = []
 
-    vanilla_means = []
-    nobc_means = []
-
+    speedup_arr_setting = []
     speedup_arr = []
     max_benefit = []
 
     def get_one_bar(bar_name, bar_color):
 
         global crates
+        bmark_ctr = 0
 
         for c in crates: 
 
-            #if stat_type == 'am':
             filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_new
-            #else: 
-            #    filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_geo
 
             if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
                 continue
@@ -616,6 +613,7 @@ def display_significant(result_type): #, stat_type):
                 cols = line.split()
 
                 name = cols[0]
+                bmark_ctr += 1
 
                 vanilla_time = cols[1]
                 vanilla_error = cols[2]
@@ -626,6 +624,11 @@ def display_significant(result_type): #, stat_type):
                 perc_time = ((float(nobc_time) - float(vanilla_time)) / div) * 100
 
                 speedup = 1 / (1 + (perc_time / 100))
+                if result_type == 'unintuitive' and speedup < 1: 
+                    speedup_arr_setting.append(speedup)
+                elif result_type == 'intuitive' and speedup >= 1:
+                    speedup_arr_setting.append(speedup)
+
                 speedup_arr.append(speedup)
                 if speedup >= 1: 
                     max_benefit.append(speedup)
@@ -635,9 +638,6 @@ def display_significant(result_type): #, stat_type):
                 div_e = float(nobc_time) if float(nobc_time) != 0 else 1
                 perc_error = (float(nobc_error) / div_e) * 100
                 vanilla_perc_error = (float(vanilla_error) / div) * 100
-
-                vanilla_means.append(float(vanilla_time))
-                nobc_means.append(float(nobc_time))
 
                 # if positive and unintuitive
                 if result_type == 'unintuitive' and perc_time > 0:
@@ -677,18 +677,26 @@ def display_significant(result_type): #, stat_type):
                         one_bmark_list.append(c + "::" + name)
                         one_perf_list.append(perc_time)
                         one_yerror_list.append(perc_error)
+                # add all other benchmarks to this graph
+                elif result_type == 'other': # and perc_time < 0:
+                    if abs(perc_time) < float(vanilla_perc_error) or abs(perc_time) < float(perc_error) or abs(perc_time) < 3:
+                        one_bmark_list.append(c + "::" + name)
+                        one_perf_list.append(perc_time)
+                        one_yerror_list.append(perc_error)
 
-                #if (result_type == 'unintuitive' and perc_time > 0 and (perc_time + perc_error >= float(vanilla_error))) or (result_type == 'intuitive' and perc_time < 0 and (perc_time - perc_error <= 0 - float(vanilla_error))):
 
             handle.close()
 
         color_e = 'black'
         bar_one = {'x': one_bmark_list, 'y': one_perf_list, 'error_y': {'type': 'data', 'array': one_yerror_list, 'color': color_e},
-                    'type': 'bar', 'name': bar_name, 'marker_color': bar_color}
-        return bar_one
+                    'type': 'bar', 'name': bar_name, 'marker_color': bar_color}        
+        return {0: bar_one, 1: len(one_bmark_list), 2: bmark_ctr}
 
 
-    bar_list = [get_one_bar(graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))]
+    results = get_one_bar(graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
+    bar_list = results.get(0)
+    num_bmarks = results.get(1)
+    total_num_bmarks = results.get(2)
 
     fig = go.Figure({
                     'data': bar_list,
@@ -720,22 +728,21 @@ def display_significant(result_type): #, stat_type):
                         'height': 1000}
                     })
 
-    #if stat_type == 'am': 
-    mean_of_vanilla_means = arith_mean_overflow(vanilla_means)
-    mean_of_nobc_means = arith_mean_overflow(nobc_means)
+    if result_type == 'other':
+        avg_speedup_setting = "Not calculated"
+    else: 
+        avg_speedup_setting = geo_mean_overflow(speedup_arr_setting)
     avg_speedup = geo_mean_overflow(speedup_arr)
     max_ben = geo_mean_overflow(max_benefit)
-    #else:
-    #    mean_of_vanilla_means = geo_mean_overflow(vanilla_means)
-    #    mean_of_nobc_means = geo_mean_overflow(nobc_means)
         
     return html.Div([
         html.Br(),
-        html.Label('Mean of the Vanilla means [ns/iter]: ' + str(mean_of_vanilla_means)),
-        html.Label('Mean of the NOBC means [ns/iter]: ' + str(mean_of_nobc_means)),
+        html.Label('Number of Benchmarks in this graph: ' + str(num_bmarks)),
+        html.Label('Total Number of Benchmarks: ' + str(total_num_bmarks)),
         html.Br(),
-        html.Label('Average Speedup = ' + str(avg_speedup)),
-        html.Label('Potential Speedup = ' + str(max_ben)),
+        html.Label('Average Speedup [of benchmarks in graph] = ' + str(avg_speedup_setting)),
+        html.Label('Average Speedup [total] = ' + str(avg_speedup)),
+        html.Label('Potential Speedup [total] = ' + str(max_ben)),
         html.Br(),
         dcc.Graph(
             id='significant-res-graph',

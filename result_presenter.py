@@ -13,12 +13,12 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objects as go
+import plotly.express as px
 
 
 path_to_crates = "./crates/crates"
 data_file = "bench-sanity-CRUNCHED.data"
 data_file_new = "bench-CRUNCHED.data"
-data_file_geo = "bench-GEOMEAN.data"
 crates = []
 
 graph_styles = {
@@ -56,6 +56,7 @@ bcrm_o0_o3 = "results-bcrmpass-o0-embedbitcode-no-lto-off-o3"
 # in-tree llvm stuff
 bcrm_fpm = "results-bcrmpass-first"
 bcrm_mpm = "results-bcrmpass-mpm"
+bcrm_mod_rustc_only = "results-bcrmpass-mod-rustc-only"
 
 switcher = {
     "lto-off-1": {
@@ -173,8 +174,12 @@ switcher = {
         "dir": bcrm_fpm
     },
     "bcrm-mpm": {
-        "label": "13: [In-Tree LLVM Pass] cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from LLVM's ModulePass Manager) [average of 42 runs]",
+        "label": "13: [In-Tree LLVM Pass] cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from LLVM's ModulePass Manager) vs using nightly rustc (with rustc/LLVM versions matched) [average of 42 runs]",
         "dir": bcrm_mpm
+    },
+    "bcrm-mod-rustc-only": {
+        "label": "14: [In-Tree LLVM Pass] cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from LLVM's ModulePass Manager) vs our modified rustc withOUT '-Z remove-bc' [average of 42 runs]",
+        "dir": bcrm_mod_rustc_only
     },
     "diff-bcrm-fpm-o0-o3": {
         "label": "11 vs 12",
@@ -199,6 +204,12 @@ switcher = {
         "y-axis-label": "12 Time per Iteration Relative to 13 [%]",
         "dir-baseline": bcrm_mpm,
         "dir-tocompare": bcrm_fpm,
+    },
+    "diff-bcrm-night-v-mod": {
+        "label": "13 vs 14",
+        "y-axis-label": "13 Time per Iteration Relative to 14 [%]",
+        "dir-baseline": bcrm_mod_rustc_only,
+        "dir-tocompare": bcrm_mpm,
     }
 }
 
@@ -237,15 +248,6 @@ def arith_mean_overflow(iterable):
 #    def __init__(self, path):
 #        self._path = path
 
-
-def parseArgs():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--root_path", type=str, required=True,
-                        help="Root path of CPF benchmark directory")
-    parser.add_argument("--port", type=str, default="8050",
-                        help="Port for Dash server to run, 8050 or 8060 on AWS")
-    args = parser.parse_args()
-    return args.root_path, args.port
 
 
 # some setting for plot
@@ -311,6 +313,9 @@ def getPerfRustcsLayout():
 def getPerfPassLayout():
 
     layout = html.Div([
+        #html.Br(),
+        #html.H1(children='Testing..?', style={'textAlign': 'center'}),
+
         html.Br(),
         html.Label('Across all crates, choose which result you would like to view:'),
         dcc.RadioItems(id='result_type',
@@ -728,6 +733,48 @@ def display_significant(result_type):
                         'height': 1000}
                     })
 
+    fig_hist = go.Figure({
+                    'data': go.Histogram(x=speedup_arr, cumulative_enabled=True),
+                    'layout': {
+                        'title': "CDF of Benchmark Speedups",
+                        'xaxis': {
+                            'linecolor': 'black',
+                            'showline': True, 
+                            'nticks': 10,
+                            'title': {'text': "Speedup"},
+                        },
+                        'yaxis': {
+                            'linecolor': 'black',
+                            'ticks': "outside",
+                            'showline': True, 
+                            'gridcolor':'rgb(200,200,200)', 
+                            'nticks': 50,
+                            'title': {'text': "Number of Benchmarks"},
+                        },
+                        'font': {'family': 'Helvetica', 'color': "Black"},
+                        'plot_bgcolor': 'white',
+                        'autosize': False,
+                        'bargap': 0.2,
+                        'width': 2150, 
+                        'height': 1000}
+                    })
+
+    # add vertical line designating slowdown => speedup shift
+    fig_hist.add_shape(
+        dict(
+            type="line",
+            x0=1,
+            x1=1,
+            y0=0,
+            y1=500,
+            line=dict(
+                color="OrangeRed",
+                width=4,
+                dash="dot",
+            )
+        )
+    )
+
     if result_type == 'other':
         avg_speedup_setting = "Not calculated"
     else: 
@@ -747,8 +794,23 @@ def display_significant(result_type):
         dcc.Graph(
             id='significant-res-graph',
             figure=fig
+        ),
+        html.Br(),
+        dcc.Graph(
+            id='histogram',
+            figure=fig_hist
         )
     ])
+
+
+def parseArgs():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--root_path", type=str, required=True,
+                        help="Root path of CPF benchmark directory")
+    parser.add_argument("--port", type=str, default="8050",
+                        help="Port for Dash server to run, 8050 or 8060 on AWS")
+    args = parser.parse_args()
+    return args.root_path, args.port
 
 
 @app.callback(dash.dependencies.Output('page-content', 'children'),

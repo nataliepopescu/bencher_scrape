@@ -736,7 +736,7 @@ def display_significant(result_type):
                     })
 
     fig_hist = go.Figure({
-                    'data': go.Histogram(x=speedup_arr, cumulative_enabled=True),
+                    'data': go.Histogram(x=speedup_arr), #, cumulative_enabled=True),
                     'layout': {
                         'title': "CDF of Benchmark Speedups",
                         'xaxis': {

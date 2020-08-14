@@ -762,20 +762,20 @@ def display_significant(result_type):
                     })
     
     # add vertical line designating slowdown => speedup shift
-    fig_hist.add_shape(
-        dict(
-            type="line",
-            x0=1,
-            x1=1,
-            y0=0,
-            y1=500,
-            line=dict(
-                color="OrangeRed",
-                width=4,
-                dash="dot",
-            )
-        )
-    )
+    #fig_hist.add_shape(
+    #    dict(
+    #        type="line",
+    #        x0=1,
+    #        x1=1,
+    #        y0=0,
+    #        y1=500,
+    #        line=dict(
+    #            color="OrangeRed",
+    #            width=4,
+    #            dash="dot",
+    #        )
+    #    )
+    #)
 
     if result_type == 'other':
         avg_speedup_setting = "Not calculated"

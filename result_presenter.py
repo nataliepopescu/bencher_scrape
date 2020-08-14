@@ -514,8 +514,7 @@ def display_relative(crate_name, crate_opt):
 
             # calculate actual speedup
             speedup = 1 / (1 + (perc_time / 100))
-            if speedup < 1.8: 
-                speedup_arr.append(speedup)
+            speedup_arr.append(speedup)
 
             one_perf_list.append(perc_time)
             one_y_error_list.append(perc_e)

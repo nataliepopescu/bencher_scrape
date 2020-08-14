@@ -632,12 +632,12 @@ def display_significant(result_type):
                 speedup = 1 / (1 + (perc_time / 100))
                 if result_type == 'unintuitive' and speedup < 1: 
                     speedup_arr_setting.append(speedup)
-                elif result_type == 'intuitive' and speedup >= 1:
+                elif result_type == 'intuitive' and speedup >= 1 and speedup < 1.8:
                     speedup_arr_setting.append(speedup)
 
                 if speedup < 1.8:
                     speedup_arr.append(speedup)
-                if speedup >= 1: 
+                if speedup >= 1 and speedup < 1.8: 
                     max_benefit.append(speedup)
                 else: 
                     max_benefit.append(1)
@@ -790,9 +790,9 @@ def display_significant(result_type):
         html.Label('Number of Benchmarks in this graph: ' + str(num_bmarks)),
         html.Label('Total Number of Benchmarks: ' + str(total_num_bmarks)),
         html.Br(),
-        html.Label('Average Speedup [of benchmarks in graph] = ' + str(avg_speedup_setting)),
-        html.Label('Average Speedup [total of ' + str(num_bmarks_considered) + ' crates] = ' + str(avg_speedup)),
-        html.Label('Potential Speedup [total] = ' + str(max_ben)),
+        html.Label('Average Speedup [of benchmarks in graph where speedup < 1.8] = ' + str(avg_speedup_setting)),
+        html.Label('Average Speedup [total of ' + str(num_bmarks_considered) + ' benchmarks where speedup < 1.8] = ' + str(avg_speedup)),
+        html.Label('Potential Speedup [total of benchmarks where speedup < 1.8] = ' + str(max_ben)),
         html.Br(),
         dcc.Graph(
             id='significant-res-graph',

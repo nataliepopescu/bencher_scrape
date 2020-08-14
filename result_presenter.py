@@ -514,7 +514,8 @@ def display_relative(crate_name, crate_opt):
 
             # calculate actual speedup
             speedup = 1 / (1 + (perc_time / 100))
-            speedup_arr.append(speedup)
+            if speedup < 1.8: 
+                speedup_arr.append(speedup)
 
             one_perf_list.append(perc_time)
             one_y_error_list.append(perc_e)
@@ -635,7 +636,8 @@ def display_significant(result_type):
                 elif result_type == 'intuitive' and speedup >= 1:
                     speedup_arr_setting.append(speedup)
 
-                speedup_arr.append(speedup)
+                if speedup < 1.8:
+                    speedup_arr.append(speedup)
                 if speedup >= 1: 
                     max_benefit.append(speedup)
                 else: 
@@ -782,6 +784,7 @@ def display_significant(result_type):
         avg_speedup_setting = geo_mean_overflow(speedup_arr_setting)
     avg_speedup = geo_mean_overflow(speedup_arr)
     max_ben = geo_mean_overflow(max_benefit)
+    num_bmarks_considered = len(speedup_arr)
         
     return html.Div([
         html.Br(),
@@ -789,7 +792,7 @@ def display_significant(result_type):
         html.Label('Total Number of Benchmarks: ' + str(total_num_bmarks)),
         html.Br(),
         html.Label('Average Speedup [of benchmarks in graph] = ' + str(avg_speedup_setting)),
-        html.Label('Average Speedup [total] = ' + str(avg_speedup)),
+        html.Label('Average Speedup [total of ' + str(num_bmarks_considered) + ' crates] = ' + str(avg_speedup)),
         html.Label('Potential Speedup [total] = ' + str(max_ben)),
         html.Br(),
         dcc.Graph(

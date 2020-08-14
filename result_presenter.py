@@ -299,7 +299,7 @@ def getPerfRustcsLayout():
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
             options=setting_options(),
-            value="bcrm-mpm"
+            value="bcrm-mod-rustc-only"
         ),
 
         html.Br(),
@@ -604,7 +604,8 @@ def display_significant(result_type):
 
         for c in crates: 
 
-            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_new
+            #filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_new
+            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mod-rustc-only').get("dir") + "/" + data_file_new
 
             if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
                 continue
@@ -733,47 +734,47 @@ def display_significant(result_type):
                         'height': 1000}
                     })
 
-    fig_hist = go.Figure({
-                    'data': go.Histogram(x=speedup_arr, cumulative_enabled=True),
-                    'layout': {
-                        'title': "CDF of Benchmark Speedups",
-                        'xaxis': {
-                            'linecolor': 'black',
-                            'showline': True, 
-                            'nticks': 10,
-                            'title': {'text': "Speedup"},
-                        },
-                        'yaxis': {
-                            'linecolor': 'black',
-                            'ticks': "outside",
-                            'showline': True, 
-                            'gridcolor':'rgb(200,200,200)', 
-                            'nticks': 50,
-                            'title': {'text': "Number of Benchmarks"},
-                        },
-                        'font': {'family': 'Helvetica', 'color': "Black"},
-                        'plot_bgcolor': 'white',
-                        'autosize': False,
-                        'bargap': 0.2,
-                        'width': 2150, 
-                        'height': 1000}
-                    })
-
+    #fig_hist = go.Figure({
+    #                'data': go.Histogram(x=speedup_arr, cumulative_enabled=True),
+    #                'layout': {
+    #                    'title': "CDF of Benchmark Speedups",
+    #                    'xaxis': {
+    #                        'linecolor': 'black',
+    #                        'showline': True, 
+    #                        'nticks': 10,
+    #                        'title': {'text': "Speedup"},
+    #                    },
+    #                    'yaxis': {
+    #                        'linecolor': 'black',
+    #                        'ticks': "outside",
+    #                        'showline': True, 
+    #                        'gridcolor':'rgb(200,200,200)', 
+    #                        'nticks': 50,
+    #                        'title': {'text': "Number of Benchmarks"},
+    #                    },
+    #                    'font': {'family': 'Helvetica', 'color': "Black"},
+    #                    'plot_bgcolor': 'white',
+    #                    'autosize': False,
+    #                    'bargap': 0.2,
+    #                    'width': 2150, 
+    #                    'height': 1000}
+    #                })
+    #
     # add vertical line designating slowdown => speedup shift
-    fig_hist.add_shape(
-        dict(
-            type="line",
-            x0=1,
-            x1=1,
-            y0=0,
-            y1=500,
-            line=dict(
-                color="OrangeRed",
-                width=4,
-                dash="dot",
-            )
-        )
-    )
+    #fig_hist.add_shape(
+    #    dict(
+    #        type="line",
+    #        x0=1,
+    #        x1=1,
+    #        y0=0,
+    #        y1=500,
+    #        line=dict(
+    #            color="OrangeRed",
+    #            width=4,
+    #            dash="dot",
+    #        )
+    #    )
+    #)
 
     if result_type == 'other':
         avg_speedup_setting = "Not calculated"
@@ -795,11 +796,11 @@ def display_significant(result_type):
             id='significant-res-graph',
             figure=fig
         ),
-        html.Br(),
-        dcc.Graph(
-            id='histogram',
-            figure=fig_hist
-        )
+        #html.Br(),
+        #dcc.Graph(
+        #    id='histogram',
+        #    figure=fig_hist
+        #)
     ])
 
 

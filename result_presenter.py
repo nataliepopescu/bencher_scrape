@@ -734,47 +734,47 @@ def display_significant(result_type):
                         'height': 1000}
                     })
 
-    #fig_hist = go.Figure({
-    #                'data': go.Histogram(x=speedup_arr, cumulative_enabled=True),
-    #                'layout': {
-    #                    'title': "CDF of Benchmark Speedups",
-    #                    'xaxis': {
-    #                        'linecolor': 'black',
-    #                        'showline': True, 
-    #                        'nticks': 10,
-    #                        'title': {'text': "Speedup"},
-    #                    },
-    #                    'yaxis': {
-    #                        'linecolor': 'black',
-    #                        'ticks': "outside",
-    #                        'showline': True, 
-    #                        'gridcolor':'rgb(200,200,200)', 
-    #                        'nticks': 50,
-    #                        'title': {'text': "Number of Benchmarks"},
-    #                    },
-    #                    'font': {'family': 'Helvetica', 'color': "Black"},
-    #                    'plot_bgcolor': 'white',
-    #                    'autosize': False,
-    #                    'bargap': 0.2,
-    #                    'width': 2150, 
-    #                    'height': 1000}
-    #                })
-    #
+    fig_hist = go.Figure({
+                    'data': go.Histogram(x=speedup_arr, cumulative_enabled=True),
+                    'layout': {
+                        'title': "CDF of Benchmark Speedups",
+                        'xaxis': {
+                            'linecolor': 'black',
+                            'showline': True, 
+                            'nticks': 10,
+                            'title': {'text': "Speedup"},
+                        },
+                        'yaxis': {
+                            'linecolor': 'black',
+                            'ticks': "outside",
+                            'showline': True, 
+                            'gridcolor':'rgb(200,200,200)', 
+                            'nticks': 50,
+                            'title': {'text': "Number of Benchmarks"},
+                        },
+                        'font': {'family': 'Helvetica', 'color': "Black"},
+                        'plot_bgcolor': 'white',
+                        'autosize': False,
+                        'bargap': 0.2,
+                        'width': 2150, 
+                        'height': 1000}
+                    })
+    
     # add vertical line designating slowdown => speedup shift
-    #fig_hist.add_shape(
-    #    dict(
-    #        type="line",
-    #        x0=1,
-    #        x1=1,
-    #        y0=0,
-    #        y1=500,
-    #        line=dict(
-    #            color="OrangeRed",
-    #            width=4,
-    #            dash="dot",
-    #        )
-    #    )
-    #)
+    fig_hist.add_shape(
+        dict(
+            type="line",
+            x0=1,
+            x1=1,
+            y0=0,
+            y1=500,
+            line=dict(
+                color="OrangeRed",
+                width=4,
+                dash="dot",
+            )
+        )
+    )
 
     if result_type == 'other':
         avg_speedup_setting = "Not calculated"
@@ -796,11 +796,11 @@ def display_significant(result_type):
             id='significant-res-graph',
             figure=fig
         ),
-        #html.Br(),
-        #dcc.Graph(
-        #    id='histogram',
-        #    figure=fig_hist
-        #)
+        html.Br(),
+        dcc.Graph(
+            id='histogram',
+            figure=fig_hist
+        )
     ])
 
 

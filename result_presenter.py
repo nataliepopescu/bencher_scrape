@@ -299,7 +299,7 @@ def getPerfRustcsLayout():
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
             options=setting_options(),
-            value="bcrm-mpm"
+            value="bcrm-mod-rustc-only"
         ),
 
         html.Br(),
@@ -604,7 +604,8 @@ def display_significant(result_type):
 
         for c in crates: 
 
-            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_new
+            #filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_new
+            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mod-rustc-only').get("dir") + "/" + data_file_new
 
             if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
                 continue
@@ -631,11 +632,12 @@ def display_significant(result_type):
                 speedup = 1 / (1 + (perc_time / 100))
                 if result_type == 'unintuitive' and speedup < 1: 
                     speedup_arr_setting.append(speedup)
-                elif result_type == 'intuitive' and speedup >= 1:
+                elif result_type == 'intuitive' and speedup >= 1 and speedup < 1.8:
                     speedup_arr_setting.append(speedup)
 
-                speedup_arr.append(speedup)
-                if speedup >= 1: 
+                if speedup < 1.8:
+                    speedup_arr.append(speedup)
+                if speedup >= 1 and speedup < 1.8: 
                     max_benefit.append(speedup)
                 else: 
                     max_benefit.append(1)
@@ -734,9 +736,9 @@ def display_significant(result_type):
                     })
 
     fig_hist = go.Figure({
-                    'data': go.Histogram(x=speedup_arr, cumulative_enabled=True),
+                    'data': go.Histogram(x=speedup_arr), #, cumulative_enabled=True),
                     'layout': {
-                        'title': "CDF of Benchmark Speedups",
+                        'title': "Histogram of Benchmark Speedups",
                         'xaxis': {
                             'linecolor': 'black',
                             'showline': True, 
@@ -758,22 +760,22 @@ def display_significant(result_type):
                         'width': 2150, 
                         'height': 1000}
                     })
-
+    
     # add vertical line designating slowdown => speedup shift
-    fig_hist.add_shape(
-        dict(
-            type="line",
-            x0=1,
-            x1=1,
-            y0=0,
-            y1=500,
-            line=dict(
-                color="OrangeRed",
-                width=4,
-                dash="dot",
-            )
-        )
-    )
+    #fig_hist.add_shape(
+    #    dict(
+    #        type="line",
+    #        x0=1,
+    #        x1=1,
+    #        y0=0,
+    #        y1=500,
+    #        line=dict(
+    #            color="OrangeRed",
+    #            width=4,
+    #            dash="dot",
+    #        )
+    #    )
+    #)
 
     if result_type == 'other':
         avg_speedup_setting = "Not calculated"
@@ -781,15 +783,16 @@ def display_significant(result_type):
         avg_speedup_setting = geo_mean_overflow(speedup_arr_setting)
     avg_speedup = geo_mean_overflow(speedup_arr)
     max_ben = geo_mean_overflow(max_benefit)
+    num_bmarks_considered = len(speedup_arr)
         
     return html.Div([
         html.Br(),
         html.Label('Number of Benchmarks in this graph: ' + str(num_bmarks)),
         html.Label('Total Number of Benchmarks: ' + str(total_num_bmarks)),
         html.Br(),
-        html.Label('Average Speedup [of benchmarks in graph] = ' + str(avg_speedup_setting)),
-        html.Label('Average Speedup [total] = ' + str(avg_speedup)),
-        html.Label('Potential Speedup [total] = ' + str(max_ben)),
+        html.Label('Average Speedup [of benchmarks in graph where speedup < 1.8] = ' + str(avg_speedup_setting)),
+        html.Label('Average Speedup [total of ' + str(num_bmarks_considered) + ' benchmarks where speedup < 1.8] = ' + str(avg_speedup)),
+        html.Label('Potential Speedup [total of benchmarks where speedup < 1.8] = ' + str(max_ben)),
         html.Br(),
         dcc.Graph(
             id='significant-res-graph',

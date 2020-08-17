@@ -580,6 +580,8 @@ def display_relative(crate_name, crate_opt):
     return html.Div([
         html.Br(),
         html.Label('Average Speedup for [' + crate_name + ']: ' + str(geo_speedup)),
+        html.Br(),
+        html.Label(str(len(speedup_arr)) + ' Benchmarks'),
         dcc.Graph(
             id='rustc-compare-graph-rel',
             figure=fig
@@ -751,6 +753,7 @@ def display_significant(result_type):
                             'showline': True, 
                             'gridcolor':'rgb(200,200,200)', 
                             'nticks': 50,
+                            'type': "log",
                             'title': {'text': "Number of Benchmarks"},
                         },
                         'font': {'family': 'Helvetica', 'color': "Black"},

@@ -1,3 +1,7 @@
+dirlist
+rand-dirlist
+crates/crates/*/target/
+crates/crates/*/gnuplot*
 *.plt
 *.lock
 *.gitignore

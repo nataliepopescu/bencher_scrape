@@ -2,6 +2,8 @@ dirlist
 rand-dirlist
 crates/crates/*/target/
 crates/crates/*/gnuplot*
+crates/crates/*/BCRMP/
+crates/crates/*/UNMOD/
 *.plt
 *.lock
 *.gitignore

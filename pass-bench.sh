@@ -2,6 +2,8 @@
 
 # *****DEFAULTS*****
 
+# Don't scrape
+scrape=0
 # Don't bench
 bench=0
 # Don't pre-compile
@@ -26,12 +28,6 @@ LTOFLAGS_A="-C embed-bitcode=no -C lto=off"
 RUSTFLAGS_3=""$OPTFLAGS_3" "$DBGFLAGS" "$LTOFLAGS_A""
 RUSTFLAGS_NONE=""$OPTFLAGS_NONE" "$DBGFLAGS" "$LTOFLAGS_A""
 
-# LLVM Print Passes Flag
-PRNTFLAG=""
-
-# LLVM O3 Flag
-O3=""
-
 # Two Rustc Versions
 #VERSION="nightly-2020-07-05"
 TARGET="x86_64-unknown-linux-gnu"
@@ -48,12 +44,11 @@ EXPERIMENTS=( "$UNMOD" "$BCRMP" )
 
 usage () {
 	echo ""
-	echo "Usage: $0 [-b] [-c] [-p] [r <num-runs>] [-n <outfile-label>] [-o <outdir-label>]"
+	echo "Usage: $0 [-s] [-b] [-c] [r <num-runs>] [-n <outfile-label>] [-o <outdir-label>]"
+	echo "   -s		Scrape crates.io for reverse dependencies of bencher [default = off]."
 	echo "   -b		Bench crates with and without remove-bounds-check-pass [default = off]."
 	echo "   -c		Compile benchmarks, without running, for crates with and without"
 	echo "			  remove-bounds-check-pass; for large-scale experiments [default = off]."
-	echo "   -p		Print list of passes that were run during compilation [default = off]."
-	echo "   -m		optiMize using O3 after removing bounds checks [default = off]."
 	echo "   -r <num-runs>  How many runs to execute [default = 1]."
 	echo "   -n <outfile-label>"
 	echo "			How to label the output files of this invocation [default = 'sanity']."
@@ -63,16 +58,14 @@ usage () {
 }
 
 # Parse args
-while getopts "bcpmr:n:o:h" opt
+while getopts "sbcr:n:o:h" opt
 do
 	case "$opt" in
+	s)	scrape=1
+		;;
 	b)	bench=1
 		;;
 	c)	comp=1
-		;;
-	p)	PRNTFLAG="--debug-pass=Structure"
-		;;
-	m)	O3="--O3"
 		;;
 	r)	runs="$(($OPTARG))"
 		;;
@@ -89,8 +82,22 @@ do
 	esac
 done
 
-cp bashrc ~/.bashrc
-source ~/.bashrc
+ROOT="$PWD"
+SUBDIRS="$ROOT/get-crates/*/"
+DIRLIST="dirlist"
+RAND_DIRLIST="rand-dirlist"
+RAND_SCRIPT="randomize.py"
+
+cp bash_profile_bcrm ~/.bash_profile
+source ~/.bash_profile
+
+# *****SCRAPE*****
+if [ "$scrape" -eq 1 ]
+then
+        cd "get-crates/"
+	scrapy crawl get-crates
+	cd $ROOT
+fi
 
 # *****PRE-PROCESS*****
 for i in $(seq 1 $runs)
@@ -99,16 +106,14 @@ do
 # Get list of crates + randomize order
 set -x
 
-ROOT="$PWD"
-SUBDIRS="$ROOT/crates/crates/*/"
-DIRLIST="dirlist"
-RAND_DIRLIST="rand-dirlist"
-RAND_SCRIPT="randomize.py"
-
 # Initial crate list (ordered alphabetically)
 rm "$DIRLIST"
 for d in ${SUBDIRS[@]}
 do
+	if [ "$d" == "/benchdata/rust/bencher_scrape/get-crates/spiders/" ]
+	then
+		continue
+	fi
 	echo "$d" >> "$DIRLIST"
 done
 
@@ -145,24 +150,8 @@ CONVERT_ARGS_SCRIPT=$ROOT/convert_rustc_to_opt_args.py
 for exp in ${EXPERIMENTS[@]}
 do
 
-#rustup override set $exp
-#echo ""
-#echo "SETTING TOOLCHAIN"
-#echo ""
-#
-#if [ $exp == $UNMOD ]
-#then
-#	cp bash_profile ~/.bash_profile
-#else
-#	cp bash_profile_bcrm ~/.bash_profile
-#fi
-#source ~/.bash_profile
-
 # Get list of benchmark names and
 # the list of llvm passes rustc -O3 runs
-#                           WORSE                                                     BETTER
-#RANDDIRS=( "/benchdata/rust/bencher_scrape/crates/crates/rust-btoi/" "/benchdata/rust/bencher_scrape/crates/crates/optional/" )
-#RANDDIRS=( "/benchdata/rust/bencher_scrape/crates/crates/arrayvec/" )
 if [ $comp -eq 1 ]
 then
 	for d in ${RANDDIRS[@]}

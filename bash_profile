@@ -9,3 +9,5 @@ export PATH="$RUSTUP_HOME:$PATH"
 export PATH="$FHOME/.cargo/bin:$PATH"
 
 export PATH="$FHOME/llvm-project/build/bin:$PATH"
+
+export PATH="/users/npopescu/.local/bin:$PATH"

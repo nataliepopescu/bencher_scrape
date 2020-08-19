@@ -1,0 +1,22 @@
+[package]
+name = "authz"
+description = "Permission-based authorization library"
+version = "0.1.5"
+authors = ["Darin Gordon <dkcdkg@gmail.com>"]
+license = "Apache-2.0"
+homepage = "https://github.com/Dowwie/rust-authz"
+readme = "README.md"
+
+
+[dependencies]
+serde = "^0.9.5"
+serde_derive = "^0.9.5"
+serde_json = "^0.9.4"
+
+
+[dev-dependencies]
+bencher = "0.1.2"
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]

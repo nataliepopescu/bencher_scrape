@@ -1,42 +1,43 @@
 #!/bin/bash
 
 SSH_NODES=(
-"npopescu@c220g5-111316.wisc.cloudlab.us"
-"npopescu@c220g5-111031.wisc.cloudlab.us"
-"npopescu@c220g5-111028.wisc.cloudlab.us"
-"npopescu@c220g5-120132.wisc.cloudlab.us"
-"npopescu@c220g5-120123.wisc.cloudlab.us"
-"npopescu@c220g5-120120.wisc.cloudlab.us"
+"npopescu@c220g5-111312.wisc.cloudlab.us"
+"npopescu@c220g5-111223.wisc.cloudlab.us"
+"npopescu@c220g5-120126.wisc.cloudlab.us"
+"npopescu@c220g5-111210.wisc.cloudlab.us"
+"npopescu@c220g5-111318.wisc.cloudlab.us"
+"npopescu@c220g5-111307.wisc.cloudlab.us"
+"npopescu@c220g5-111227.wisc.cloudlab.us"
+"npopescu@c220g5-111214.wisc.cloudlab.us"
+"npopescu@c220g5-111315.wisc.cloudlab.us"
+"npopescu@c220g5-111329.wisc.cloudlab.us"
 "npopescu@c220g5-111324.wisc.cloudlab.us"
-"npopescu@c220g5-110513.wisc.cloudlab.us"
-"npopescu@c220g5-120109.wisc.cloudlab.us"
-"npopescu@c220g5-110504.wisc.cloudlab.us"
-"npopescu@c220g5-110501.wisc.cloudlab.us"
-"npopescu@c220g5-120105.wisc.cloudlab.us"
-"npopescu@c220g5-120118.wisc.cloudlab.us"
-"npopescu@c220g5-111015.wisc.cloudlab.us"
-"npopescu@c220g5-120117.wisc.cloudlab.us"
-"npopescu@c220g5-120113.wisc.cloudlab.us"
-"npopescu@c220g5-111011.wisc.cloudlab.us"
-"npopescu@c220g5-120125.wisc.cloudlab.us"
+"npopescu@c220g5-111228.wisc.cloudlab.us"
+"npopescu@c220g5-120112.wisc.cloudlab.us"
+"npopescu@c220g5-111331.wisc.cloudlab.us"
 )
 
-numnodes=18
-runs=2
-output="results-bcrmpass-embedbitcode-no-lto-off-o3"
+numnodes=14
+runs=3
+output="results-bcrmpass-scrape"
+cpy=$numnodes
 
 usage () {
     echo ""
-    echo "Usage: $0 [-n <num-nodes>] [-o <dir-label>] [-r <num-runs>]"
+    echo "Usage: $0 [-c] [-n <num-nodes>] [-o <dir-label>] [-r <num-runs>]"
+    echo "   -c		      Copy file listing transformation passes run [default = off]."
     echo "   -n <num-nodes>   How many nodes were used [default = 13]."
     echo "   -o <dir-label>   How to label the output directory of this invocation."
     echo "   -r <num-runs>    How many runs were executed [default = 3]."
     echo ""
 }
 
-while getopts "n:o:r:h" opt
+while getopts "cn:o:r:h" opt
 do
     case "$opt" in
+    c)
+	cpy=0
+        ;;
     n)
         numnodes="$(($OPTARG))"
         ;;
@@ -59,7 +60,7 @@ done
 
 # Parse paths to get concise crate names
 ROOT="$PWD"
-SUBDIRS="$ROOT/crates/crates/*/"
+SUBDIRS="$ROOT/get-crates/*/"
 DIRLIST="dirlist"
 CRATELIST="cratelist"
 ISO_SCRIPT="isolate_crate_names.py"
@@ -72,6 +73,10 @@ touch "$DIRLIST"
 
 for d in ${SUBDIRS[@]}
 do
+    if [ "$d" == "/disk/scratch2/npopescu/hack/bencher_scrape/get-crates/spiders/" ]
+    then
+        continue
+    fi
     echo "$d" >> "$DIRLIST"
 done
 
@@ -93,15 +98,17 @@ done < "$CRATELIST"
 
 OUTPUT="$output"
 FNAME="bench"
-LOCAL_PATH="$ROOT/crates/crates"
-REMOTE_PATH="/benchdata/rust/bencher_scrape/crates/crates"
+LOCAL_PATH="$ROOT/get-crates"
+REMOTE_PATH="/benchdata/rust/bencher_scrape/get-crates"
 
 i=0
+#CRATES=( "optional" "rust-btoi" )
 for node in ${SSH_NODES[@]}
 do
     for crate in ${CRATES[@]}
     do
-        loc_dir="$LOCAL_PATH/$crate/$OUTPUT"
+        #loc_dir="$LOCAL_PATH/$crate/$OUTPUT"
+        loc_dir="$LOCAL_PATH/$crate/results-bcrmpass-rescrape"
         loc_names="$LOCAL_PATH/$crate/name-list"
         rem_dir="$REMOTE_PATH/$crate/$OUTPUT"
         name_file="$REMOTE_PATH/$crate/name-list"
@@ -109,7 +116,7 @@ do
         rem_bcrmp="$REMOTE_PATH/$crate/BCRMP/$OUTPUT"
         mkdir -p "$loc_dir"
 
-        if [ $i -eq 0 ]
+        if [ $i -eq $cpy ]
         then
             scp "$node:$name_file" "$loc_names"
 

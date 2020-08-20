@@ -58,6 +58,7 @@ bcrm_fpm = "results-bcrmpass-first"
 bcrm_mpm = "results-bcrmpass-mpm"
 #bcrm_mod_rustc_only = "results-bcrmpass-mod-rustc-only"
 bcrm_mod_rustc_only = "results-bcrmpass-rescrape"
+bcrm_rustflags = "results-bcrmpass-in-rustflags"
 
 switcher = {
     "lto-off-1": {
@@ -182,6 +183,10 @@ switcher = {
         "label": "14: [In-Tree LLVM Pass] cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from LLVM's ModulePass Manager) vs our modified rustc withOUT '-Z remove-bc' [average of 42 runs]",
         "dir": bcrm_mod_rustc_only
     },
+    "bcrm-rustflags": {
+        "label": "15: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no -C lto=off -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no -C lto=off' [average of 42 runs]",
+        "dir": bcrm_rustflags
+    },
     "diff-bcrm-fpm-o0-o3": {
         "label": "11 vs 12",
         "y-axis-label": "11 Time per Iteration Relative to 12 [%]",
@@ -194,12 +199,24 @@ switcher = {
         "dir-baseline": bcrm_mpm,
         "dir-tocompare": bcrm_o0_o3,
     },
-    "diff-mir-v-in": {
+    "diff-mir-v-fpm": {
         "label": "2 vs 13",
         "y-axis-label": "13 Time per Iteration Relative to 2 [%]",
         "dir-baseline": lto_off_2,
         "dir-tocompare": bcrm_mpm,
     },
+    "diff-mir-v-mpm": {
+        "label": "2 vs 14",
+        "y-axis-label": "14 Time per Iteration Relative to 2 [%]",
+        "dir-baseline": lto_off_2,
+        "dir-tocompare": bcrm_mpm,
+    },
+    #"diff-mir1-v-mpm": { # not a fair comparison
+    #    "label": "1 vs 14",
+    #    "y-axis-label": "14 Time per Iteration Relative to 1 [%]",
+    #    "dir-baseline": lto_off_1,
+    #    "dir-tocompare": bcrm_mpm,
+    #},
     "diff-bcrm-fpm-mpm": {
         "label": "12 vs 13",
         "y-axis-label": "12 Time per Iteration Relative to 13 [%]",
@@ -211,7 +228,13 @@ switcher = {
         "y-axis-label": "13 Time per Iteration Relative to 14 [%]",
         "dir-baseline": bcrm_mod_rustc_only,
         "dir-tocompare": bcrm_mpm,
-    }
+    },
+    "diff-bcrm-rflgs": {
+        "label": "15 vs 14",
+        "y-axis-label": "15 Time per Iteration Relative to 14 [%]",
+        "dir-baseline": bcrm_mod_rustc_only,
+        "dir-tocompare": bcrm_rustflags,
+    },
 }
 
 
@@ -611,7 +634,7 @@ def display_significant(result_type):
         for c in crates: 
 
             #filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_new
-            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mod-rustc-only').get("dir") + "/" + data_file_new
+            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags').get("dir") + "/" + data_file_new
 
             if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
                 continue

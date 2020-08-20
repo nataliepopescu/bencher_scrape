@@ -16,7 +16,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 
-path_to_crates = "./crates/crates"
+path_to_crates = "./get-crates"
 data_file = "bench-sanity-CRUNCHED.data"
 data_file_new = "bench-CRUNCHED.data"
 crates = []
@@ -56,7 +56,8 @@ bcrm_o0_o3 = "results-bcrmpass-o0-embedbitcode-no-lto-off-o3"
 # in-tree llvm stuff
 bcrm_fpm = "results-bcrmpass-first"
 bcrm_mpm = "results-bcrmpass-mpm"
-bcrm_mod_rustc_only = "results-bcrmpass-mod-rustc-only"
+#bcrm_mod_rustc_only = "results-bcrmpass-mod-rustc-only"
+bcrm_mod_rustc_only = "results-bcrmpass-rescrape"
 
 switcher = {
     "lto-off-1": {
@@ -217,7 +218,8 @@ switcher = {
 def get_crates():
     global crates
     for name in os.listdir(path_to_crates):
-        crates.append(name)
+        if os.path.isdir(os.path.join(path_to_crates, name)):
+            crates.append(name)
     crates.sort()
 
 
@@ -229,8 +231,10 @@ def geo_mean_overflow(iterable):
             locarr.append(10**-100)
         else:
             locarr.append(i)
+        #print("value = " + str(i))
     # Convert all elements to positive numbers
     a = np.log(locarr)
+    #print(a)
     return np.exp(a.sum() / len(a))
 
 
@@ -291,7 +295,7 @@ def getPerfRustcsLayout():
         html.Label('Pick a crate:'),
         dcc.Dropdown(id='crate_name',
             options=crate_options(),
-            value='KDFs',
+            value='aerospike-0.5.0',
             style={'width': '50%'}
         ),
 
@@ -841,7 +845,7 @@ def display_page(pathname):
 if __name__ == '__main__':
     cpf_root, port = parseArgs()
     # I'm not actually using this...
-    result_path = os.path.join(cpf_root, "./crates/crates")
+    #result_path = os.path.join(cpf_root, "./crates/crates")
     #app._resultProvider = ResultProvider(result_path)
 
     get_crates()

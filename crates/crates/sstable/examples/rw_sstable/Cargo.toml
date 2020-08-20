@@ -1,7 +1,0 @@
-[package]
-name = "read_write_sstable"
-version = "0.1.0"
-authors = ["Lewin Bormann <lewin@lewin-bormann.info>"]
-
-[dependencies]
-sstable = {path = "../../"}

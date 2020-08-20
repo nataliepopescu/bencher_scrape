@@ -56,8 +56,8 @@ bcrm_o0_o3 = "results-bcrmpass-o0-embedbitcode-no-lto-off-o3"
 # in-tree llvm stuff
 bcrm_fpm = "results-bcrmpass-first"
 bcrm_mpm = "results-bcrmpass-mpm"
-#bcrm_mod_rustc_only = "results-bcrmpass-mod-rustc-only"
-bcrm_mod_rustc_only = "results-bcrmpass-rescrape"
+bcrm_mod_rustc_only = "results-bcrmpass-mod-rustc-only"
+bcrm_rescrape = "results-bcrmpass-rescrape"
 bcrm_rustflags = "results-bcrmpass-in-rustflags"
 
 switcher = {
@@ -183,8 +183,12 @@ switcher = {
         "label": "14: [In-Tree LLVM Pass] cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from LLVM's ModulePass Manager) vs our modified rustc withOUT '-Z remove-bc' [average of 42 runs]",
         "dir": bcrm_mod_rustc_only
     },
+    "bcrm-rescrape": {
+        "label": "15: [In-Tree LLVM Pass] cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from LLVM's ModulePass Manager) vs our modified rustc withOUT '-Z remove-bc' [average of 42 runs]",
+        "dir": bcrm_rescrape
+    },
     "bcrm-rustflags": {
-        "label": "15: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no -C lto=off -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no -C lto=off' [average of 42 runs]",
+        "label": "16: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no -C lto=off -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no -C lto=off' [average of 42 runs]",
         "dir": bcrm_rustflags
     },
     "diff-bcrm-fpm-o0-o3": {
@@ -230,9 +234,9 @@ switcher = {
         "dir-tocompare": bcrm_mpm,
     },
     "diff-bcrm-rflgs": {
-        "label": "15 vs 14",
-        "y-axis-label": "15 Time per Iteration Relative to 14 [%]",
-        "dir-baseline": bcrm_mod_rustc_only,
+        "label": "16 vs 15",
+        "y-axis-label": "16 Time per Iteration Relative to 15 [%]",
+        "dir-baseline": bcrm_rescrape,
         "dir-tocompare": bcrm_rustflags,
     },
 }
@@ -241,7 +245,7 @@ switcher = {
 def get_crates():
     global crates
     for name in os.listdir(path_to_crates):
-        if os.path.isdir(os.path.join(path_to_crates, name)):
+        if os.path.isdir(os.path.join(path_to_crates, name)) and not name == "spiders":
             crates.append(name)
     crates.sort()
 

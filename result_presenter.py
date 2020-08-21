@@ -85,31 +85,31 @@ switcher = {
         "label": "6: [MIR modification] -C llvm-args=-inline-threshold=300 -C lto=off -C opt-level=3",
         "dir": agg_inline
     },
-    "diff-ltos-1": {
+    "diff-mir-ltos-1": {
         "label": "1 vs 3",
         "y-axis-label": "3 Time per Iteration Relative to 1 [%]",
         "dir-baseline": lto_off_1,
         "dir-tocompare": lto_thin_1,
     },
-    "diff-ltos-2": {
+    "diff-mir-ltos-2": {
         "label": "2 vs 4",
         "y-axis-label": "4 Time per Iteration Relative to 2 [%]",
         "dir-baseline": lto_off_2,
         "dir-tocompare": lto_thin_2,
     },
-    "diff-off": {
+    "diff-mir-off": {
         "label": "1 vs 2",
         "y-axis-label": "2 Time per Iteration Relative to 1 [%]",
         "dir-baseline": lto_off_1,
         "dir-tocompare": lto_off_2,
     },
-    "diff-thin": {
+    "diff-mir-thin": {
         "label": "3 vs 4",
         "y-axis-label": "4 Time per Iteration Relative to 3 [%]",
         "dir-baseline": lto_thin_1,
         "dir-tocompare": lto_thin_2,
     },
-    "diff-inline": {
+    "diff-mir-inline": {
         "label": "5 vs 6",
         "y-axis-label": "6 Time per Iteration Relative to 5 [%]",
         "dir-baseline": no_inline,
@@ -131,7 +131,7 @@ switcher = {
         "label": "10: [Out-of-Tree LLVM Pass] cargo rustc -C embed-bitcode=no -C lto=off -C opt-level=3 && opt -O3 [average of 180 runs]",
         "dir": bcrm_o3_many
     },
-    "diff-bcrm": {
+    "diff-bcrm-out-opt": {
         "label": "7 vs 8",
         "y-axis-label": "8 Time per Iteration Relative to 7 [%]",
         "dir-baseline": bcrm_o0,
@@ -143,7 +143,7 @@ switcher = {
         "dir-baseline": bcrm_o0,
         "dir-tocompare": bcrm_o0_many
     },
-    "diff-bcrm-many": {
+    "diff-bcrm-out-opt-many": {
         "label": "9 vs 10",
         "y-axis-label": "10 Time per Iteration Relative to 9 [%]",
         "dir-baseline": bcrm_o0_many,
@@ -159,7 +159,7 @@ switcher = {
         "label": "11: [Out-of-Tree LLVM Pass] cargo rustc -C no-prepopulate-passes -C passes=name-anon-globals -C embed-bitcode=no -C lto=off && opt -O3 [average of 36 runs]",
         "dir": bcrm_o0_o3
     },
-    "diff-mir-v-out": {
+    "diff-mir-v-bcrm-out": {
         "label": "2 vs 11",
         "y-axis-label": "11 Time per Iteration Relative to 2 [%]",
         "dir-baseline": lto_off_2,
@@ -184,11 +184,11 @@ switcher = {
         "dir": bcrm_mod_rustc_only
     },
     "bcrm-rescrape": {
-        "label": "15: [In-Tree LLVM Pass] cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from LLVM's ModulePass Manager) vs our modified rustc withOUT '-Z remove-bc' [average of 42 runs]",
+        "label": "15: [In-Tree LLVM Pass] cargo rustc -C opt-level=3 -C embed-bitcode=no -C lto=off -- -Z remove-bc (called from LLVM's ModulePass Manager) vs our modified rustc withOUT '-Z remove-bc' [average of 42 runs, after scraping crates.io again for updated crate list]",
         "dir": bcrm_rescrape
     },
     "bcrm-rustflags": {
-        "label": "16: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no -C lto=off -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no -C lto=off' [average of 42 runs]",
+        "label": "16: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no' [average of 42 runs]",
         "dir": bcrm_rustflags
     },
     "diff-bcrm-fpm-o0-o3": {
@@ -203,24 +203,18 @@ switcher = {
         "dir-baseline": bcrm_mpm,
         "dir-tocompare": bcrm_o0_o3,
     },
-    "diff-mir-v-fpm": {
+    "diff-mir-v-bcrm-fpm": {
         "label": "2 vs 13",
         "y-axis-label": "13 Time per Iteration Relative to 2 [%]",
         "dir-baseline": lto_off_2,
         "dir-tocompare": bcrm_mpm,
     },
-    "diff-mir-v-mpm": {
+    "diff-mir-v-bcrm-mpm": {
         "label": "2 vs 14",
         "y-axis-label": "14 Time per Iteration Relative to 2 [%]",
         "dir-baseline": lto_off_2,
         "dir-tocompare": bcrm_mpm,
     },
-    #"diff-mir1-v-mpm": { # not a fair comparison
-    #    "label": "1 vs 14",
-    #    "y-axis-label": "14 Time per Iteration Relative to 1 [%]",
-    #    "dir-baseline": lto_off_1,
-    #    "dir-tocompare": bcrm_mpm,
-    #},
     "diff-bcrm-fpm-mpm": {
         "label": "12 vs 13",
         "y-axis-label": "12 Time per Iteration Relative to 13 [%]",
@@ -233,10 +227,16 @@ switcher = {
         "dir-baseline": bcrm_mod_rustc_only,
         "dir-tocompare": bcrm_mpm,
     },
-    "diff-bcrm-rflgs": {
-        "label": "16 vs 15",
-        "y-axis-label": "16 Time per Iteration Relative to 15 [%]",
+    "diff-bcrm-more-bmarks": {
+        "label": "14 vs 15",
+        "y-axis-label": "14 Time per Iteration Relative to 15 [%]",
         "dir-baseline": bcrm_rescrape,
+        "dir-tocompare": bcrm_mod_rustc_only,
+    },
+    "diff-bcrm-mir-coverage": {
+        "label": "16 vs 1",
+        "y-axis-label": "16 Time per Iteration Relative to 1 [%]",
+        "dir-baseline": lto_off_1,
         "dir-tocompare": bcrm_rustflags,
     },
 }
@@ -330,7 +330,7 @@ def getPerfRustcsLayout():
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
             options=setting_options(),
-            value="bcrm-mod-rustc-only"
+            value="bcrm-rustflags"
         ),
 
         html.Br(),
@@ -387,10 +387,10 @@ def display_crate_info(result_type):
 
 def display_diff(crate_name, crate_opt):
 
-    if "bcrm" in crate_opt:
+    if "bcrm" in crate_opt and not "mir" in crate_opt:
         file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-baseline") + "/" + data_file_new
         file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file_new
-    elif "mir" in crate_opt:
+    elif "bcrm" in crate_opt and "mir" in crate_opt:
         file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-baseline") + "/" + data_file
         file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file_new
     else:

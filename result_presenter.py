@@ -59,6 +59,7 @@ bcrm_mpm = "results-bcrmpass-mpm"
 bcrm_mod_rustc_only = "results-bcrmpass-mod-rustc-only"
 bcrm_rescrape = "results-bcrmpass-rescrape"
 bcrm_rustflags = "results-bcrmpass-in-rustflags"
+bcrm_rustflags_thin = "results-bcrmpass-embed-bitcode-yes-lto-thin"
 
 switcher = {
     "lto-off-1": {
@@ -102,6 +103,12 @@ switcher = {
         "y-axis-label": "2 Time per Iteration Relative to 1 [%]",
         "dir-baseline": lto_off_1,
         "dir-tocompare": lto_off_2,
+    },
+    "diff-mir-off": {
+        "label": "1 vs 4",
+        "y-axis-label": "4 Time per Iteration Relative to 1 [%]",
+        "dir-baseline": lto_off_1,
+        "dir-tocompare": lto_thin_2,
     },
     "diff-mir-thin": {
         "label": "3 vs 4",
@@ -191,6 +198,10 @@ switcher = {
         "label": "16: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no' [average of 42 runs]",
         "dir": bcrm_rustflags
     },
+    "bcrm-rustflags-thin": {
+        "label": "17: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 42 runs]",
+        "dir": bcrm_rustflags_thin
+    },
     "diff-bcrm-fpm-o0-o3": {
         "label": "11 vs 12",
         "y-axis-label": "11 Time per Iteration Relative to 12 [%]",
@@ -238,6 +249,12 @@ switcher = {
         "y-axis-label": "16 Time per Iteration Relative to 1 [%]",
         "dir-baseline": lto_off_1,
         "dir-tocompare": bcrm_rustflags,
+    },
+    "diff-bcrm-rustflags-lto": {
+        "label": "17 vs 16",
+        "y-axis-label": "17 Time per Iteration Relative to 16 [%]",
+        "dir-baseline": bcrm_rustflags,
+        "dir-tocompare": bcrm_rustflags_thin,
     },
 }
 
@@ -330,7 +347,7 @@ def getPerfRustcsLayout():
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
             options=setting_options(),
-            value="bcrm-rustflags"
+            value="bcrm-rustflags-thin"
         ),
 
         html.Br(),
@@ -544,7 +561,9 @@ def display_relative(crate_name, crate_opt):
             perc_e = (float(error) / div_e) * 100
 
             # calculate actual speedup
-            speedup = 1 / (1 + (perc_time / 100))
+            speedup_div = 1 + (perc_time / 100)
+            speedup = 1 if speedup_div == 0 else 1 / speedup_div
+            #speedup = 1 / (1 + (perc_time / 100))
             speedup_arr.append(speedup)
 
             one_perf_list.append(perc_time)
@@ -638,7 +657,7 @@ def display_significant(result_type):
         for c in crates: 
 
             #filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_new
-            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags').get("dir") + "/" + data_file_new
+            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags-thin').get("dir") + "/" + data_file_new
 
             if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
                 continue
@@ -662,7 +681,8 @@ def display_significant(result_type):
                 div = float(vanilla_time) if float(vanilla_time) != 0 else 1
                 perc_time = ((float(nobc_time) - float(vanilla_time)) / div) * 100
 
-                speedup = 1 / (1 + (perc_time / 100))
+                speedup_div = 1 + (perc_time / 100)
+                speedup = 1 if speedup_div == 0 else 1 / speedup_div
                 if result_type == 'unintuitive' and speedup < 1: 
                     speedup_arr_setting.append(speedup)
                 elif result_type == 'intuitive' and speedup >= 1 and speedup < 1.8:

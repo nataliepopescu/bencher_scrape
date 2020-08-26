@@ -1,0 +1,10 @@
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	totalruns=42	
+bench_btoi	16.0	0.0	16.0	0.0	
+bench_btou	17.0	0.0	17.0	0.0	
+bench_btou_saturating	12.0	0.0	12.023809523809526	0.1524553389864964	
+bench_from_str	25.0	0.0	25.142857142857146	0.3499271061118826	
+bench_from_str_unchecked	16.0	0.0	16.0	0.0	
+bench_small_btou	4.0	0.0	4.0	0.0	
+bench_small_btou_saturating	4.0	0.0	4.0	0.0	
+bench_small_from_str	10.0	0.0	9.0	0.0	
+bench_small_from_str_unchecked	4.0	0.0	4.0	0.0	

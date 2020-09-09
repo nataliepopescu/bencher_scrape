@@ -8,6 +8,8 @@ scrape=0
 bench=0
 # Don't pre-compile
 comp=0
+# Don't test
+tst=0
 # Only one run
 runs=1
 # Names
@@ -25,7 +27,10 @@ DBGFLAGS="-C debuginfo=2"
 # LTO Flags
 LTOFLAGS_A="-C embed-bitcode=no -C lto=off"
 
+RBCFLAG="-Z remove-bc"
+
 RUSTFLAGS_3=""$OPTFLAGS_3" "$DBGFLAGS" "$LTOFLAGS_A""
+RUSTFLAGS_3RBC=""$RBCFLAG" "$OPTFLAGS_3" "$DBGFLAGS" "$LTOFLAGS_A""
 RUSTFLAGS_NONE=""$OPTFLAGS_NONE" "$DBGFLAGS" "$LTOFLAGS_A""
 
 # Two Rustc Versions
@@ -44,11 +49,18 @@ EXPERIMENTS=( "$UNMOD" "$BCRMP" )
 
 usage () {
 	echo ""
-	echo "Usage: $0 [-s] [-b] [-c] [r <num-runs>] [-n <outfile-label>] [-o <outdir-label>]"
+	echo "Usage: $0 [-s] [-b] [-c] [-t] [r <num-runs>] [-n <outfile-label>] [-o <outdir-label>]"
 	echo "   -s		Scrape crates.io for reverse dependencies of bencher [default = off]."
 	echo "   -b		Bench crates with and without remove-bounds-check-pass [default = off]."
-	echo "   -c		Compile benchmarks, without running, for crates with and without"
+	echo "   -c <comp-type>	Compile benchmarks, without running, for crates with and without"
 	echo "			  remove-bounds-check-pass; for large-scale experiments [default = off]."
+	echo "				-c 1: compile tests"
+	echo "				-c 2: compile tests again (if segfaulted before)"
+	echo "   -t <test-type>	Test crates with remove-bounds-check-pass [default = off]."
+	echo "				-t 1: compile tests"
+	echo "				-t 2: compile tests again (if segfaulted before)"
+	echo "				-t 3: run tests"
+	echo "				-t 4: diff test results."
 	echo "   -r <num-runs>  How many runs to execute [default = 1]."
 	echo "   -n <outfile-label>"
 	echo "			How to label the output files of this invocation [default = 'sanity']."
@@ -58,14 +70,19 @@ usage () {
 }
 
 # Parse args
-while getopts "sbcr:n:o:h" opt
+while getopts "sbc:t:r:n:o:h" opt
 do
 	case "$opt" in
 	s)	scrape=1
 		;;
 	b)	bench=1
+		cmd="bench"
 		;;
-	c)	comp=1
+	c)	comp="$(($OPTARG))"
+		cmd="bench"
+		;;
+	t)	tst="$(($OPTARG))"
+		cmd="test"
 		;;
 	r)	runs="$(($OPTARG))"
 		;;
@@ -90,6 +107,7 @@ RAND_SCRIPT="randomize.py"
 
 cp bash_profile_bcrm ~/.bash_profile
 source ~/.bash_profile
+rustup override set bcrm
 
 # *****SCRAPE*****
 if [ "$scrape" -eq 1 ]
@@ -110,7 +128,7 @@ set -x
 rm "$DIRLIST"
 for d in ${SUBDIRS[@]}
 do
-	if [ "$d" == "/benchdata/rust/bencher_scrape/get-crates/spiders/" ]
+	if [ "$d" == "$ROOT/get-crates/spiders/" -o "$d" == "$ROOT/get-crates/bex-0.1.4/" -o "$d" == "$ROOT/get-crates/__pycache__/" ]
 	then
 		continue
 	fi
@@ -143,172 +161,145 @@ LLVM_HOME="/benchdata/llvm-project/build"
 RUSTUP_TOOLCHAIN_LIB="/benchdata/.rustup/toolchains/$UNMOD/lib/rustlib/$TARGET/lib"
 NOPIE_SCRIPT=$ROOT/make_no_pie.py
 SAVE_EXE_SCRIPT=$ROOT/save_execs.py
-BNAME_SCRIPT=$ROOT/process_benchnames.py
+NAME_SCRIPT=$ROOT/process_benchnames.py
 CONVERT_ARGS_SCRIPT=$ROOT/convert_rustc_to_opt_args.py
-#PASS="/benchdata/remove-bounds-check-pass/build/CAT.so"
 
 for exp in ${EXPERIMENTS[@]}
 do
 
+if [ $exp == $UNMOD ]
+then
+	RUSTFLAGS="-C opt-level=3 -C debuginfo=2 -C embed-bitcode=yes -C lto=thin"
+else
+	RUSTFLAGS="-C opt-level=3 -C debuginfo=2 -C embed-bitcode=yes -C lto=thin -Z remove-bc"
+fi
+export RUSTFLAGS
+
+#if [ $exp == "$UNMOD" ]
+#then
+#    cp bash_profile ~/.bash_profile
+#    source ~/.bash_profile
+#    rustup override set nightly-2020-07-05-x86_64-unknown-linux-gnu
+#else
+#    cp bash_profile_nobc ~/.bash_profile
+#    source ~/.bash_profile
+#    rustup override set nobc
+#fi
+
 # Get list of benchmark names and
 # the list of llvm passes rustc -O3 runs
-if [ $comp -eq 1 ]
+#RANDDIRS=( "/benchdata/rust/bencher_scrape/get-crates/outils-0.2.0/" )
+if [ $comp -eq 1 -o $comp -eq 2 -o $tst -eq 1 -o $tst -eq 2 ]
 then
 	for d in ${RANDDIRS[@]}
 	do
+		PRECOMPDIR="$d$exp/$output"
+		# If already successfully compiled this crate, continue
+		if [ $comp -eq 2 -o $tst -eq 2 ]
+		then
+			NUM=$(grep -rnw 'SIGSEGV: invalid memory reference' $PRECOMPDIR/rustc-pass-list | wc -l)
+			if [ $NUM -eq 0 ]; then continue; fi
+		fi
+
 		ERRMSG=$d"err-msg"
-		rm -f $ERRMSG && touch $ERRMSG
 		NAMELIST=$d"name-list"
 		rm -f $NAMELIST && touch $NAMELIST
-		DEFAULT_TGT=$d"target/release/deps"
-		PRECOMPDIR=$d$exp/$output
-		if [ -d $PRECOMPDIR ]
+		DEFAULT_TGT=$d"target" #/release/deps"
+		if [ -d $PRECOMPDIR -a $comp -eq 1 ] || [ -d $PRECOMPDIR -a $tst -eq 1 ]
 		then
-			rm -r $PRECOMPDIR
+			rm -rf $PRECOMPDIR/deps
 		fi
 		mkdir -p $PRECOMPDIR
 
 		cd $d
 
 		# Pre-process: list of benchmark names
-		cargo clean
-		# No optimizations because just want to capture error msg
-		RUSTFLAGS=$RUSTFLAGS_NONE cargo rustc --verbose --release --bench -- --emit=llvm-bc 2> $ERRMSG
-		python3 $BNAME_SCRIPT $ERRMSG $NAMELIST
+		#cargo clean
+		# No optimizations needed because just want to capture error msg
+		#RUSTFLAGS=$RUSTFLAGS_NONE cargo rustc --verbose --release $cmd 2> $ERRMSG
+		#cargo $cmd 2> $ERRMSG
+		#python3 $NAME_SCRIPT $ERRMSG $NAMELIST
 
 		# Pre-process: list of rustc optimization args to LLVM (per benchmark)
 		cargo clean
-		BENCHES=()
+		NAMES=()
 		while read -r name
 		do
-			BENCHES=( "${BENCHES[@]}" "$name" )
+			NAMES=( "${NAMES[@]}" "$name" )
 		done < "$NAMELIST"
 
-		for b in ${BENCHES[@]}
-		do
-			RUSTC_PASSLIST="$PRECOMPDIR/$b-rustc-pass-list"
-			rm -f $RUSTC_PASSLIST && touch $RUSTC_PASSLIST
-			REMARKS="$PRECOMPDIR/$b-remarks"
-			rm -f $REMARKS && touch $REMARKS
-			LINKARGS="$PRECOMPDIR/$b-link-args"
-			rm -f $LINKARGS && touch $LINKARGS
-			EXECLIST="$PRECOMPDIR/exec-list"
-			rm -f $EXECLIST && touch $EXECLIST
+		#for n in ${NAMES[@]}
+		#do
+			#RUSTC_PASSLIST="$PRECOMPDIR/$n-rustc-pass-list"
+		RUSTC_PASSLIST="$PRECOMPDIR/rustc-pass-list"
+		# Check again for individual tests, maybe we can save some time here
+		#if [ $comp -eq 2 -o $tst -eq 2 ]; then
+		#	NUM=$(grep -rnw 'SIGSEGV: invalid memory reference' $RUSTPASSLIST | wc -l)
+		#	if [ $NUM -eq 0 ]; then continue; fi
+		#fi
+		#LINKARGS="$PRECOMPDIR/$n-link-args"
+		#REMARKS="$PRECOMPDIR/$n-remarks"
+		EXECLIST="$PRECOMPDIR/exec-list"
+		#rm -f $REMARKS && touch $REMARKS
+		rm -f $EXECLIST && touch $EXECLIST
 
-			# Running with opt-level = O3
-			if [ $exp == $UNMOD ]
-			then
-				RUSTFLAGS=$RUSTFLAGS_3 cargo rustc --verbose --release --bench "$b" -- -Z print-link-args -C "remark=all" -v -C save-temps --emit=llvm-ir -C llvm-args=-debug-pass=Structure 2> $RUSTC_PASSLIST > $LINKARGS
-			else
-				RUSTFLAGS=$RUSTFLAGS_3 cargo rustc --verbose --release --bench "$b" -- -Z remove-bc -Z print-link-args -C "remark=all" -v -C save-temps --emit=llvm-ir -C llvm-args=-debug-pass=Structure 2> $RUSTC_PASSLIST > $LINKARGS
-			fi
-			python3 $SAVE_EXE_SCRIPT $LINKARGS $EXECLIST
+		# Running with opt-level = O3
+		#if [ $exp == $UNMOD ]
+		#then
+		#	RUSTFLAGS=$RUSTFLAGS_3 cargo rustc --verbose --release $cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $RUSTC_PASSLIST > $LINKARGS
+		#else
+		#	RUSTFLAGS=$RUSTFLAGS_3RBC cargo rustc --verbose --release $cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $RUSTC_PASSLIST > $LINKARGS
+		#fi
+		cargo $cmd --no-run 2> $RUSTC_PASSLIST
+		while [ $(grep -c 'SIGSEGV: invalid memory reference' "$RUSTC_PASSLIST") -gt 0 ]; do
+		#while [ ! -f "$RUSTC_PASSLIST" -o $(grep -c 'SIGSEGV: invalid memory reference' "$RUSTC_PASSLIST") -gt 0 ]; do
+			echo "we here?"
+			cargo $cmd --no-run 2> $RUSTC_PASSLIST
 		done
+			#python3 $SAVE_EXE_SCRIPT $LINKARGS $EXECLIST
+		#done
 		cd $ROOT
 		mv $DEFAULT_TGT $PRECOMPDIR
 	done
 fi
 
-if [ $bench -eq 1 ] # -o $comp -eq 1 ]
+if [ $bench -eq 1 -o $tst -eq 3 ]
 then
 	for d in ${RANDDIRS[@]}
 	do
-		DEFAULT_TGT=$d"target/release/deps"
+		DEFAULT_TGT=$d"target" #/release/deps"
 		PRECOMPDIR=$d$exp/$output
-		# Save a list of the executables to run later
+		# Use previously saved list of executables
 		EXECLIST="$PRECOMPDIR/exec-list"
 		cd $d
 
-		# Compile executables
-#		if [ $comp -eq 1 ]
-#		then
-#			cargo clean
-#			# Recurse through benchmark names
-#			NAMELIST=$d"name-list"
-#			BENCHES=()
-#			while read -r name
-#			do
-#				BENCHES=( "${BENCHES[@]}" "$name" )
-#			done < "$NAMELIST"
-#			
-#			LINKARGS=$d"link-args"
-#			rm -f $LINKARGS && touch $LINKARGS
-#			rm -f $EXECLIST && touch $EXECLIST
-#
-#			for b in ${BENCHES[@]}
-#			do
-#				# From previous loop
-#				RUSTC_PASSLIST="$PRECOMPDIR/$b-rustc-pass-list"
-#
-#				# New files
-#				OPT_PASSLIST="$PRECOMPDIR/$b-opt-pass-list"
-#				REMARKS="$PRECOMPDIR/$b-remarks"
-#				rm -f $OPT_PASSLIST && touch $OPT_PASSLIST
-#				rm -f $REMARKS && touch $REMARKS
-#
-#				# Build with no opts, with temporary files preserved, and emit LLVM-BC
-#				# Also use cargo's '-Z print-link-args' to get the exact linker command
-#				RUSTFLAGS=$RUSTFLAGS_NONE cargo rustc --verbose --release --bench "$b" -- -Z mir-opt-level=1 -Z print-link-args -v -C save-temps --emit=llvm-bc > $LINKARGS
-#
-#				# Replace instances of "-pie" with "-no-pie", otherwise get 
-#				# "relocation R_X86_64_32 against `.rodata' can not be used when 
-#				# making a PIE object; recompile with -fPIE" error
-#				OUT=$d"tmp"
-#				python3 $NOPIE_SCRIPT $LINKARGS $OUT $EXECLIST
-#				mv $OUT $LINKARGS
-#
-#				# Use the saved LLVM opts from the previous rustc -O3 command
-#				# and pass to LLVM's 'opt' tool explicitly, so we can insert our
-#				# custom pass first
-#				OPT_ARGS="$PRECOMPDIR/$b-opt-args"
-#				python3 $CONVERT_ARGS_SCRIPT $RUSTC_PASSLIST $OPT_ARGS
-#				
-#				cd $DEFAULT_TGT
-#				
-#				# Remove the unoptimized bc or we'll get duplicate symbols at link time
-#				rm *no-opt*
-#				
-#				# Run all the bitcode through our pass (phantom if UNMOD)
-#				# If [-p] was specified, also save the list of passes that were run
-#				# ***** UNMOD version *****
-#				if [ $exp == $UNMOD ]
-#				then
-#					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt $(cat $OPT_ARGS) -pass-remarks-output=$REMARKS $PRNTFLAG $O3 -o {}bc {}bc 2> $OPT_PASSLIST
-#				# ***** BCRMP version *****
-#				else
-#					find . -name '*.bc' | rev | cut -c 3- | rev | xargs -n 1 -I {} $LLVM_HOME/bin/opt -load $PASS -remove-bc -simplifycfg -dce $(cat $OPT_ARGS) -pass-remarks-output=$REMARKS $PRNTFLAG $O3 -o {}bc {}bc 2> $OPT_PASSLIST
-#				fi
-#				
-#				# Compile the bitcode to object files
-#				find . -name '*.bc' | xargs -n 1 $LLVM_HOME/bin/llc -filetype=obj
-#				
-#				# Complete the linking with previously saved/process command
-#				/bin/bash $LINKARGS
-#
-#			done
-#			cd $d
-#			mv $DEFAULT_TGT $PRECOMPDIR
-#		# Run executables
-#		else
-			# Read in executable names from the list we saved during compilation step
-			EXECS=()
-			while read -r name
-			do
-				EXECS=( ${EXECS[@]} $name )
-			done < $EXECLIST
+		# Read in executable names
+		EXECS=()
+		while read -r name
+		do
+			EXECS=( ${EXECS[@]} $name )
+		done < $EXECLIST
 
-			OUTDIR=$d$OUTPUT
-			mkdir -p $OUTDIR
-			BENCH_RES="$OUTDIR/$exp.bench"
-			rm -f $BENCH_RES && touch $BENCH_RES
+		if [ $bench -eq 1 ]; then OUTDIR=$d$OUTPUT; else OUTDIR=$PRECOMPDIR; fi
+		mkdir -p $OUTDIR
 
-			# Run
-			cd $PRECOMPDIR/deps
-			for e in ${EXECS[@]}
-			do
-				./$e >> $BENCH_RES
-			done
-		#fi
+		BENCH_RES="$OUTDIR/$exp.bench"
+		rm -f $BENCH_RES && touch $BENCH_RES
+		TEST_RES="$OUTDIR/$exp.test"
+		rm -f $TEST_RES && touch $TEST_RES
+		COMP_OUT="$OUTDIR/rustc-pass-list-$exp"
+		
+		if [ $bench -eq 1 ]; then RESULTS=$BENCH_RES; else RESULTS=$TEST_RES; fi
+
+		# Run
+		mv $PRECOMPDIR/target $DEFAULT_TGT
+		cargo $cmd > $RESULTS 2> $COMP_OUT
+		mv $DEFAULT_TGT $PRECOMPDIR/target
+		#cd $PRECOMPDIR/deps
+		#for e in ${EXECS[@]}
+		#do
+		#	./$e >> $RESULTS
+		#done
 		cd $ROOT
 	done
 fi
@@ -331,4 +322,16 @@ then
 	done
 fi
 done
+
+if [ $tst -eq 4 ]
+then
+	for d in ${RANDDIRS[@]}
+	do
+		cd $d
+		DATA_FILE="$PWD/test.data"
+		touch $DATA_FILE
+		diff -s "$PWD/UNMOD/$output/UNMOD.test" "$PWD/BCRMP/$output/BCRMP.test" > $DATA_FILE
+		cd $ROOT
+	done
+fi
 done

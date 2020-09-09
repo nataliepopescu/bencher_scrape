@@ -8,17 +8,33 @@
 #rustup toolchain link nobc+sl /benchdata/rust/rust-nobc+sl/build/x86_64-unknown-linux-gnu/stage2
 #rustup toolchain link safelib /benchdata/rust/rust-safelib/build/x86_64-unknown-linux-gnu/stage2
 
+cleanup=0
+
+while getopts "c" opt
+do
+	case $opt in
+	c)	cleanup=1
+		;;
+	*)	exit 1
+		;;
+	esac
+done
 
 # *****Comp Version #1*****
 
-OUTNAME="results-bcrmpass-first"
+OUTNAME="results-bcrmpass-embed-bitcode-yes-lto-thin-retry"
+
+if [ $cleanup -eq 0 ]
+then
 
 # Pre-compile
 #./bench.sh -c -o "$OUTNAME"
-./pass-bench.sh -c -p -m -o "$OUTNAME"
+./pass-bench.sh -c 1 -o "$OUTNAME"
+#./pass-bench.sh -t 4 -o "$OUTNAME"
 
 # Run
 #./bench.sh -b -r 2 -o "$OUTNAME"
+#./pass-bench.sh -b -o "$OUTNAME"
 #./pass-bench.sh -b -r 3 -o "$OUTNAME"
 
 
@@ -35,12 +51,13 @@ OUTNAME="results-bcrmpass-first"
 
 # **************************
 
-#OUTNAME="results-bcrmpass-remarks"
-#SUBDIRS="./crates/crates/*"
-#
-#for d in ${SUBDIRS[@]}
-#do
-#	rm -r $d/BCRMP/$OUTNAME
-#	rm -r $d/UNMOD/$OUTNAME
-#done
-
+else
+	SUBDIRS="./get-crates/*"
+	
+	for d in ${SUBDIRS[@]}
+	do
+		#cargo clean
+		rm -rf $d/BCRMP
+		rm -rf $d/UNMOD
+	done
+fi

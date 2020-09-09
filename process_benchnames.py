@@ -12,7 +12,7 @@ def get_names(
         if start == True and len(stripped) > 0:
             print("WRITING " + stripped)
             o.write(stripped + "\n")
-        if stripped == "Available benches:":
+        if stripped.startswith("Available"): # benches:":
             start = True
     # Close files
     i.close()

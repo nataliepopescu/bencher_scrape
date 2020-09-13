@@ -59,8 +59,9 @@ bcrm_mpm = "results-bcrmpass-mpm"
 bcrm_mod_rustc_only = "results-bcrmpass-mod-rustc-only"
 bcrm_rescrape = "results-bcrmpass-rescrape"
 bcrm_rustflags = "results-bcrmpass-in-rustflags"
-bcrm_rustflags_thin = "results-bcrmpass-embed-bitcode-yes-lto-thin"
-bcrm_rustflags_thin_retry = "results-bcrmpass-embed-bitcode-yes-lto-thin-retry"
+#bcrm_rustflags_thin = "results-bcrmpass-embed-bitcode-yes-lto-thin"
+#bcrm_rustflags_thin_retry = "results-bcrmpass-embed-bitcode-yes-lto-thin-retry"
+bcrm_rustflags_thin_retry_again = "results-bcrmpass-embed-bitcode-yes-lto-thin-retry-again"
 
 switcher = {
     "lto-off-1": {
@@ -199,13 +200,17 @@ switcher = {
         "label": "16: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no' [average of 42 runs]",
         "dir": bcrm_rustflags
     },
-    "bcrm-rustflags-thin": {
-        "label": "17: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 42 runs]",
-        "dir": bcrm_rustflags_thin
-    },
-    "bcrm-rustflags-thin-retry": {
-        "label": "18: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 36 runs]",
-        "dir": bcrm_rustflags_thin_retry
+    #"bcrm-rustflags-thin": {
+    #    "label": "17: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 42 runs]",
+    #    "dir": bcrm_rustflags_thin
+    #},
+    #"bcrm-rustflags-thin-retry": {
+    #    "label": "18: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 36 runs]",
+    #    "dir": bcrm_rustflags_thin_retry
+    #},
+    "bcrm-rustflags-thin-retry-again": {
+        "label": "17: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 36 runs]",
+        "dir": bcrm_rustflags_thin_retry_again
     },
     "diff-bcrm-fpm-o0-o3": {
         "label": "11 vs 12",
@@ -265,20 +270,20 @@ switcher = {
         "label": "17 vs 16",
         "y-axis-label": "17 Time per Iteration Relative to 16 [%]",
         "dir-baseline": bcrm_rustflags,
-        "dir-tocompare": bcrm_rustflags_thin,
+        "dir-tocompare": bcrm_rustflags_thin_retry_again,
     },
-    "diff-bcrm-rustflags-lto": {
-        "label": "18 vs 16",
-        "y-axis-label": "18 Time per Iteration Relative to 16 [%]",
-        "dir-baseline": bcrm_rustflags,
-        "dir-tocompare": bcrm_rustflags_thin_retry,
-    },
-    "diff-bcrm-rustflags-lto": {
-        "label": "18 vs 17",
-        "y-axis-label": "18 Time per Iteration Relative to 17 [%]",
-        "dir-baseline": bcrm_rustflags_thin,
-        "dir-tocompare": bcrm_rustflags_thin_retry,
-    },
+    #"diff-bcrm-rustflags-lto": {
+    #    "label": "18 vs 16",
+    #    "y-axis-label": "18 Time per Iteration Relative to 16 [%]",
+    #    "dir-baseline": bcrm_rustflags,
+    #    "dir-tocompare": bcrm_rustflags_thin_retry_again,
+    #},
+    #"diff-bcrm-rustflags-lto": {
+    #    "label": "18 vs 17",
+    #    "y-axis-label": "18 Time per Iteration Relative to 17 [%]",
+    #    "dir-baseline": bcrm_rustflags_thin,
+    #    "dir-tocompare": bcrm_rustflags_thin_retry_again,
+    #},
 }
 
 
@@ -370,7 +375,7 @@ def getPerfRustcsLayout():
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
             options=setting_options(),
-            value="diff-bcrm-in-out-rustflags"
+            value="diff-bcrm-rustflags-lto"
         ),
 
         html.Br(),
@@ -437,8 +442,22 @@ def display_diff(crate_name, crate_opt):
         file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-baseline") + "/" + data_file
         file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file
 
-    if ((not os.path.exists(file_baseline)) or is_empty_datafile(file_baseline)) or ((not os.path.exists(file_tocompare)) or is_empty_datafile(file_tocompare)):
+    #if ((not os.path.exists(file_baseline)) or is_empty_datafile(file_baseline)) or ((not os.path.exists(file_tocompare)) or is_empty_datafile(file_tocompare)):
+    #    return "\n\nNo diff data for [" + str(crate_name) + "] with these settings."
+
+    no_baseline = 0
+    no_tocompare = 0
+
+    if (not os.path.exists(file_baseline)) or is_empty_datafile(file_baseline): 
+        no_baseline = 1
+    if (not os.path.exists(file_tocompare)) or is_empty_datafile(file_tocompare):
+        no_tocompare = 1
+    if no_baseline == 1 and no_tocompare == 1: 
         return "\n\nNo diff data for [" + str(crate_name) + "] with these settings."
+    elif no_baseline == 0 and no_tocompare == 1: 
+        return "\n\nMISMATCH: No diff data for [" + str(crate_name) + "] with the ~to compare~ setting."
+    elif no_baseline == 1 and no_tocompare == 0: 
+        return "\n\nMISMATCH: No diff data for [" + str(crate_name) + "] with the ~baseline~ setting."
 
     def get_one_bar(rustc_type, bar_name, color):
         one_bmark_list = []
@@ -679,8 +698,8 @@ def display_significant(result_type):
 
         for c in crates: 
 
-            #filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-mpm').get("dir") + "/" + data_file_new
-            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags-thin-retry').get("dir") + "/" + data_file_new
+            #filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags').get("dir") + "/" + data_file_new
+            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags-thin-retry-again').get("dir") + "/" + data_file_new
 
             if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
                 continue
@@ -708,12 +727,12 @@ def display_significant(result_type):
                 speedup = 1 if speedup_div == 0 else 1 / speedup_div
                 if result_type == 'unintuitive' and speedup < 1: 
                     speedup_arr_setting.append(speedup)
-                elif result_type == 'intuitive' and speedup >= 1 and speedup < 1.8:
+                elif result_type == 'intuitive' and speedup >= 1 and speedup < 1.6:
                     speedup_arr_setting.append(speedup)
 
-                if speedup < 1.8:
+                if speedup < 1.6:
                     speedup_arr.append(speedup)
-                if speedup >= 1 and speedup < 1.8: 
+                if speedup >= 1 and speedup < 1.6: 
                     max_benefit.append(speedup)
                 else: 
                     max_benefit.append(1)
@@ -867,9 +886,9 @@ def display_significant(result_type):
         html.Label('Number of Benchmarks in this graph: ' + str(num_bmarks)),
         html.Label('Total Number of Benchmarks: ' + str(total_num_bmarks)),
         html.Br(),
-        html.Label('Average Speedup [of benchmarks in graph where speedup < 1.8] = ' + str(avg_speedup_setting)),
-        html.Label('Average Speedup [total of ' + str(num_bmarks_considered) + ' benchmarks where speedup < 1.8] = ' + str(avg_speedup)),
-        html.Label('Potential Speedup [total of benchmarks where speedup < 1.8] = ' + str(max_ben)),
+        html.Label('Average Speedup [of benchmarks in graph where speedup < 1.6] = ' + str(avg_speedup_setting)),
+        html.Label('Average Speedup [total of ' + str(num_bmarks_considered) + ' benchmarks where speedup < 1.6] = ' + str(avg_speedup)),
+        html.Label('Potential Speedup [total of benchmarks where speedup < 1.6] = ' + str(max_ben)),
         html.Br(),
         dcc.Graph(
             id='significant-res-graph',

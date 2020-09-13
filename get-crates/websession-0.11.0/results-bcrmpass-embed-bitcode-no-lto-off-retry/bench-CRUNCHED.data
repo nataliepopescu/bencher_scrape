@@ -1,0 +1,2 @@
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	totalruns=42	
+rounds_8_encrypt	18597880.452380948	524627.1449640258	19071798.119047616	532227.6603876614	

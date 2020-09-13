@@ -1,0 +1,2 @@
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	totalruns=42	
+test_is_permitted_from_str	2732.1190476190477	114.7675087546978	2749.166666666667	76.83529591543653	

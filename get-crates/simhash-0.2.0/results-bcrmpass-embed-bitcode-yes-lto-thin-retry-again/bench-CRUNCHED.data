@@ -1,0 +1,2 @@
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	totalruns=36	
+bench_simhash	2009375.3333333333	7192.447840926234	1347095.1388888892	9650.051612276422	

@@ -1,0 +1,7 @@
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	totalruns=36	
+eq_ignore_ascii_case_with_lowercase_naive_eq_ignore_case	22.0	0.0	23.0	0.0	
+eq_ignore_ascii_case_with_lowercase_str_utils	16.0	0.0	16.0	0.0	
+eq_ignore_ascii_case_with_lowercase_multiple_naive_match	37.47222222222222	1.4431083564289489	37.30555555555556	1.3502971780818482	
+eq_ignore_ascii_case_with_lowercase_multiple_str_utils	33.61111111111112	2.406908780270497	33.27777777777779	1.6433554953054488	
+eq_multiple_naive_match	1.0	0.0	1.0	0.0	
+eq_multiple_str_utils	1.0	0.0	1.0277777777777777	0.16433554953054488	

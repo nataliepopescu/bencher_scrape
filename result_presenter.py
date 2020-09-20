@@ -62,6 +62,8 @@ bcrm_rustflags = "results-bcrmpass-in-rustflags"
 #bcrm_rustflags_thin = "results-bcrmpass-embed-bitcode-yes-lto-thin"
 #bcrm_rustflags_thin_retry = "results-bcrmpass-embed-bitcode-yes-lto-thin-retry"
 bcrm_rustflags_thin_retry_again = "results-bcrmpass-embed-bitcode-yes-lto-thin-retry-again"
+bcrm_rustflags_off_retry = "results-bcrmpass-embed-bitcode-no-lto-off-retry"
+bcrm_rustflags_unspec_retry = "results-bcrmpass-embed-bitcode-no-lto-unspec-retry"
 
 switcher = {
     "lto-off-1": {
@@ -200,6 +202,14 @@ switcher = {
         "label": "16: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no' [average of 42 runs]",
         "dir": bcrm_rustflags
     },
+    "bcrm-rustflags-lto-off": {
+        "label": "17: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no -C lto=off -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no -C lto=off' [average of 42 runs]",
+        "dir": bcrm_rustflags_off_retry
+    },
+    "bcrm-rustflags-lto-unspec": {
+        "label": "18: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=no' [average of 42 runs]",
+        "dir": bcrm_rustflags_unspec_retry
+    },
     #"bcrm-rustflags-thin": {
     #    "label": "17: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 42 runs]",
     #    "dir": bcrm_rustflags_thin
@@ -209,7 +219,7 @@ switcher = {
     #    "dir": bcrm_rustflags_thin_retry
     #},
     "bcrm-rustflags-thin-retry-again": {
-        "label": "17: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 36 runs]",
+        "label": "19: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 36 runs]",
         "dir": bcrm_rustflags_thin_retry_again
     },
     "diff-bcrm-fpm-o0-o3": {
@@ -266,24 +276,30 @@ switcher = {
         "dir-baseline": lto_off_1,
         "dir-tocompare": bcrm_rustflags,
     },
-    "diff-bcrm-rustflags-lto": {
-        "label": "17 vs 16",
-        "y-axis-label": "17 Time per Iteration Relative to 16 [%]",
+    "diff-bcrm-unspecs": { # should be roughly equal
+        "label": "18 vs 16",
+        "y-axis-label": "18 Time per Iteration Relative to 16 [%]",
         "dir-baseline": bcrm_rustflags,
+        "dir-tocompare": bcrm_rustflags_unspec_retry,
+    },
+    "diff-bcrm-embed-bitcode-nos": {
+        "label": "18 vs 17",
+        "y-axis-label": "18 Time per Iteration Relative to 17 [%]",
+        "dir-baseline": bcrm_rustflags_off_retry,
+        "dir-tocompare": bcrm_rustflags_unspec_retry,
+    },
+    "diff-bcrm-off-to-thin": {
+        "label": "19 vs 17",
+        "y-axis-label": "19 Time per Iteration Relative to 17 [%]",
+        "dir-baseline": bcrm_rustflags_off_retry,
         "dir-tocompare": bcrm_rustflags_thin_retry_again,
     },
-    #"diff-bcrm-rustflags-lto": {
-    #    "label": "18 vs 16",
-    #    "y-axis-label": "18 Time per Iteration Relative to 16 [%]",
-    #    "dir-baseline": bcrm_rustflags,
-    #    "dir-tocompare": bcrm_rustflags_thin_retry_again,
-    #},
-    #"diff-bcrm-rustflags-lto": {
-    #    "label": "18 vs 17",
-    #    "y-axis-label": "18 Time per Iteration Relative to 17 [%]",
-    #    "dir-baseline": bcrm_rustflags_thin,
-    #    "dir-tocompare": bcrm_rustflags_thin_retry_again,
-    #},
+    "diff-bcrm-unspec-to-thin": {
+        "label": "19 vs 18",
+        "y-axis-label": "19 Time per Iteration Relative to 18 [%]",
+        "dir-baseline": bcrm_rustflags_unspec_retry,
+        "dir-tocompare": bcrm_rustflags_thin_retry_again,
+    },
 }
 
 
@@ -690,6 +706,7 @@ def display_significant(result_type):
     speedup_arr_setting = []
     speedup_arr = []
     max_benefit = []
+    histo_arr = []
 
     def get_one_bar(bar_name, bar_color):
 
@@ -736,6 +753,8 @@ def display_significant(result_type):
                     max_benefit.append(speedup)
                 else: 
                     max_benefit.append(1)
+                #if speedup < 350:
+                histo_arr.append(speedup)
 
                 div_e = float(nobc_time) if float(nobc_time) != 0 else 1
                 perc_error = (float(nobc_error) / div_e) * 100
@@ -830,15 +849,17 @@ def display_significant(result_type):
                         'height': 1000}
                     })
 
+    trace = go.Histogram(x=histo_arr, nbinsx=100, autobinx=False)
     fig_hist = go.Figure({
-                    'data': go.Histogram(x=speedup_arr), #, cumulative_enabled=True),
+                    'data': trace, #, cumulative_enabled=True),
                     'layout': {
                         'title': "Histogram of Benchmark Speedups",
                         'xaxis': {
                             'linecolor': 'black',
                             'showline': True, 
-                            'nticks': 10,
+                            'nticks': 100,
                             'title': {'text': "Speedup"},
+                            #'autobinx': False,
                         },
                         'yaxis': {
                             'linecolor': 'black',
@@ -853,7 +874,7 @@ def display_significant(result_type):
                         'plot_bgcolor': 'white',
                         'autosize': False,
                         'bargap': 0.2,
-                        'width': 2150, 
+                        'width': 4000, 
                         'height': 1000}
                     })
     

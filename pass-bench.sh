@@ -55,12 +55,9 @@ usage () {
 	echo "   -c <comp-type>	Compile benchmarks, without running, for crates with and without"
 	echo "			  remove-bounds-check-pass; for large-scale experiments [default = off]."
 	echo "				-c 1: compile tests"
-	echo "				-c 2: compile tests again (if segfaulted before)"
 	echo "   -t <test-type>	Test crates with remove-bounds-check-pass [default = off]."
 	echo "				-t 1: compile tests"
-	echo "				-t 2: compile tests again (if segfaulted before)"
 	echo "				-t 3: run tests"
-	echo "				-t 4: diff test results."
 	echo "   -r <num-runs>  How many runs to execute [default = 1]."
 	echo "   -n <outfile-label>"
 	echo "			How to label the output files of this invocation [default = 'sanity']."
@@ -76,13 +73,13 @@ do
 	s)	scrape=1
 		;;
 	b)	bench=1
-		cmd="bench"
+		cmd="--bench"
 		;;
 	c)	comp="$(($OPTARG))"
-		cmd="bench"
+		cmd="--bench"
 		;;
 	t)	tst="$(($OPTARG))"
-		cmd="test"
+		cmd="--test"
 		;;
 	r)	runs="$(($OPTARG))"
 		;;
@@ -107,7 +104,7 @@ RAND_SCRIPT="randomize.py"
 
 cp bash_profile_bcrm ~/.bash_profile
 source ~/.bash_profile
-rustup override set bcrm
+#rustup override set bcrm
 
 # *****SCRAPE*****
 if [ "$scrape" -eq 1 ]
@@ -155,10 +152,10 @@ else
 	OUTPUT="$output"
 fi
 
-# *****COMPILE BENCHMARKS*****
+# *****COMPILE BENCHMARKS/TESTS*****
 
-LLVM_HOME="/benchdata/llvm-project/build"
-RUSTUP_TOOLCHAIN_LIB="/benchdata/.rustup/toolchains/$UNMOD/lib/rustlib/$TARGET/lib"
+#LLVM_HOME="/benchdata/llvm-project/build"
+#RUSTUP_TOOLCHAIN_LIB="/benchdata/.rustup/toolchains/$UNMOD/lib/rustlib/$TARGET/lib"
 NOPIE_SCRIPT=$ROOT/make_no_pie.py
 SAVE_EXE_SCRIPT=$ROOT/save_execs.py
 NAME_SCRIPT=$ROOT/process_benchnames.py
@@ -175,52 +172,32 @@ else
 fi
 export RUSTFLAGS
 
-#if [ $exp == "$UNMOD" ]
-#then
-#    cp bash_profile ~/.bash_profile
-#    source ~/.bash_profile
-#    rustup override set nightly-2020-07-05-x86_64-unknown-linux-gnu
-#else
-#    cp bash_profile_nobc ~/.bash_profile
-#    source ~/.bash_profile
-#    rustup override set nobc
-#fi
-
-# Get list of benchmark names and
-# the list of llvm passes rustc -O3 runs
+# Compile benchmarks or tests
 #RANDDIRS=( "/benchdata/rust/bencher_scrape/get-crates/outils-0.2.0/" )
-if [ $comp -eq 1 -o $comp -eq 2 -o $tst -eq 1 -o $tst -eq 2 ]
+if [ $comp -eq 1 -o $tst -eq 1 ]
 then
 	for d in ${RANDDIRS[@]}
 	do
 		PRECOMPDIR="$d$exp/$output"
-		# If already successfully compiled this crate, continue
-		if [ $comp -eq 2 -o $tst -eq 2 ]
-		then
-			NUM=$(grep -rnw 'SIGSEGV: invalid memory reference' $PRECOMPDIR/rustc-pass-list | wc -l)
-			if [ $NUM -eq 0 ]; then continue; fi
-		fi
-
 		ERRMSG=$d"err-msg"
 		NAMELIST=$d"name-list"
 		rm -f $NAMELIST && touch $NAMELIST
-		DEFAULT_TGT=$d"target" #/release/deps"
-		if [ -d $PRECOMPDIR -a $comp -eq 1 ] || [ -d $PRECOMPDIR -a $tst -eq 1 ]
+		DEFAULT_TGT=$d"target"
+		if [ -d $PRECOMPDIR ]
 		then
-			rm -rf $PRECOMPDIR/deps
+			rm -rf $PRECOMPDIR/target
 		fi
 		mkdir -p $PRECOMPDIR
 
 		cd $d
 
-		# Pre-process: list of benchmark names
-		#cargo clean
-		# No optimizations needed because just want to capture error msg
-		#RUSTFLAGS=$RUSTFLAGS_NONE cargo rustc --verbose --release $cmd 2> $ERRMSG
-		#cargo $cmd 2> $ERRMSG
-		#python3 $NAME_SCRIPT $ERRMSG $NAMELIST
+		# Pre-process: list of benchmark/test names
+		cargo clean
+		# Capture error msg to get list of bench/test names
+		cargo rustc --verbose --release $cmd 2> $ERRMSG
+		python3 $NAME_SCRIPT $ERRMSG $NAMELIST
 
-		# Pre-process: list of rustc optimization args to LLVM (per benchmark)
+		# Pre-process: list of rustc optimization args to LLVM (per benchmark/test)
 		cargo clean
 		NAMES=()
 		while read -r name
@@ -228,36 +205,28 @@ then
 			NAMES=( "${NAMES[@]}" "$name" )
 		done < "$NAMELIST"
 
-		#for n in ${NAMES[@]}
-		#do
-			#RUSTC_PASSLIST="$PRECOMPDIR/$n-rustc-pass-list"
-		RUSTC_PASSLIST="$PRECOMPDIR/rustc-pass-list"
-		# Check again for individual tests, maybe we can save some time here
-		#if [ $comp -eq 2 -o $tst -eq 2 ]; then
-		#	NUM=$(grep -rnw 'SIGSEGV: invalid memory reference' $RUSTPASSLIST | wc -l)
-		#	if [ $NUM -eq 0 ]; then continue; fi
-		#fi
-		#LINKARGS="$PRECOMPDIR/$n-link-args"
-		#REMARKS="$PRECOMPDIR/$n-remarks"
-		EXECLIST="$PRECOMPDIR/exec-list"
-		#rm -f $REMARKS && touch $REMARKS
-		rm -f $EXECLIST && touch $EXECLIST
+		for n in ${NAMES[@]}
+		do
+			echo "compiling benchmark: $n"
+			RUSTC_PASSLIST="$PRECOMPDIR/$n-rustc-pass-list"
+			LINKARGS="$PRECOMPDIR/$n-link-args"
+			REMARKS="$PRECOMPDIR/$n-remarks"
+			EXECLIST="$PRECOMPDIR/exec-list"
+			rm -f $REMARKS && touch $REMARKS
+			rm -f $EXECLIST && touch $EXECLIST
+			rm -f $LINKARGS && touch $LINKARGS
+			rm -f $RUSTC_PASSLIST && touch $RUSTC_PASSLIST
+			tries=0
 
-		# Running with opt-level = O3
-		#if [ $exp == $UNMOD ]
-		#then
-		#	RUSTFLAGS=$RUSTFLAGS_3 cargo rustc --verbose --release $cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $RUSTC_PASSLIST > $LINKARGS
-		#else
-		#	RUSTFLAGS=$RUSTFLAGS_3RBC cargo rustc --verbose --release $cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $RUSTC_PASSLIST > $LINKARGS
-		#fi
-		cargo $cmd --no-run 2> $RUSTC_PASSLIST
-		while [ $(grep -c 'SIGSEGV: invalid memory reference' "$RUSTC_PASSLIST") -gt 0 ]; do
-		#while [ ! -f "$RUSTC_PASSLIST" -o $(grep -c 'SIGSEGV: invalid memory reference' "$RUSTC_PASSLIST") -gt 0 ]; do
-			echo "we here?"
-			cargo $cmd --no-run 2> $RUSTC_PASSLIST
+			# Rerun until no more segfault occurs
+			cargo rustc --verbose --release $cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $RUSTC_PASSLIST > $LINKARGS
+			while [ $(grep -c 'SIGSEGV: invalid memory reference' "$RUSTC_PASSLIST") -gt 0 ]; do
+				tries=$((tries+1))
+				echo "try #: $tries"
+				cargo rustc --verbose --release $cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $RUSTC_PASSLIST > $LINKARGS
+			done
+			python3 $SAVE_EXE_SCRIPT $LINKARGS $EXECLIST
 		done
-			#python3 $SAVE_EXE_SCRIPT $LINKARGS $EXECLIST
-		#done
 		cd $ROOT
 		mv $DEFAULT_TGT $PRECOMPDIR
 	done
@@ -288,18 +257,19 @@ then
 		TEST_RES="$OUTDIR/$exp.test"
 		rm -f $TEST_RES && touch $TEST_RES
 		COMP_OUT="$OUTDIR/rustc-pass-list-$exp"
+		rm -f $COMP_OUT && touch $COMP_OUT
 		
 		if [ $bench -eq 1 ]; then RESULTS=$BENCH_RES; else RESULTS=$TEST_RES; fi
 
 		# Run
-		mv $PRECOMPDIR/target $DEFAULT_TGT
-		cargo $cmd > $RESULTS 2> $COMP_OUT
-		mv $DEFAULT_TGT $PRECOMPDIR/target
-		#cd $PRECOMPDIR/deps
-		#for e in ${EXECS[@]}
-		#do
-		#	./$e >> $RESULTS
-		#done
+		#mv $PRECOMPDIR/target $DEFAULT_TGT
+		#cargo $cmd > $RESULTS 2> $COMP_OUT
+		#mv $DEFAULT_TGT $PRECOMPDIR/target
+		cd $PRECOMPDIR/target/release/deps
+		for e in ${EXECS[@]}
+		do
+			./$e >> $RESULTS 2>> $COMP_OUT
+		done
 		cd $ROOT
 	done
 fi
@@ -323,7 +293,7 @@ then
 fi
 done
 
-if [ $tst -eq 4 ]
+if [ $tst -eq 3 ]
 then
 	for d in ${RANDDIRS[@]}
 	do

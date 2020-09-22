@@ -64,7 +64,7 @@ def crunch(
     #headers = ['#','bench-name','unmod-time', 'unmod-error','nobc-time','nobc-error','nobc+sl-time','nobc+sl-error','safelib-time','safelib-error']
     
     # Grab the numbers for each [benchmark x rustc] combo (per crate)
-    base_file = "./crates/crates/" + crate + "/" + data_file_loc + "/" + data_file
+    base_file = "./get-crates/" + crate + "/" + data_file_loc + "/" + data_file
     crunched_output = base_file + "-CRUNCHED.data"
     #geomean_output = base_file + "-GEOMEAN.data"
     # Write headers
@@ -131,10 +131,10 @@ def crunch(
     # Now that we've populated our matrix, can start crunching numbers
     for r in range(rows):
         row = []
-        gm_row = []
+        #gm_row = []
         label = labels[r]
         row.append(label)
-        gm_row.append(label)
+        #gm_row.append(label)
         for c in range(cols):
             # Order when print matrix: 
             #   unmod
@@ -147,8 +147,8 @@ def crunch(
             #gstdev = geo_stddev(matrix[r][c])
             row.append(str(avg))
             row.append(str(stdev))
-            gm_row.append(str(gm))
-            gm_row.append(str(gstdev))
+            #gm_row.append(str(gm))
+            #gm_row.append(str(gstdev))
         writerow(fd_crunched_output, row)
         #writerow(fd_geomean_output, gm_row)
 

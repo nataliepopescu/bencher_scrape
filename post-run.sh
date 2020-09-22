@@ -1,25 +1,18 @@
 #!/bin/bash
 
 SSH_NODES=(
-"npopescu@c220g5-111312.wisc.cloudlab.us"
-"npopescu@c220g5-111223.wisc.cloudlab.us"
-"npopescu@c220g5-120126.wisc.cloudlab.us"
-"npopescu@c220g5-111210.wisc.cloudlab.us"
-"npopescu@c220g5-111318.wisc.cloudlab.us"
-"npopescu@c220g5-111307.wisc.cloudlab.us"
-"npopescu@c220g5-111227.wisc.cloudlab.us"
-"npopescu@c220g5-111214.wisc.cloudlab.us"
-"npopescu@c220g5-111315.wisc.cloudlab.us"
-"npopescu@c220g5-111329.wisc.cloudlab.us"
-"npopescu@c220g5-111324.wisc.cloudlab.us"
-"npopescu@c220g5-111228.wisc.cloudlab.us"
-"npopescu@c220g5-120112.wisc.cloudlab.us"
-"npopescu@c220g5-111331.wisc.cloudlab.us"
+#"npopescu@clnode104.clemson.cloudlab.us"
+#"npopescu@clnode126.clemson.cloudlab.us"
+#"npopescu@clnode124.clemson.cloudlab.us"
+#"npopescu@clnode097.clemson.cloudlab.us"
+#"npopescu@clnode119.clemson.cloudlab.us"
+#"npopescu@clnode103.clemson.cloudlab.us"
+#"npopescu@clnode131.clemson.cloudlab.us"
 )
 
-numnodes=14
-runs=3
-output="results-bcrmpass-scrape"
+numnodes=7
+runs=5
+output="results-bcrmpass-embed-bitcode-yes-lto-thin-append-simplifycfg-cargobench"
 cpy=$numnodes
 
 usage () {
@@ -102,13 +95,12 @@ LOCAL_PATH="$ROOT/get-crates"
 REMOTE_PATH="/benchdata/rust/bencher_scrape/get-crates"
 
 i=0
-#CRATES=( "optional" "rust-btoi" )
+#CRATES=( "wireguard-vanity-address-0.4.0" "woodpecker-0.4.0" "xoroshiro-0.3.0" "xoshiro-0.0.5" "zip-0.5.6" "zip-0.5.7" )
 for node in ${SSH_NODES[@]}
 do
     for crate in ${CRATES[@]}
     do
-        #loc_dir="$LOCAL_PATH/$crate/$OUTPUT"
-        loc_dir="$LOCAL_PATH/$crate/results-bcrmpass-rescrape"
+        loc_dir="$LOCAL_PATH/$crate/$OUTPUT"
         loc_names="$LOCAL_PATH/$crate/name-list"
         rem_dir="$REMOTE_PATH/$crate/$OUTPUT"
         name_file="$REMOTE_PATH/$crate/name-list"
@@ -155,6 +147,7 @@ do
 
 CRUNCH="crunch.py"
 
+echo "$crate"
 python3 "$CRUNCH" "$crate" "$FNAME" "$OUTPUT" "$numnodes" "$runs"
 
 done

@@ -15,6 +15,7 @@ runs=1
 # Names
 name="sanity"
 output="output"
+rustc=0
 
 # Optimization Level Management
 OPTFLAGS_3="-C opt-level=3"
@@ -73,13 +74,13 @@ do
 	s)	scrape=1
 		;;
 	b)	bench=1
-		cmd="--bench"
+		cmd="bench"
 		;;
 	c)	comp="$(($OPTARG))"
-		cmd="--bench"
+		cmd="bench"
 		;;
 	t)	tst="$(($OPTARG))"
-		cmd="--test"
+		cmd="test"
 		;;
 	r)	runs="$(($OPTARG))"
 		;;
@@ -172,9 +173,9 @@ else
 fi
 export RUSTFLAGS
 
-# Compile benchmarks or tests
+# Compile benchmarks or tests using rustc
 #RANDDIRS=( "/benchdata/rust/bencher_scrape/get-crates/outils-0.2.0/" )
-if [ $comp -eq 1 -o $tst -eq 1 ]
+if [ $rustc -eq 1 ] && [ $comp -eq 1 -o $tst -eq 1 ]
 then
 	for d in ${RANDDIRS[@]}
 	do
@@ -208,22 +209,22 @@ then
 		for n in ${NAMES[@]}
 		do
 			echo "compiling benchmark: $n"
-			RUSTC_PASSLIST="$PRECOMPDIR/$n-rustc-pass-list"
+			COMP_PASSLIST="$PRECOMPDIR/$n-rustc-pass-list"
 			LINKARGS="$PRECOMPDIR/$n-link-args"
 			REMARKS="$PRECOMPDIR/$n-remarks"
 			EXECLIST="$PRECOMPDIR/exec-list"
 			rm -f $REMARKS && touch $REMARKS
 			rm -f $EXECLIST && touch $EXECLIST
 			rm -f $LINKARGS && touch $LINKARGS
-			rm -f $RUSTC_PASSLIST && touch $RUSTC_PASSLIST
+			rm -f $COMP_PASSLIST && touch $COMP_PASSLIST
 			tries=0
 
 			# Rerun until no more segfault occurs
-			cargo rustc --verbose --release $cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $RUSTC_PASSLIST > $LINKARGS
-			while [ $(grep -c 'SIGSEGV: invalid memory reference' "$RUSTC_PASSLIST") -gt 0 ]; do
+			cargo rustc --verbose --release --$cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $COMP_PASSLIST > $LINKARGS
+			while [ $(grep -c 'SIGSEGV: invalid memory reference' "$COMP_PASSLIST") -gt 0 ]; do
 				tries=$((tries+1))
 				echo "try #: $tries"
-				cargo rustc --verbose --release $cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $RUSTC_PASSLIST > $LINKARGS
+				cargo rustc --verbose --release --$cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $COMP_PASSLIST > $LINKARGS
 			done
 			python3 $SAVE_EXE_SCRIPT $LINKARGS $EXECLIST
 		done
@@ -232,11 +233,49 @@ then
 	done
 fi
 
-if [ $bench -eq 1 -o $tst -eq 3 ]
+# Compile benchmarks or tests NOT using rustc
+if [ $rustc -eq 0 ] && [ $comp -eq 1 -o $tst -eq 1 ]
 then
 	for d in ${RANDDIRS[@]}
 	do
-		DEFAULT_TGT=$d"target" #/release/deps"
+		PRECOMPDIR="$d$exp/$output"
+		DEFAULT_TGT=$d"target"
+		if [ -d $PRECOMPDIR ]
+		then
+			rm -rf $PRECOMPDIR/target
+		fi
+		mkdir -p $PRECOMPDIR
+
+		cd $d
+
+		# Pre-process: list of benchmark/test names
+		cargo clean
+		COMP_PASSLIST="$PRECOMPDIR/cargo-pass-list"
+		REMARKS="$PRECOMPDIR/remarks"
+		rm -f $REMARKS && touch $REMARKS
+		rm -f $COMP_PASSLIST && touch $COMP_PASSLIST
+		tries=0
+
+		# Rerun until no more segfault occurs
+		cargo $cmd --no-run --verbose 2> $COMP_PASSLIST
+		while [ $(grep -c 'SIGSEGV: invalid memory reference' "$COMP_PASSLIST") -gt 0 ]; do
+			tries=$((tries+1))
+			echo "try #: $tries"
+			cargo $cmd --no-run --verbose 2> $COMP_PASSLIST
+		done
+		cd $ROOT
+		mv $DEFAULT_TGT $PRECOMPDIR
+	done
+fi
+
+# *****RUN BENCHMARKS/TESTS*****
+
+# Run executables compiled by 'cargo rustc'
+if [ $rustc -eq 1 ] && [ $bench -eq 1 -o $tst -eq 3 ]
+then
+	for d in ${RANDDIRS[@]}
+	do
+		DEFAULT_TGT=$d"target"
 		PRECOMPDIR=$d$exp/$output
 		# Use previously saved list of executables
 		EXECLIST="$PRECOMPDIR/exec-list"
@@ -262,14 +301,40 @@ then
 		if [ $bench -eq 1 ]; then RESULTS=$BENCH_RES; else RESULTS=$TEST_RES; fi
 
 		# Run
-		#mv $PRECOMPDIR/target $DEFAULT_TGT
-		#cargo $cmd > $RESULTS 2> $COMP_OUT
-		#mv $DEFAULT_TGT $PRECOMPDIR/target
 		cd $PRECOMPDIR/target/release/deps
 		for e in ${EXECS[@]}
 		do
 			./$e >> $RESULTS 2>> $COMP_OUT
 		done
+		cd $ROOT
+	done
+fi
+
+# Run benchmarks/tests directly through cargo (no rustc)
+if [ $rustc -eq 0 ] && [ $bench -eq 1 -o $tst -eq 3 ]
+then
+	for d in ${RANDDIRS[@]}
+	do
+		DEFAULT_TGT=$d"target"
+		PRECOMPDIR=$d$exp/$output
+		cd $d
+		if [ $bench -eq 1 ]; then OUTDIR=$d$OUTPUT; else OUTDIR=$PRECOMPDIR; fi
+		mkdir -p $OUTDIR
+
+		BENCH_RES="$OUTDIR/$exp.bench"
+		rm -f $BENCH_RES && touch $BENCH_RES
+		TEST_RES="$OUTDIR/$exp.test"
+		rm -f $TEST_RES && touch $TEST_RES
+		COMP_OUT="$OUTDIR/cargo-pass-list-$exp"
+		rm -f $COMP_OUT && touch $COMP_OUT
+		
+		if [ $bench -eq 1 ]; then RESULTS=$BENCH_RES; else RESULTS=$TEST_RES; fi
+
+		# Run
+		cargo clean
+		mv $PRECOMPDIR/target $DEFAULT_TGT
+		cargo $cmd > $RESULTS 2> $COMP_OUT
+		mv $DEFAULT_TGT $PRECOMPDIR/target
 		cd $ROOT
 	done
 fi

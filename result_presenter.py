@@ -65,6 +65,7 @@ bcrm_rustflags_thin_retry_again = "results-bcrmpass-embed-bitcode-yes-lto-thin-r
 bcrm_rustflags_off_retry = "results-bcrmpass-embed-bitcode-no-lto-off-retry"
 bcrm_rustflags_unspec_retry = "results-bcrmpass-embed-bitcode-no-lto-unspec-retry"
 bcrm_rustflags_thin_append_simplifycfg = "results-bcrmpass-embed-bitcode-yes-lto-thin-append-simplifycfg"
+bcrm_rustflags_thin_append_simplifycfg_cargobench = "results-bcrmpass-embed-bitcode-yes-lto-thin-append-simplifycfg-cargobench"
 
 switcher = {
     "lto-off-1": {
@@ -227,6 +228,10 @@ switcher = {
         "label": "20: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 40 runs]; extra SimplifyCFG before RemoveBC",
         "dir": bcrm_rustflags_thin_append_simplifycfg
     },
+    "bcrm-rustflags-thin-append-simplifycfg-cargobench": {
+        "label": "21: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 35 runs]; extra SimplifyCFG before RemoveBC + ran with cargo bench (recovery)",
+        "dir": bcrm_rustflags_thin_append_simplifycfg_cargobench
+    },
     "diff-bcrm-fpm-o0-o3": {
         "label": "11 vs 12",
         "y-axis-label": "11 Time per Iteration Relative to 12 [%]",
@@ -310,6 +315,18 @@ switcher = {
         "y-axis-label": "20 Time per Iteration Relative to 19 [%]",
         "dir-baseline": bcrm_rustflags_thin_retry_again,
         "dir-tocompare": bcrm_rustflags_thin_append_simplifycfg,
+    },
+    "diff-bcrm-simplifycfg-cargorustc-vs-cargobench": {
+        "label": "21 vs 20",
+        "y-axis-label": "21 Time per Iteration Relative to 20 [%]",
+        "dir-baseline": bcrm_rustflags_thin_append_simplifycfg,
+        "dir-tocompare": bcrm_rustflags_thin_append_simplifycfg_cargobench,
+    },
+    "diff-bcrm-cargobench-w-a-wout-simplifycfg": {
+        "label": "21 vs 19",
+        "y-axis-label": "21 Time per Iteration Relative to 19 [%]",
+        "dir-baseline": bcrm_rustflags_thin_retry_again,
+        "dir-tocompare": bcrm_rustflags_thin_append_simplifycfg_cargobench,
     },
 }
 
@@ -726,7 +743,7 @@ def display_significant(result_type):
 
         for c in crates: 
 
-            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags-thin-append-simplifycfg').get("dir") + "/" + data_file_new
+            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags-thin-append-simplifycfg-cargobench').get("dir") + "/" + data_file_new
 
             if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
                 continue

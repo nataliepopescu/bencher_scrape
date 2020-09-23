@@ -66,6 +66,7 @@ bcrm_rustflags_off_retry = "results-bcrmpass-embed-bitcode-no-lto-off-retry"
 bcrm_rustflags_unspec_retry = "results-bcrmpass-embed-bitcode-no-lto-unspec-retry"
 bcrm_rustflags_thin_append_simplifycfg = "results-bcrmpass-embed-bitcode-yes-lto-thin-append-simplifycfg"
 bcrm_rustflags_thin_append_simplifycfg_cargobench = "results-bcrmpass-embed-bitcode-yes-lto-thin-append-simplifycfg-cargobench"
+irce_rustflags_thin_append_simplifycfg_cargobench = "results-ircepass-embed-bitcode-yes-lto-thin-append-simplifycfg-cargobench"
 
 switcher = {
     "lto-off-1": {
@@ -232,6 +233,10 @@ switcher = {
         "label": "21: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 35 runs]; extra SimplifyCFG before RemoveBC + ran with cargo bench (recovery)",
         "dir": bcrm_rustflags_thin_append_simplifycfg_cargobench
     },
+    "irce-rustflags-thin-append-simplifycfg-cargobench": {
+        "label": "22: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 40 runs]; extra SimplifyCFG before IRCE + ran with cargo bench (recovery)",
+        "dir": irce_rustflags_thin_append_simplifycfg_cargobench
+    },
     "diff-bcrm-fpm-o0-o3": {
         "label": "11 vs 12",
         "y-axis-label": "11 Time per Iteration Relative to 12 [%]",
@@ -327,6 +332,12 @@ switcher = {
         "y-axis-label": "21 Time per Iteration Relative to 19 [%]",
         "dir-baseline": bcrm_rustflags_thin_retry_again,
         "dir-tocompare": bcrm_rustflags_thin_append_simplifycfg_cargobench,
+    },
+    "diff-bcrm-cargobench-w-a-wout-simplifycfg": {
+        "label": "22 vs 21",
+        "y-axis-label": "22 Time per Iteration Relative to 21 [%]",
+        "dir-baseline": bcrm_rustflags_thin_append_simplifycfg_cargobench,
+        "dir-tocompare": irce_rustflags_thin_append_simplifycfg_cargobench,
     },
 }
 
@@ -731,7 +742,9 @@ def display_significant(result_type):
     one_perf_list = []
     one_yerror_list = []
 
-    speedup_arr_setting = []
+    # array for just tracking the speedup in the BETTER, WORSE, or neither "setting"
+    speedup_arr_setting = dict() # make dictionary: speedup -> name
+    # all speedup (for histogram)
     speedup_arr = []
     max_benefit = []
     histo_arr = []
@@ -743,6 +756,7 @@ def display_significant(result_type):
 
         for c in crates: 
 
+            #filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags-thin-retry-again').get("dir") + "/" + data_file_new
             filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags-thin-append-simplifycfg-cargobench').get("dir") + "/" + data_file_new
 
             if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
@@ -756,7 +770,7 @@ def display_significant(result_type):
                     continue
                 cols = line.split()
 
-                name = cols[0]
+                name = c + "::" + cols[0]
                 bmark_ctr += 1
 
                 vanilla_time = cols[1]
@@ -770,9 +784,9 @@ def display_significant(result_type):
                 speedup_div = 1 + (perc_time / 100)
                 speedup = 1 if speedup_div == 0 else 1 / speedup_div
                 if result_type == 'unintuitive' and speedup < 1: 
-                    speedup_arr_setting.append(speedup)
+                    speedup_arr_setting[speedup] = name
                 elif result_type == 'intuitive' and speedup >= 1 and speedup < 1.6:
-                    speedup_arr_setting.append(speedup)
+                    speedup_arr_setting[speedup] = name
 
                 if speedup < 1.6:
                     speedup_arr.append(speedup)
@@ -803,7 +817,7 @@ def display_significant(result_type):
                     elif perc_time < 3:
                         continue
                     else:
-                        one_bmark_list.append(c + "::" + name)
+                        one_bmark_list.append(name)
                         one_perf_list.append(perc_time)
                         one_yerror_list.append(perc_error)
                 # if negative and intuitive
@@ -822,13 +836,13 @@ def display_significant(result_type):
                     elif abs(perc_time) < 3:
                         continue
                     else:
-                        one_bmark_list.append(c + "::" + name)
+                        one_bmark_list.append(name)
                         one_perf_list.append(perc_time)
                         one_yerror_list.append(perc_error)
                 # add all other benchmarks to this graph
                 elif result_type == 'other': # and perc_time < 0:
                     if abs(perc_time) < float(vanilla_perc_error) or abs(perc_time) < float(perc_error) or abs(perc_time) < 3:
-                        one_bmark_list.append(c + "::" + name)
+                        one_bmark_list.append(name)
                         one_perf_list.append(perc_time)
                         one_yerror_list.append(perc_error)
 
@@ -924,10 +938,14 @@ def display_significant(result_type):
     if result_type == 'other':
         avg_speedup_setting = "Not calculated"
     else: 
-        avg_speedup_setting = geo_mean_overflow(speedup_arr_setting)
+        avg_speedup_setting = geo_mean_overflow(list(speedup_arr_setting))
     avg_speedup = geo_mean_overflow(speedup_arr)
     max_ben = geo_mean_overflow(max_benefit)
     num_bmarks_considered = len(speedup_arr)
+
+    def ordered_benchmarks(dic): 
+        for i in sorted(dic):
+            print((str(i), dic[i]), flush=True)
         
     return html.Div([
         html.Br(),
@@ -942,6 +960,8 @@ def display_significant(result_type):
             id='significant-res-graph',
             figure=fig
         ),
+        html.Br(),
+        html.Label(ordered_benchmarks(speedup_arr_setting)),
         html.Br(),
         dcc.Graph(
             id='histogram',

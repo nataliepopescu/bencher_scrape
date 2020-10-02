@@ -1,2 +1,0 @@
-#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	nobc+sl-time	nobc+sl-error	safelib-time	safelib-error	
-decode_logo_frames	1135459.725	2422.95716003709	1130558.875	1802.0089370963176	3682332.425	128693.85210799455	3682019.4	34443.20875208928	

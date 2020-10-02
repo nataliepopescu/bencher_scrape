@@ -1,7 +1,0 @@
-#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	
-eq_ignore_ascii_case_with_lowercase_naive_eq_ignore_case	22.0	0.0	23.0	0.0	
-eq_ignore_ascii_case_with_lowercase_str_utils	16.0	0.0	16.0	0.0	
-eq_ignore_ascii_case_with_lowercase_multiple_naive_match	37.542857142857144	1.3382901061291852	37.057142857142864	0.23211538298959886	
-eq_ignore_ascii_case_with_lowercase_multiple_str_utils	33.85714285714286	2.7994168488950604	33.0	0.0	
-eq_multiple_naive_match	1.0	0.0	1.0	0.0	
-eq_multiple_str_utils	1.0285714285714287	0.1665986255670086	1.0	0.0	

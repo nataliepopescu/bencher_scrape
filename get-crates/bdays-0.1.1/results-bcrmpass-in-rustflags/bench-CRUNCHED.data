@@ -1,4 +1,0 @@
-#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	totalruns=42	
-bench_brsettlement	911073.5476190477	1830.0787545164353	873254.8095238092	3324.959793799842	
-bench_brsettlement_cached	21.0	0.0	14.0	0.0	
-bench_weekendsonly	39.0	0.0	37.0	0.0	

@@ -1,2 +1,0 @@
-#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	nobc+sl-time	nobc+sl-error	safelib-time	safelib-error	
-read_entry	107986.55	1985.778587229704	108241.375	2888.8834753888914	5148165.1	174321.80605059135	5109044.675	14116.830039685787	

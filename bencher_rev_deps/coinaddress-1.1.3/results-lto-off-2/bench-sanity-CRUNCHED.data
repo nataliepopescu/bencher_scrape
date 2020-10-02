@@ -1,0 +1,2 @@
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	nobc+sl-time	nobc+sl-error	safelib-time	safelib-error	
+bench_validate_hash	13614.527777777777	1614.2509870613042	13518.944444444445	1506.803587887	22990.88888888889	2378.6332067174135	24351.5	2902.271777801352	

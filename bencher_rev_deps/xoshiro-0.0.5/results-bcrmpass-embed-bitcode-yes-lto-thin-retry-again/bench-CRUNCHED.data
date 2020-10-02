@@ -1,0 +1,2 @@
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	totalruns=36	
+rand_u32_xoshiro	11.0	0.0	11.0	0.0	

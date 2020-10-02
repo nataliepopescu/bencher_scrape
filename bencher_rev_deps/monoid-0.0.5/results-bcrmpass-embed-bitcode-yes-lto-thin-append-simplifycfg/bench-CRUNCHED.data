@@ -1,0 +1,3 @@
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	totalruns=40	
+bench_cowstring	44.875	2.8389038377514653	44.94999999999999	4.03701622488689	
+bench_cowstring_ms2ger	29.45	1.16081867662439	29.5	1.140175425099138	

@@ -1,0 +1,2 @@
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	
+rand_u32_xoshiro	11.011111111111113	0.10482201257840672	11.005555555555558	0.07432826755699806	

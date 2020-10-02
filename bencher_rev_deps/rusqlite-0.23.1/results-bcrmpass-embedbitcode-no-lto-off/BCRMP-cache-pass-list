@@ -1,0 +1,36 @@
+Pass Arguments:  -targetlibinfo -tti -targetpassconfig -assumption-cache-tracker -remove-bc -simplifycfg -dce -verify -write-bitcode
+Target Library Information
+Target Transform Information
+Target Pass Configuration
+Assumption Cache Tracker
+  ModulePass Manager
+    FunctionPass Manager
+      Pattern match and remove bounds check by replacing it with a unconditional branch
+      Simplify the CFG
+      Dead Code Elimination
+      Module Verifier
+    Bitcode Writer
+Pass Arguments:  -targetlibinfo -tti -targetpassconfig -assumption-cache-tracker -remove-bc -simplifycfg -dce -verify -write-bitcode
+Target Library Information
+Target Transform Information
+Target Pass Configuration
+Assumption Cache Tracker
+  ModulePass Manager
+    FunctionPass Manager
+      Pattern match and remove bounds check by replacing it with a unconditional branch
+      Simplify the CFG
+      Dead Code Elimination
+      Module Verifier
+    Bitcode Writer
+Pass Arguments:  -targetlibinfo -tti -targetpassconfig -assumption-cache-tracker -remove-bc -simplifycfg -dce -verify -write-bitcode
+Target Library Information
+Target Transform Information
+Target Pass Configuration
+Assumption Cache Tracker
+  ModulePass Manager
+    FunctionPass Manager
+      Pattern match and remove bounds check by replacing it with a unconditional branch
+      Simplify the CFG
+      Dead Code Elimination
+      Module Verifier
+    Bitcode Writer

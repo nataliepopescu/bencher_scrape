@@ -77,7 +77,7 @@ class CratesSpider(scrapy.Spider):
 
     def download(self, crates):
         print("Start downloading!")
-        newtopdir = "../" + self.category
+        newtopdir = "../downloaded_" + self.category
         subprocess.run(["mkdir", "-p", newtopdir])
         for vid, crate in crates.items():
             subprocess.run(["wget", "https://crates.io" + crate['dl_path']])

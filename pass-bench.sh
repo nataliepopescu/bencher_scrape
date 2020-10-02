@@ -96,7 +96,7 @@ done
 
 ROOT="$PWD"
 SPIDERDIR="$ROOT/get-crates/"
-SUBDIRS="$ROOT/$ctgry/*/"
+SUBDIRS="$ROOT/downloaded_$ctgry/*/"
 DIRLIST="dirlist"
 RAND_DIRLIST="rand-dirlist"
 RAND_SCRIPT="randomize.py"
@@ -128,7 +128,7 @@ set -x
 rm "$DIRLIST"
 for d in ${SUBDIRS[@]}
 do
-	if [ "$d" == "$ROOT/$ctgry/bex-0.1.4/" ]
+	if [ "$d" == "$ROOT/downloaded_$ctgry/bex-0.1.4/" ]
 	then
 		continue
 	fi

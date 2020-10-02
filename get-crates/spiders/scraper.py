@@ -6,17 +6,17 @@ import subprocess
 count = 0
 
 categ_attributes = {
-    'bencher-rev-dep': {
+    'bencher_rev_dep': {
         'url': 'https://crates.io/api/v1/crates/bencher/reverse_dependencies?page={page}&per_page={per_page}',
-        'per_page': 10,
-        'total_page': 12,
+        'per_page': 1, #FIXME => 10
+        'total_page': 1, #FIXME => 12
     },
-    'top-200': {
+    'top_200': {
         'url': 'https://crates.io/api/v1/crates?page={page}&per_page={per_page}&sort=downloads',
         'per_page': 50,
         'total_page': 4,
     },
-    'top-500': {
+    'top_500': {
         'url': 'https://crates.io/api/v1/crates?page={page}&per_page={per_page}&sort=downloads',
         'per_page': 50,
         'total_page': 10,
@@ -26,7 +26,7 @@ categ_attributes = {
 class CratesSpider(scrapy.Spider):
     name = 'get-crates'
     custom_settings = {
-        'CATEGORY': 'bencher-rev-dep',
+        'CATEGORY': 'bencher_rev_dep',
     }
     #per_page = 10
     #total_page = 12
@@ -91,11 +91,12 @@ class CratesSpider(scrapy.Spider):
 
     def download(self, crates):
         print("Start downloading!")
+        newtopdir = "../" + self.custom_settings['CATEGORY']
+        subprocess.run(["mkdir", "-p", newtopdir])
         for vid, crate in crates.items():
             subprocess.run(["wget", "https://crates.io" + crate['dl_path']])
-            subprocess.run(["tar", "-xf", "download"])
+            subprocess.run(["tar", "-C", newtopdir, "-xf", "download"])
             subprocess.run(["rm", "-f", "download"])
-
 
 
         # paths = []

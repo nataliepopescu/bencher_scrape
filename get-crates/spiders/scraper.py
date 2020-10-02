@@ -48,9 +48,6 @@ class CratesSpider(scrapy.Spider):
     def parse(self, response):
         data = json.loads(response.body.decode('utf-8'))
         crates = {}
-        filename = "debug"
-        fd = open(filename, 'w')
-        fd.write(response.body.decode('utf-8'))
 
         if self.category == "bencher_rev_deps":
             if 'dependencies' not in data or 'versions' not in data:

@@ -3,13 +3,12 @@ from scrapy import Request
 import json
 import re
 import subprocess
-count = 0
 
 categ_attributes = {
-    'bencher_rev_dep': {
+    'bencher_rev_deps': {
         'url': 'https://crates.io/api/v1/crates/bencher/reverse_dependencies?page={page}&per_page={per_page}',
-        'per_page': 1, #FIXME => 10
-        'total_page': 1, #FIXME => 12
+        'per_page': 10,
+        'total_page': 12,
     },
     'top_200': {
         'url': 'https://crates.io/api/v1/crates?page={page}&per_page={per_page}&sort=downloads',
@@ -25,21 +24,24 @@ categ_attributes = {
 
 class CratesSpider(scrapy.Spider):
     name = 'get-crates'
-    custom_settings = {
-        'CATEGORY': 'bencher_rev_dep',
-    }
-    #per_page = 10
-    #total_page = 12
     crates = {}
+
+    def __init__(self, category=None, *args, **kwargs):
+        super(CratesSpider, self).__init__(*args, **kwargs)
+        if category == None:
+            self.category = 'bencher_rev_deps'
+        else:
+            self.category = category
+        self.url = categ_attributes[self.category].get('url')
+        self.per_page = categ_attributes[self.category].get('per_page')
+        self.total_page = categ_attributes[self.category].get('total_page')
 
     # Stopped checking githubs at page 6 (109 out of 118 is fine w me)
     def start_requests(self):
-        per_page = categ_attributes[self.custom_settings['CATEGORY']].get('per_page')
-        total_page = categ_attributes[self.custom_settings['CATEGORY']].get('total_page')
-        url = categ_attributes[self.custom_settings['CATEGORY']].get('url')
-        for page in range(total_page):
+        url = self.url # categ_attributes[self.category].get('url')
+        for page in range(self.total_page):
             yield Request.from_curl(
-                "curl " + url.format(page=page+1, per_page=per_page),
+                "curl " + url.format(page=page+1, per_page=self.per_page),
                 #+ " -H 'authority: crates.io' -H 'user-agent: Mozilla/5.0 "
                 #+ "(Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) "
                 #+ "Chrome/79.0.3945.130 Safari/537.36' -H 'accept: */*' -H 'sec-fetch-site: "
@@ -71,19 +73,31 @@ class CratesSpider(scrapy.Spider):
     def parse(self, response):
         data = json.loads(response.body.decode('utf-8'))
         crates = {}
+        filename = "debug"
+        fd = open(filename, 'w')
+        fd.write(response.body.decode('utf-8'))
 
-        if 'dependencies' not in data or 'versions' not in data:
-            print("Error: invalid json")
-            return None
+        if self.category == "bencher_rev_deps":
+            if 'dependencies' not in data or 'versions' not in data:
+                print("Error: invalid json")
+                return None
 
-        for dep in data['dependencies']:
-            item = {'download': dep['downloads']}
-            crates[dep['version_id']] = item
-            print(dep['version_id'])
+            for dep in data['dependencies']:
+                item = {'download': dep['downloads']}
+                crates[dep['version_id']] = item
+                print(dep['version_id'])
 
-        for crate in data['versions']:
-            item = {"name": crate['crate'], "version": crate['num'], "dl_path": crate['dl_path']}
-            crates[crate['id']].update(item)
+            for crate in data['versions']:
+                item = {"name": crate['crate'], "version": crate['num'], "dl_path": crate['dl_path']}
+                crates[crate['id']].update(item)
+        else: 
+            if 'crates' not in data:
+                print("Error: invalid json")
+                return None
+
+            for crate in data['crates']:
+                item = {"name": crate['name'], "version": crate['newest_version'], "dl_path": "/api/v1/crates/" + crate['name'] + "/" + crate['newest_version'] + "/download"}
+                crates[crate['id']] = item
 
         self.crates.update(crates)
         self.download(crates)
@@ -91,7 +105,7 @@ class CratesSpider(scrapy.Spider):
 
     def download(self, crates):
         print("Start downloading!")
-        newtopdir = "../" + self.custom_settings['CATEGORY']
+        newtopdir = "../" + self.category #custom_settings['CATEGORY']
         subprocess.run(["mkdir", "-p", newtopdir])
         for vid, crate in crates.items():
             subprocess.run(["wget", "https://crates.io" + crate['dl_path']])

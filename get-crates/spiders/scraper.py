@@ -5,18 +5,41 @@ import re
 import subprocess
 count = 0
 
+categ_attributes = {
+    'bencher-rev-dep': {
+        'url': 'https://crates.io/api/v1/crates/bencher/reverse_dependencies?page={page}&per_page={per_page}',
+        'per_page': 10,
+        'total_page': 12,
+    },
+    'top-200': {
+        'url': 'https://crates.io/api/v1/crates?page={page}&per_page={per_page}&sort=downloads',
+        'per_page': 50,
+        'total_page': 4,
+    },
+    'top-500': {
+        'url': 'https://crates.io/api/v1/crates?page={page}&per_page={per_page}&sort=downloads',
+        'per_page': 50,
+        'total_page': 10,
+    },
+}
+
 class CratesSpider(scrapy.Spider):
     name = 'get-crates'
-    per_page = 10
-    total_page = 12
+    custom_settings = {
+        'CATEGORY': 'bencher-rev-dep',
+    }
+    #per_page = 10
+    #total_page = 12
     crates = {}
 
     # Stopped checking githubs at page 6 (109 out of 118 is fine w me)
     def start_requests(self):
-        url = 'https://crates.io/api/v1/crates/bencher/reverse_dependencies?page={page}&per_page={per_page}'
-        for page in range(self.total_page):
+        per_page = categ_attributes[self.custom_settings['CATEGORY']].get('per_page')
+        total_page = categ_attributes[self.custom_settings['CATEGORY']].get('total_page')
+        url = categ_attributes[self.custom_settings['CATEGORY']].get('url')
+        for page in range(total_page):
             yield Request.from_curl(
-                "curl " + url.format(page=page+1, per_page=self.per_page),
+                "curl " + url.format(page=page+1, per_page=per_page),
                 #+ " -H 'authority: crates.io' -H 'user-agent: Mozilla/5.0 "
                 #+ "(Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) "
                 #+ "Chrome/79.0.3945.130 Safari/537.36' -H 'accept: */*' -H 'sec-fetch-site: "

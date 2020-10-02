@@ -5,17 +5,16 @@
 # Don't scrape
 scrape=0
 # Don't bench
-bench=0
-# Don't pre-compile
-comp=0
+bench=-1
 # Don't test
-tst=0
+tst=-1
 # Only one run
 runs=1
 # Names
 name="sanity"
 output="output"
-rustc=0
+rustc=1
+ctgry="top_200"
 
 # Optimization Level Management
 OPTFLAGS_3="-C opt-level=3"
@@ -42,47 +41,45 @@ TARGET="x86_64-unknown-linux-gnu"
 UNMOD="UNMOD"
 BCRMP="BCRMP"
 
-#EXPERIMENTS=( "$BCRMP" )
+EXPERIMENTS=( "$BCRMP" )
 #EXPERIMENTS=( "$UNMOD" )
-EXPERIMENTS=( "$UNMOD" "$BCRMP" )
+#EXPERIMENTS=( "$UNMOD" "$BCRMP" )
 
 # *****COMMAND-LINE ARGS*****
 
 usage () {
 	echo ""
-	echo "Usage: $0 [-s] [-b] [-c] [-t] [r <num-runs>] [-n <outfile-label>] [-o <outdir-label>]"
+	echo "Usage: $0 [-s] [-b <benchnum>] [-t <testnum>] [-c <category>] [-n <outfile>] [-o <outdir>]"
 	echo "   -s		Scrape crates.io for reverse dependencies of bencher [default = off]."
-	echo "   -b		Bench crates with and without remove-bounds-check-pass [default = off]."
-	echo "   -c <comp-type>	Compile benchmarks, without running, for crates with and without"
-	echo "			  remove-bounds-check-pass; for large-scale experiments [default = off]."
-	echo "				-c 1: compile tests"
-	echo "   -t <test-type>	Test crates with remove-bounds-check-pass [default = off]."
-	echo "				-t 1: compile tests"
-	echo "				-t 3: run tests"
-	echo "   -r <num-runs>  How many runs to execute [default = 1]."
-	echo "   -n <outfile-label>"
-	echo "			How to label the output files of this invocation [default = 'sanity']."
-	echo "   -o <outdir-label>"
-	echo "			How to label the output directories of this invocation [default = 'output']."
+	echo "   -b <benchnum>	Bench crates with and without remove-bounds-check-pass [default = off]."
+	echo "				-b 0: compile benchmarks"
+	echo "				-b n: run benchmarks n times"
+	echo "   -t <testnum>	Test crates with remove-bounds-check-pass [default = off]."
+	echo "				-t 0: compile tests"
+	echo "				-t 1: run tests"
+	echo "   -c <category>	Category of crates for which to download code and/or run benchmarks/tests."
+	echo "			[default = 'top_200']."
+	echo "				-c 'bencher_rev_deps'	: reverse dependencies of the bencher crate"
+	echo "				-c 'top_200'		: top 200 most downloaded crates on crates.io"
+	echo "				-c 'top_500'		: top 500 most downloaded crates on crates.io"
+	echo "   -n <outfile>	How to label the output files of this invocation [default = 'sanity']."
+	echo "   -o <outdir>	How to label the output directories of this invocation [default = 'output']."
 	echo ""
 }
 
 # Parse args
-while getopts "sbc:t:r:n:o:h" opt
+while getopts "sb:t:c:n:o:h" opt
 do
 	case "$opt" in
 	s)	scrape=1
 		;;
-	b)	bench=1
-		cmd="bench"
-		;;
-	c)	comp="$(($OPTARG))"
+	b)	bench="$(($OPTARG))"
 		cmd="bench"
 		;;
 	t)	tst="$(($OPTARG))"
 		cmd="test"
 		;;
-	r)	runs="$(($OPTARG))"
+	c)	ctgry="$(($OPTARG))"
 		;;
 	n)	name="$OPTARG"
 		;;
@@ -98,7 +95,8 @@ do
 done
 
 ROOT="$PWD"
-SUBDIRS="$ROOT/get-crates/*/"
+SPIDERDIR="$ROOT/get-crates/"
+SUBDIRS="$ROOT/$ctgry/*/"
 DIRLIST="dirlist"
 RAND_DIRLIST="rand-dirlist"
 RAND_SCRIPT="randomize.py"
@@ -110,12 +108,16 @@ source ~/.bash_profile
 # *****SCRAPE*****
 if [ "$scrape" -eq 1 ]
 then
-        cd "get-crates/"
-	scrapy crawl get-crates
+        cd $SPIDERDIR
+	scrapy crawl get-crates -a category=$ctgry
 	cd $ROOT
 fi
 
 # *****PRE-PROCESS*****
+if [ $bench -gt 0 ]
+	runs=$bench
+fi
+
 for i in $(seq 1 $runs)
 do
 
@@ -126,7 +128,7 @@ set -x
 rm "$DIRLIST"
 for d in ${SUBDIRS[@]}
 do
-	if [ "$d" == "$ROOT/get-crates/spiders/" -o "$d" == "$ROOT/get-crates/bex-0.1.4/" -o "$d" == "$ROOT/get-crates/__pycache__/" ]
+	if [ "$d" == "$ROOT/$ctgry/bex-0.1.4/" ]
 	then
 		continue
 	fi
@@ -146,7 +148,7 @@ done < "$RAND_DIRLIST"
 
 # Initialize output directory names depending on # runs
 SUFFIX="$name"
-if [ $runs -gt 1 -a $comp -eq 0 ]
+if [ $bench -gt 0 ]
 then
 	OUTPUT="$output-$i"
 else
@@ -155,8 +157,6 @@ fi
 
 # *****COMPILE BENCHMARKS/TESTS*****
 
-#LLVM_HOME="/benchdata/llvm-project/build"
-#RUSTUP_TOOLCHAIN_LIB="/benchdata/.rustup/toolchains/$UNMOD/lib/rustlib/$TARGET/lib"
 NOPIE_SCRIPT=$ROOT/make_no_pie.py
 SAVE_EXE_SCRIPT=$ROOT/save_execs.py
 NAME_SCRIPT=$ROOT/process_benchnames.py
@@ -174,8 +174,9 @@ fi
 export RUSTFLAGS
 
 # Compile benchmarks or tests using rustc
-#RANDDIRS=( "/benchdata/rust/bencher_scrape/get-crates/outils-0.2.0/" )
-if [ $rustc -eq 1 ] && [ $comp -eq 1 -o $tst -eq 1 ]
+#RANDDIRS=( "/benchdata/rust/bencher_scrape/get-crates/crc-any-2.3.5/" )
+RANDDIRS=( "/benchdata/rust/bencher_scrape/top_200/crc-any-2.3.5/" )
+if [ $rustc -eq 1 ] && [ $bench -eq 0 -o $tst -eq 0 ]
 then
 	for d in ${RANDDIRS[@]}
 	do
@@ -195,7 +196,7 @@ then
 		# Pre-process: list of benchmark/test names
 		cargo clean
 		# Capture error msg to get list of bench/test names
-		cargo rustc --verbose --release $cmd 2> $ERRMSG
+		cargo rustc --verbose --release --$cmd 2> $ERRMSG
 		python3 $NAME_SCRIPT $ERRMSG $NAMELIST
 
 		# Pre-process: list of rustc optimization args to LLVM (per benchmark/test)
@@ -224,7 +225,11 @@ then
 			while [ $(grep -c 'SIGSEGV: invalid memory reference' "$COMP_PASSLIST") -gt 0 ]; do
 				tries=$((tries+1))
 				echo "try #: $tries"
+				echo "total tries: $tries" > "recomp_tries"
 				cargo rustc --verbose --release --$cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $COMP_PASSLIST > $LINKARGS
+				if [ $tries -gt 7 ]; then
+					break
+				fi
 			done
 			python3 $SAVE_EXE_SCRIPT $LINKARGS $EXECLIST
 		done
@@ -234,7 +239,7 @@ then
 fi
 
 # Compile benchmarks or tests NOT using rustc
-if [ $rustc -eq 0 ] && [ $comp -eq 1 -o $tst -eq 1 ]
+if [ $rustc -eq 0 ] && [ $bench -eq 0 -o $tst -eq 0 ]
 then
 	for d in ${RANDDIRS[@]}
 	do
@@ -271,7 +276,7 @@ fi
 # *****RUN BENCHMARKS/TESTS*****
 
 # Run executables compiled by 'cargo rustc'
-if [ $rustc -eq 1 ] && [ $bench -eq 1 -o $tst -eq 3 ]
+if [ $rustc -eq 1 ] && [ $bench -gt 0 -o $tst -eq 1 ]
 then
 	for d in ${RANDDIRS[@]}
 	do
@@ -292,13 +297,14 @@ then
 		mkdir -p $OUTDIR
 
 		BENCH_RES="$OUTDIR/$exp.bench"
-		rm -f $BENCH_RES && touch $BENCH_RES
+		rm -f $BENCH_RES
 		TEST_RES="$OUTDIR/$exp.test"
-		rm -f $TEST_RES && touch $TEST_RES
+		rm -f $TEST_RES
 		COMP_OUT="$OUTDIR/rustc-pass-list-$exp"
 		rm -f $COMP_OUT && touch $COMP_OUT
 		
 		if [ $bench -eq 1 ]; then RESULTS=$BENCH_RES; else RESULTS=$TEST_RES; fi
+		rm -f $RESULTS && touch $RESULTS
 
 		# Run
 		cd $PRECOMPDIR/target/release/deps
@@ -311,7 +317,7 @@ then
 fi
 
 # Run benchmarks/tests directly through cargo (no rustc)
-if [ $rustc -eq 0 ] && [ $bench -eq 1 -o $tst -eq 3 ]
+if [ $rustc -eq 0 ] && [ $bench -gt 0 -o $tst -eq 1 ]
 then
 	for d in ${RANDDIRS[@]}
 	do
@@ -343,7 +349,7 @@ fi
 
 AGGLOC="$ROOT/aggregate_bench.py"
 
-if [ $bench -eq 1 ]
+if [ $bench -gt 0 ]
 then
 	for d in ${RANDDIRS[@]}
 	do
@@ -358,7 +364,7 @@ then
 fi
 done
 
-if [ $tst -eq 3 ]
+if [ $tst -eq 1 ]
 then
 	for d in ${RANDDIRS[@]}
 	do

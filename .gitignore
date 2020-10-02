@@ -1,9 +1,10 @@
+Cargo.lock
 dirlist
 rand-dirlist
-crates/crates/*/target/
-crates/crates/*/gnuplot*
-crates/crates/*/BCRMP/
-crates/crates/*/UNMOD/
+top_200/*/
+top_500/*/
+bencher_rev_deps/*/
+output/*/
 *.plt
 *.lock
 *.gitignore

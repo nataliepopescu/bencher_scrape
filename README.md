@@ -3,10 +3,15 @@
 ## Requirements
 
 make
+
 python3
+
 [cmake](https://cmake.org/download/) >= 3.13.4
+
 scrapy >= 2.0.0
+
 numpy >= 1.16.1
+
 dash >= 0.42.0
 
 ## LLVM
@@ -15,7 +20,7 @@ Clone [this](https://github.com/nataliepopescu/llvm-project/tree/match-version-f
 
 ### Configure
 
-Configure LLVM with your desired build system (we used Unix Makefiles) as follows:
+Configure LLVM with your desired build system (we used Unix Makefiles) and these flags:
 
 ```sh
 $ cmake -G "Unix Makefiles" \
@@ -32,7 +37,7 @@ $ make install-llvm-headers && make -j$(nproc)
 
 ## Rust
 
-Clone [this](https://github.com/nataliepopescu/rust) repository.
+Clone [this](https://github.com/nataliepopescu/rust) Rust repository.
 
 ### Configure
 
@@ -41,11 +46,15 @@ Make the following changes to you `config.toml`:
 ```sh
 [install]
 ...
+
 prefix = "/another/path/you/have/read/write/access/to"
+
 sysconfdir = "etc"
 ...
+
 [target.*]
 ...
+
 llvm-config = "path/to/local/llvm-config"
 ...
 ```

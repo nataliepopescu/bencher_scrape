@@ -12,3 +12,4 @@ target/
 *.yml
 *.csv
 *.DS_Store
+downloaded_*/*

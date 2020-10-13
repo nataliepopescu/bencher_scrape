@@ -61,20 +61,20 @@ bcrm_mpm = "results-bcrmpass-mpm"
 bcrm_mod_rustc_only = "results-bcrmpass-mod-rustc-only"
 bcrm_rescrape = "results-bcrmpass-rescrape"
 bcrm_rustflags = "results-bcrmpass-in-rustflags"
-bcrm_rustflags_thin = "results-bcrmpass-embed-bitcode-yes-lto-thin" # post segfault fix
 #bcrm_rustflags_thin_retry = "results-bcrmpass-embed-bitcode-yes-lto-thin-retry"
 bcrm_rustflags_thin_retry_again = "results-bcrmpass-embed-bitcode-yes-lto-thin-retry-again"
 bcrm_rustflags_off_retry = "results-bcrmpass-embed-bitcode-no-lto-off-retry"
 bcrm_rustflags_unspec_retry = "results-bcrmpass-embed-bitcode-no-lto-unspec-retry"
-#bcrm_rustflags_yes_thin = "results-bcrmpass-embed-bitcode-yes-lto-thin"
 bcrm_rustflags_thin_append_simplifycfg = "results-bcrmpass-embed-bitcode-yes-lto-thin-append-simplifycfg"
 bcrm_rustflags_thin_append_simplifycfg_cargobench = "results-bcrmpass-embed-bitcode-yes-lto-thin-append-simplifycfg-cargobench"
 irce_rustflags_thin_append_simplifycfg_cargobench = "results-ircepass-embed-bitcode-yes-lto-thin-append-simplifycfg-cargobench"
+# post segfault fix
+bcrm_rustflags_thin = "results-bcrmpass-embed-bitcode-yes-lto-thin"
 
 top_switcher = {
     "top-200": {
         "label": "1: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes      -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [     average of 40 runs]",
-        "dir": bcrm_rustflags_thin
+        "dir": bcrm_rustflags_thin_retry_again
     }
 }
 
@@ -231,9 +231,9 @@ switcher = {
     #    "label": "18: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 36 runs]",
     #    "dir": bcrm_rustflags_thin_retry
     #},
-    "bcrm-rustflags-thin": {
+    "bcrm-rustflags-thin-retry-again": {
         "label": "19: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 36 runs]",
-        "dir": bcrm_rustflags_thin #_retry_again
+        "dir": bcrm_rustflags_thin_retry_again
     },
     "bcrm-rustflags-thin-append-simplifycfg": {
         "label": "20: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 40 runs]; extra SimplifyCFG before RemoveBC",
@@ -348,6 +348,10 @@ switcher = {
         "y-axis-label": "22 Time per Iteration Relative to 21 [%]",
         "dir-baseline": bcrm_rustflags_thin_append_simplifycfg_cargobench,
         "dir-tocompare": irce_rustflags_thin_append_simplifycfg_cargobench,
+    },
+    "bcrm-rustflags-thin": {
+        "label": "23: [Fixed SegFault] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 36 runs]",
+        "dir": bcrm_rustflags_thin
     },
 }
 

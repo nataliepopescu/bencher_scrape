@@ -41,16 +41,16 @@ TARGET="x86_64-unknown-linux-gnu"
 UNMOD="UNMOD"
 BCRMP="BCRMP"
 
-EXPERIMENTS=( "$BCRMP" )
+#EXPERIMENTS=( "$BCRMP" )
 #EXPERIMENTS=( "$UNMOD" )
-#EXPERIMENTS=( "$UNMOD" "$BCRMP" )
+EXPERIMENTS=( "$UNMOD" "$BCRMP" )
 
 # *****COMMAND-LINE ARGS*****
 
 usage () {
 	echo ""
 	echo "Usage: $0 [-s] [-b <benchnum>] [-t <testnum>] [-c <category>] [-n <outfile>] [-o <outdir>]"
-	echo "   -s		Scrape crates.io for reverse dependencies of bencher [default = off]."
+	echo "   -s		Scrape crates.io for some set of crates TBD by the [-c] flag. [default = off]."
 	echo "   -b <benchnum>	Bench crates with and without remove-bounds-check-pass [default = off]."
 	echo "				-b 0: compile benchmarks"
 	echo "				-b n: run benchmarks n times"
@@ -101,8 +101,8 @@ DIRLIST="dirlist"
 RAND_DIRLIST="rand-dirlist"
 RAND_SCRIPT="randomize.py"
 
-cp bash_profile_bcrm ~/.bash_profile
-source ~/.bash_profile
+#cp bash_profile_bcrm ~/.bash_profile
+source bash_profile
 #rustup override set bcrm
 
 # *****SCRAPE*****
@@ -115,6 +115,7 @@ fi
 
 # *****PRE-PROCESS*****
 if [ $bench -gt 0 ]
+then
 	runs=$bench
 fi
 

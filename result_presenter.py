@@ -16,10 +16,12 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 
-path_to_crates = "./get-crates"
+path_to_crates = "./downloaded_bencher_rev_deps"
+path_to_top = "./downloaded_top_200"
 data_file = "bench-sanity-CRUNCHED.data"
 data_file_new = "bench-CRUNCHED.data"
-crates = []
+bencher_rev_dep_crates = []
+top_crates = []
 
 graph_styles = {
     0: {
@@ -59,14 +61,22 @@ bcrm_mpm = "results-bcrmpass-mpm"
 bcrm_mod_rustc_only = "results-bcrmpass-mod-rustc-only"
 bcrm_rescrape = "results-bcrmpass-rescrape"
 bcrm_rustflags = "results-bcrmpass-in-rustflags"
-#bcrm_rustflags_thin = "results-bcrmpass-embed-bitcode-yes-lto-thin"
+bcrm_rustflags_thin = "results-bcrmpass-embed-bitcode-yes-lto-thin" # post segfault fix
 #bcrm_rustflags_thin_retry = "results-bcrmpass-embed-bitcode-yes-lto-thin-retry"
 bcrm_rustflags_thin_retry_again = "results-bcrmpass-embed-bitcode-yes-lto-thin-retry-again"
 bcrm_rustflags_off_retry = "results-bcrmpass-embed-bitcode-no-lto-off-retry"
 bcrm_rustflags_unspec_retry = "results-bcrmpass-embed-bitcode-no-lto-unspec-retry"
+#bcrm_rustflags_yes_thin = "results-bcrmpass-embed-bitcode-yes-lto-thin"
 bcrm_rustflags_thin_append_simplifycfg = "results-bcrmpass-embed-bitcode-yes-lto-thin-append-simplifycfg"
 bcrm_rustflags_thin_append_simplifycfg_cargobench = "results-bcrmpass-embed-bitcode-yes-lto-thin-append-simplifycfg-cargobench"
 irce_rustflags_thin_append_simplifycfg_cargobench = "results-ircepass-embed-bitcode-yes-lto-thin-append-simplifycfg-cargobench"
+
+top_switcher = {
+    "top-200": {
+        "label": "1: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes      -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [     average of 40 runs]",
+        "dir": bcrm_rustflags_thin
+    }
+}
 
 switcher = {
     "lto-off-1": {
@@ -221,9 +231,9 @@ switcher = {
     #    "label": "18: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 36 runs]",
     #    "dir": bcrm_rustflags_thin_retry
     #},
-    "bcrm-rustflags-thin-retry-again": {
+    "bcrm-rustflags-thin": {
         "label": "19: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 36 runs]",
-        "dir": bcrm_rustflags_thin_retry_again
+        "dir": bcrm_rustflags_thin #_retry_again
     },
     "bcrm-rustflags-thin-append-simplifycfg": {
         "label": "20: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 40 runs]; extra SimplifyCFG before RemoveBC",
@@ -343,11 +353,19 @@ switcher = {
 
 
 def get_crates():
-    global crates
+    global bencher_rev_dep_crates
     for name in os.listdir(path_to_crates):
-        if os.path.isdir(os.path.join(path_to_crates, name)) and not name == "spiders":
-            crates.append(name)
-    crates.sort()
+        if os.path.isdir(os.path.join(path_to_crates, name)):
+            bencher_rev_dep_crates.append(name)
+    bencher_rev_dep_crates.sort()
+
+
+def get_top_crates():
+    global top_crates
+    for name in os.listdir(path_to_top):
+        if os.path.isdir(os.path.join(path_to_top, name)):
+            top_crates.append(name)
+    top_crates.sort()
 
 
 # Geometric mean helper
@@ -389,8 +407,16 @@ app.config.suppress_callback_exceptions = True
 
 def crate_options():
     options = []
-    global crates
-    for crate in crates:
+    global bencher_rev_dep_crates
+    for crate in bencher_rev_dep_crates:
+        options.append({'label': crate, 'value': crate})
+    return options
+
+
+def top_crate_options():
+    options = []
+    global top_crates
+    for crate in top_crates:
         options.append({'label': crate, 'value': crate})
     return options
 
@@ -405,6 +431,16 @@ def setting_options():
     return options
 
 
+def top_setting_options():
+    options = []
+    global top_switcher
+    keys = top_switcher.keys()
+    for k in keys:
+        label = top_switcher.get(k).get("label")
+        options.append({'label': label, 'value': k})
+    return options
+
+
 def is_empty_datafile(filepath):
     handle = open(filepath, 'r')
     for line in handle: 
@@ -413,6 +449,32 @@ def is_empty_datafile(filepath):
         else:
             return False
     return True
+
+
+def getPerfTopLayout():
+
+    layout = html.Div([
+        html.Br(),
+        html.Label('Pick a crate:'),
+        dcc.Dropdown(id='crate_name',
+            options=top_crate_options(),
+            value='adler32-1.2.0', #aerospike-0.5.0',
+            style={'width': '50%'}
+        ),
+
+        html.Br(),
+        html.Label('Pick a setting:'),
+        dcc.RadioItems(id='crate_opt',
+            options=top_setting_options(),
+            value="top-200" #diff-bcrm-thin-to-simplifycfg"
+        ),
+
+        html.Br(),
+        html.Label('Lower is better!'),
+        html.Div(id='crate-content')
+    ])
+
+    return layout
 
 
 def getPerfRustcsLayout():
@@ -615,7 +677,9 @@ def display_diff(crate_name, crate_opt):
 
 def display_relative(crate_name, crate_opt): 
 
-    if "bcrm" in crate_opt:
+    if "top" in crate_opt:
+        filepath = path_to_top + "/" + crate_name + "/" + top_switcher.get(crate_opt).get("dir") + "/" + data_file_new
+    elif "bcrm" in crate_opt:
         filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file_new
     else: 
         filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file
@@ -751,13 +815,12 @@ def display_significant(result_type):
 
     def get_one_bar(bar_name, bar_color):
 
-        global crates
+        global bencher_rev_dep_crates
         bmark_ctr = 0
 
-        for c in crates: 
+        for c in bencher_rev_dep_crates: 
 
-            #filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags-thin-retry-again').get("dir") + "/" + data_file_new
-            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags-thin-append-simplifycfg-cargobench').get("dir") + "/" + data_file_new
+            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags-thin').get("dir") + "/" + data_file_new
 
             if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
                 continue
@@ -989,8 +1052,11 @@ def display_page(pathname):
     if pathname == '/':
         pathname = '/comparePass'
 
-    if pathname == '/compareAll':
+    if pathname == '/compareBencherRevDeps':
         layout = getPerfRustcsLayout() #app._resultProvider)
+        return layout
+    if pathname == '/compareTop200':
+        layout = getPerfTopLayout()
         return layout
     if pathname == '/comparePass':
         layout = getPerfPassLayout() #app._resultProvider)
@@ -1006,10 +1072,13 @@ if __name__ == '__main__':
     #app._resultProvider = ResultProvider(result_path)
 
     get_crates()
+    get_top_crates()
 
     app.layout = html.Div([
         dcc.Location(id='url', refresh=False),
-        dcc.Link('All Techniques', href='/compareAll'),
+        dcc.Link('All Techniques on Bencher Reverse Dependencies', href='/compareBencherRevDeps'),
+        html.Br(),
+        dcc.Link('All Techniques on Top 200 Most Downloaded Crates', href='/compareTop200'),
         html.Br(),
         dcc.Link('In-Tree LLVM Pass', href='/comparePass'),
         html.Br(),

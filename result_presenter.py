@@ -73,7 +73,7 @@ bcrm_rustflags_thin = "results-bcrmpass-embed-bitcode-yes-lto-thin"
 
 top_switcher = {
     "top-200": {
-        "label": "1: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes      -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [     average of 40 runs]",
+        "label": "1: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 40 runs]",
         "dir": bcrm_rustflags_thin_retry_again
     }
 }
@@ -352,6 +352,12 @@ switcher = {
     "bcrm-rustflags-thin": {
         "label": "23: [Fixed SegFault] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 36 runs]",
         "dir": bcrm_rustflags_thin
+    },
+    "diff-bcrm-segfault": {
+        "label": "23 vs 19",
+        "y-axis-label": "23 Time per Iteration Relative to 19 [%]",
+        "dir-baseline": bcrm_rustflags_thin_retry_again,
+        "dir-tocompare": bcrm_rustflags_thin,
     },
 }
 
@@ -824,6 +830,7 @@ def display_significant(result_type):
 
         for c in bencher_rev_dep_crates: 
 
+            #filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags-thin-retry-again').get("dir") + "/" + data_file_new
             filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags-thin').get("dir") + "/" + data_file_new
 
             if (not os.path.exists(filepath)) or is_empty_datafile(filepath):

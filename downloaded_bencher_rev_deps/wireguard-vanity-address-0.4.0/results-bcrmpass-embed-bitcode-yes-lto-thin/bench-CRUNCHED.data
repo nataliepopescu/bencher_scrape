@@ -1,2 +1,2 @@
-#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	totalruns=42	
-bench_trial	23817.45238095238	985.2585399729196	23731.26190476191	66.16180005749595	
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	
+bench_trial	26167.916666666664	2012.410168802573	25770.638888888883	1748.299303017678	

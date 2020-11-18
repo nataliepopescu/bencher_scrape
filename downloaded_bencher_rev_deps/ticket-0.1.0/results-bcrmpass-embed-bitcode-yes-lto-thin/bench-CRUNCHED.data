@@ -1,4 +1,1 @@
-#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	totalruns=42	
-decode_bench	4.0	0.0	1.0	0.0	
-encode_bench	39.19047619047619	1.0962728031639368	38.19047619047618	0.5870870479018073	
-gen_bench	129.8571428571429	0.6388765649999399	129.97619047619045	0.1524553389864964	
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	

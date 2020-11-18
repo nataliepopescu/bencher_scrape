@@ -54,7 +54,7 @@ EXPERIMENTS=( "$UNMOD" "$BCRMP" )
 usage () {
 	echo ""
 	echo "Usage: $0 [-s] [-b <benchnum>] [-t <testnum>] [-c <category>] [-n <outfile>] [-o <outdir>]"
-	echo "   -s		Scrape crates.io for reverse dependencies of bencher [default = off]."
+	echo "   -s		Scrape crates.io for some set of crates TBD by the [-c] flag. [default = off]."
 	echo "   -b <benchnum>	Bench crates with and without remove-bounds-check-pass [default = off]."
 	echo "				-b 0: compile benchmarks"
 	echo "				-b n: run benchmarks n times"

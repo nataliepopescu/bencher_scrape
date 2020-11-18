@@ -1,2 +1,2 @@
-#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	totalruns=42	
-bench_validate_hash	8111.4047619047615	75.92792933772617	8039.500000000001	37.49238017822517	
+#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	
+bench_validate_hash	8276.694444444445	520.0732757904005	8084.388888888889	364.74871698637935	

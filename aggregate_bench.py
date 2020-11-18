@@ -26,38 +26,33 @@ name_pattern = "(?<=test\s).*(?=\s+[.]{3}\s+bench)"
 
 default_file = "./bench.data"
 
-default_unmod = "./unmod.bench"
-default_nobc = "./nobc.bench"
-default_nobcsl = "./nobc+sl.bench"
-default_safelib = "./safelib.bench"
+default_unmod = "./UNMOD.bench"
+default_bcrmp = "./BCRMP.bench"
+
+# default == criterion
+default_type = 1
 
 def dump_benchmark(
-    pattern,
+    #pattern,
     filepath=default_file,
-    unmod=default_unmod,
-    nobc=default_nobc,
-    #nobcsl=default_nobcsl,
-    #safelib=default_safelib,
-    headers=['#','bench-name','unmod-time', 'unmod-error','nobc-time','nobc-error'], #,'nobc+sl-time','nobc+sl-error','safelib-time','safelib-error'],
-    #headers=['#','bench-name','unmod-time', 'unmod-error','nobc-time','nobc-error','nobc+sl-time','nobc+sl-error','safelib-time','safelib-error'],
+    unmod,
+    bcrmp,
+    bench_type,
+    headers=['#','bench-name','unmod-time', 'unmod-error','bcrmp-time','bcrmp-error'],
     **kwargs):
     """
     Customise with your own output path and header row.
     idep_var is an optional independent variable.
     """
-    # run cargo bench in cwd, capture output
+    # capture benchmark output
     unmod_names = re.findall(name_pattern, check_output(["cat", unmod]).decode('utf-8'))
     unmod_result = re.findall(pattern, check_output(["cat", unmod]).decode('utf-8'))
-    nobc_result = re.findall(pattern, check_output(["cat", nobc]).decode('utf-8'))
-    #nobcsl_result = re.findall(pattern, check_output(["cat", nobcsl]).decode('utf-8'))
-    #safelib_result = re.findall(pattern, check_output(["cat", safelib]).decode('utf-8'))
+    bcrmp_result = re.findall(pattern, check_output(["cat", bcrmp]).decode('utf-8'))
     # get rid of nasty commas
     output = []
     unmod_len = len(unmod_result)
-    nobc_len = len(nobc_result)
-    #nobcsl_len = len(nobcsl_result)
-    #safelib_len = len(safelib_result)
-    length = unmod_len if unmod_len < nobc_len else nobc_len #if nobc_len < nobcsl_len else nobcsl_len if nobcsl_len < safelib_len else safelib_len
+    bcrmp_len = len(bcrmp_result)
+    length = unmod_len if unmod_len < bcrmp_len else bcrmp_len
     for i in range(length):
         line = []
         # grab and append benchmark name to line
@@ -65,22 +60,14 @@ def dump_benchmark(
         line.append(bname)
         # grab each matched line
         unmod_line = unmod_result[i]
-        nobc_line = nobc_result[i]
-        #nobcsl_line = nobcsl_result[i]
-        #safelib_line = safelib_result[i]
+        bcrmp_line = bcrmp_result[i]
         # grab each of the two numbers per line
         for num in unmod_line:
             tnum = num.translate({ord(','): None})
             line.append(tnum)
-        for num in nobc_line:
+        for num in bcrmp_line:
             tnum = num.translate({ord(','): None})
             line.append(tnum)
-        #for num in nobcsl_line:
-        #    tnum = num.translate({ord(','): None})
-        #    line.append(tnum)
-        #for num in safelib_line:
-        #    tnum = num.translate({ord(','): None})
-        #    line.append(tnum)
         output.append(line)
     # any other kwargs will be written as a CSV header row and value
     # nothing prevents you from writing rows that don't have a header
@@ -120,20 +107,22 @@ if __name__ == "__main__":
     # So brittle. Shhh.
     filepath = default_file
     unmod = default_unmod
-    nobc = default_nobc
-    #nobcsl = default_nobcsl
-    #safelib = default_safelib
-    if len(sys.argv) == 4: #6:
+    bcrmp = default_bcrmp
+    # 0 == bencher; 1 == criterion
+    bench_type = default_type
+    if len(sys.argv) == 5:
         filepath = sys.argv[1]
         unmod = sys.argv[2]
-        nobc = sys.argv[3]
-        #nobcsl = sys.argv[4]
-        #safelib = sys.argv[5]
+        bcrmp = sys.argv[3]
+        bench_type = sys.argv[4]
+    else: 
+        print("Wrong number of arguments")
+        quit()
+
     dump_benchmark(
-        pattern,
-        filepath=filepath,
-        unmod=unmod,
-        nobc=nobc #,
-        #nobcsl=nobcsl,
-        #safelib=safelib
-    )
+            #pattern,
+            filepath=filepath,
+            unmod=unmod,
+            bcrmp=bcrmp,
+            bench_type=bench_type
+            )

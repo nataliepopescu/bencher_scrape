@@ -12,9 +12,13 @@ tst=-1
 runs=1
 # Names
 name="sanity"
-output="output"
+output="results-bcrmpass-embed-bitcode-yes-lto-thin" #output"
 rustc=1
-ctgry="top_200"
+#ctgry="top_200"
+#ctgry="bencher_rev_deps"
+ctgry="criterion_rev_deps"
+b_type=0
+#agg=1
 
 # Optimization Level Management
 OPTFLAGS_3="-C opt-level=3"
@@ -41,9 +45,9 @@ TARGET="x86_64-unknown-linux-gnu"
 UNMOD="UNMOD"
 BCRMP="BCRMP"
 
-EXPERIMENTS=( "$BCRMP" )
+#EXPERIMENTS=( "$BCRMP" )
 #EXPERIMENTS=( "$UNMOD" )
-#EXPERIMENTS=( "$UNMOD" "$BCRMP" )
+EXPERIMENTS=( "$UNMOD" "$BCRMP" )
 
 # *****COMMAND-LINE ARGS*****
 
@@ -60,6 +64,7 @@ usage () {
 	echo "   -c <category>	Category of crates for which to download code and/or run benchmarks/tests."
 	echo "			[default = 'top_200']."
 	echo "				-c 'bencher_rev_deps'	: reverse dependencies of the bencher crate"
+	echo "				-c 'criterion_rev_deps'	: reverse dependencies of the criterion crate"
 	echo "				-c 'top_200'		: top 200 most downloaded crates on crates.io"
 	echo "				-c 'top_500'		: top 500 most downloaded crates on crates.io"
 	echo "   -n <outfile>	How to label the output files of this invocation [default = 'sanity']."
@@ -94,6 +99,11 @@ do
 	esac
 done
 
+if [ ctgry == "criterion_rev_deps" ]
+then
+	b_type=1
+fi
+
 ROOT="$PWD"
 SPIDERDIR="$ROOT/get-crates/"
 SUBDIRS="$ROOT/downloaded_$ctgry/*/"
@@ -101,8 +111,8 @@ DIRLIST="dirlist"
 RAND_DIRLIST="rand-dirlist"
 RAND_SCRIPT="randomize.py"
 
-cp bash_profile_bcrm ~/.bash_profile
-source ~/.bash_profile
+#cp bash_profile_bcrm ~/.bash_profile
+source bash_profile
 #rustup override set bcrm
 
 # *****SCRAPE*****
@@ -115,6 +125,7 @@ fi
 
 # *****PRE-PROCESS*****
 if [ $bench -gt 0 ]
+then
 	runs=$bench
 fi
 
@@ -128,7 +139,7 @@ set -x
 rm "$DIRLIST"
 for d in ${SUBDIRS[@]}
 do
-	if [ "$d" == "$ROOT/downloaded_$ctgry/bex-0.1.4/" ]
+	if [ "$d" == "$ROOT/downloaded_$ctgry/bex-0.1.4/" -o "$d" == "$ROOT/downloaded_$ctgry/sluice-0.5.3/" ]
 	then
 		continue
 	fi
@@ -167,15 +178,19 @@ do
 
 if [ $exp == $UNMOD ]
 then
-	RUSTFLAGS="-C opt-level=3 -C debuginfo=2 -C embed-bitcode=yes -C lto=thin"
+	RUSTFLAGS="-C opt-level=3 -C debuginfo=2 -C embed-bitcode=yes"
+	#RUSTFLAGS="-C opt-level=3 -C debuginfo=2 -C embed-bitcode=yes -C lto=thin"
 else
-	RUSTFLAGS="-C opt-level=3 -C debuginfo=2 -C embed-bitcode=yes -C lto=thin -Z remove-bc"
+	RUSTFLAGS="-C opt-level=3 -C debuginfo=2 -C embed-bitcode=yes -Z remove-bc"
+	#RUSTFLAGS="-C opt-level=3 -C debuginfo=2 -C embed-bitcode=yes -C lto=thin -Z remove-bc"
 fi
 export RUSTFLAGS
 
 # Compile benchmarks or tests using rustc
-#RANDDIRS=( "/benchdata/rust/bencher_scrape/get-crates/crc-any-2.3.5/" )
-RANDDIRS=( "/benchdata/rust/bencher_scrape/top_200/crc-any-2.3.5/" )
+#RANDDIRS=( "/benchdata/rust/bencher_scrape/downloaded_top_200/arrayvec-0.5.1/" )
+#RANDDIRS=( "/benchdata/rust/bencher_scrape/downloaded_criterion_rev_deps/pem-0.8.1/" )
+#RANDDIRS=( "/benchdata/rust/assume_true/iterator_bench/" )
+#RANDDIRS=( "/benchdata/rust/assume_true/example/" )
 if [ $rustc -eq 1 ] && [ $bench -eq 0 -o $tst -eq 0 ]
 then
 	for d in ${RANDDIRS[@]}
@@ -223,6 +238,7 @@ then
 			# Rerun until no more segfault occurs
 			cargo rustc --verbose --release --$cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $COMP_PASSLIST > $LINKARGS
 			while [ $(grep -c 'SIGSEGV: invalid memory reference' "$COMP_PASSLIST") -gt 0 ]; do
+				cp $COMP_PASSLIST $COMP_PASSLIST-$tries
 				tries=$((tries+1))
 				echo "try #: $tries"
 				echo "total tries: $tries" > "recomp_tries"
@@ -293,7 +309,7 @@ then
 			EXECS=( ${EXECS[@]} $name )
 		done < $EXECLIST
 
-		if [ $bench -eq 1 ]; then OUTDIR=$d$OUTPUT; else OUTDIR=$PRECOMPDIR; fi
+		if [ $tst -eq 1 ]; then OUTDIR=$PRECOMPDIR; else OUTDIR=$d$OUTPUT; fi
 		mkdir -p $OUTDIR
 
 		BENCH_RES="$OUTDIR/$exp.bench"
@@ -303,7 +319,7 @@ then
 		COMP_OUT="$OUTDIR/rustc-pass-list-$exp"
 		rm -f $COMP_OUT && touch $COMP_OUT
 		
-		if [ $bench -eq 1 ]; then RESULTS=$BENCH_RES; else RESULTS=$TEST_RES; fi
+		if [ $tst -eq 1 ]; then RESULTS=$TEST_RES; else RESULTS=$BENCH_RES; fi
 		rm -f $RESULTS && touch $RESULTS
 
 		# Run
@@ -324,7 +340,7 @@ then
 		DEFAULT_TGT=$d"target"
 		PRECOMPDIR=$d$exp/$output
 		cd $d
-		if [ $bench -eq 1 ]; then OUTDIR=$d$OUTPUT; else OUTDIR=$PRECOMPDIR; fi
+		if [ $tst -eq 1 ]; then OUTDIR=$PRECOMPDIR; else OUTDIR=$d$OUTPUT; fi
 		mkdir -p $OUTDIR
 
 		BENCH_RES="$OUTDIR/$exp.bench"
@@ -334,12 +350,13 @@ then
 		COMP_OUT="$OUTDIR/cargo-pass-list-$exp"
 		rm -f $COMP_OUT && touch $COMP_OUT
 		
-		if [ $bench -eq 1 ]; then RESULTS=$BENCH_RES; else RESULTS=$TEST_RES; fi
+		if [ $tst -eq 1 ]; then RESULTS=$TEST_RES; else RESULTS=$BENCH_RES; fi
+		rm -f $RESULTS && touch $RESULTS
 
 		# Run
 		cargo clean
 		mv $PRECOMPDIR/target $DEFAULT_TGT
-		cargo $cmd > $RESULTS 2> $COMP_OUT
+		cargo $cmd >> $RESULTS 2>> $COMP_OUT
 		mv $DEFAULT_TGT $PRECOMPDIR/target
 		cd $ROOT
 	done
@@ -349,7 +366,7 @@ fi
 
 AGGLOC="$ROOT/aggregate_bench.py"
 
-if [ $bench -gt 0 ]
+if [ $bench -gt 0 ] # -o $agg -eq 1 ]
 then
 	for d in ${RANDDIRS[@]}
 	do
@@ -358,7 +375,7 @@ then
 		cd $d
 		DATA_FILE="$PWD/$OUTPUT/bench.data"
 		touch $DATA_FILE
-		python3 $AGGLOC $DATA_FILE $unmod_res $bcrmp_res
+		python3 $AGGLOC $DATA_FILE $unmod_res $bcrmp_res $b_type
 		cd $ROOT
 	done
 fi
@@ -371,7 +388,19 @@ then
 		cd $d
 		DATA_FILE="$PWD/test.data"
 		touch $DATA_FILE
-		diff -s "$PWD/UNMOD/$output/UNMOD.test" "$PWD/BCRMP/$output/BCRMP.test" > $DATA_FILE
+		UNMOD_RES="$PWD/UNMOD/$output/UNMOD.test"
+		BCRMP_RES="$PWD/BCRMP/$output/BCRMP.test"
+
+		unmod_oks=$(grep -cw 'ok' "$UNMOD_RES")
+		bcrmp_oks=$(grep -cw 'ok' "$BCRMP_RES")
+		diff -s "$UNMOD_RES" "$BCRMP_RES" > $DATA_FILE
+		
+		OKS_DIFF="$PWD/oks_diff"
+		rm -f $OKS_DIFF
+		if [ $unmod_oks -ne $bcrmp_oks ]
+		then
+			touch $OKS_DIFF
+		fi
 		cd $ROOT
 	done
 fi

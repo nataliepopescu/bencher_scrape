@@ -21,20 +21,11 @@ import sys
 from subprocess import check_output
 import re
 
-pattern = "bench:\s+([0-9,]*)\D+([0-9,]*)"
-name_pattern = "(?<=test\s).*(?=\s+[.]{3}\s+bench)"
-
-default_file = "./bench.data"
-
-default_unmod = "./UNMOD.bench"
-default_bcrmp = "./BCRMP.bench"
-
 # default == criterion
 default_type = 1
 
 def dump_benchmark(
-    #pattern,
-    filepath=default_file,
+    filepath,
     unmod,
     bcrmp,
     bench_type,
@@ -44,8 +35,15 @@ def dump_benchmark(
     Customise with your own output path and header row.
     idep_var is an optional independent variable.
     """
+    if bench_type == 0:
+        pattern = "bench:\s+([0-9,]*)\D+([0-9,]*)"
+        name_pattern = "(?<=test\s).*(?=\s+[.]{3}\s+bench)"
+    else: 
+        pattern = "time:\s+\[([0-9,.]+)\s[a-z]s\s+([0-9,.]+)\s[a-z]s\s+([0-9,.]+)\s[a-z]s\]"
+        name_pattern = "\S+(?=\s+time)"
+
     # capture benchmark output
-    unmod_names = re.findall(name_pattern, check_output(["cat", unmod]).decode('utf-8'))
+    bnames = re.findall(name_pattern, check_output(["cat", unmod]).decode('utf-8'))
     unmod_result = re.findall(pattern, check_output(["cat", unmod]).decode('utf-8'))
     bcrmp_result = re.findall(pattern, check_output(["cat", bcrmp]).decode('utf-8'))
     # get rid of nasty commas
@@ -56,18 +54,31 @@ def dump_benchmark(
     for i in range(length):
         line = []
         # grab and append benchmark name to line
-        bname = unmod_names[i]
+        bname = bnames[i]
         line.append(bname)
         # grab each matched line
         unmod_line = unmod_result[i]
         bcrmp_line = bcrmp_result[i]
-        # grab each of the two numbers per line
-        for num in unmod_line:
-            tnum = num.translate({ord(','): None})
-            line.append(tnum)
-        for num in bcrmp_line:
-            tnum = num.translate({ord(','): None})
-            line.append(tnum)
+        if bench_type == 0:
+            # grab each of the two numbers per line
+            for num in unmod_line:
+                tnum = num.translate({ord(','): None})
+                line.append(tnum)
+            for num in bcrmp_line:
+                tnum = num.translate({ord(','): None})
+                line.append(tnum)
+        else: 
+            # three number per line; middle is the best estimate
+            unmod_mid = unmod_line[1]
+            bcrmp_mid = bcrmp_line[1]
+            # other two numbers we take the avg of -> error
+            unmod_err = str((float(unmod_line[0]) + float(unmod_line[2])) / 2)
+            bcrmp_err = str((float(bcrmp_line[0]) + float(bcrmp_line[2])) / 2)
+            # add to line
+            line.append(unmod_mid)
+            line.append(unmod_err)
+            line.append(bcrmp_mid)
+            line.append(bcrmp_err)
         output.append(line)
     # any other kwargs will be written as a CSV header row and value
     # nothing prevents you from writing rows that don't have a header
@@ -105,9 +116,9 @@ def writerow(filehandle, array):
 
 if __name__ == "__main__":
     # So brittle. Shhh.
-    filepath = default_file
-    unmod = default_unmod
-    bcrmp = default_bcrmp
+    filepath = "./bench.data"
+    unmod = "./UNMOD.bench"
+    bcrmp = "./BCRMP.bench"
     # 0 == bencher; 1 == criterion
     bench_type = default_type
     if len(sys.argv) == 5:
@@ -120,7 +131,6 @@ if __name__ == "__main__":
         quit()
 
     dump_benchmark(
-            #pattern,
             filepath=filepath,
             unmod=unmod,
             bcrmp=bcrmp,

@@ -10,6 +10,11 @@ categ_attributes = {
         'per_page': 10,
         'total_page': 12,
     },
+    'criterion_rev_deps': {
+        'url': 'https://crates.io/api/v1/crates/criterion/reverse_dependencies?page={page}&per_page={per_page}',
+        'per_page': 10,
+        'total_page': 10, # FIXME
+    },
     'top_200': {
         'url': 'https://crates.io/api/v1/crates?page={page}&per_page={per_page}&sort=downloads',
         'per_page': 50,
@@ -29,7 +34,7 @@ class CratesSpider(scrapy.Spider):
     def __init__(self, category=None, *args, **kwargs):
         super(CratesSpider, self).__init__(*args, **kwargs)
         if category == None:
-            self.category = 'bencher_rev_deps'
+            self.category = 'criterion_rev_deps'
         else:
             self.category = category
         self.url = categ_attributes[self.category].get('url')
@@ -49,7 +54,7 @@ class CratesSpider(scrapy.Spider):
         data = json.loads(response.body.decode('utf-8'))
         crates = {}
 
-        if self.category == "bencher_rev_deps":
+        if self.category == "bencher_rev_deps" or self.category == "criterion_rev_deps":
             if 'dependencies' not in data or 'versions' not in data:
                 print("Error: invalid json")
                 return None

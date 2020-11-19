@@ -139,22 +139,22 @@ set -x
 rm "$DIRLIST"
 for d in ${SUBDIRS[@]}
 do
-	if [ "$d" == "$ROOT/downloaded_$ctgry/bex-0.1.4/" ]
-	then
-		continue
-	fi
-	if [ "$d" == "$ROOT/downloaded_$ctgry/sluice-0.5.3/" ]
-	then
-		continue
-	fi
-	if [ "$d" == "$ROOT/downloaded_$ctgry/schnorrkel-0.9.1/" ]
-	then
-		continue
-	fi
-	if [ "$d" == "$ROOT/downloaded_$ctgry/rdrand-0.7.0/" ]
-	then
-		continue
-	fi
+	#if [ "$d" == "$ROOT/downloaded_$ctgry/bex-0.1.4/" ]
+	#then
+	#	continue
+	#fi
+	#if [ "$d" == "$ROOT/downloaded_$ctgry/sluice-0.5.3/" ]
+	#then
+	#	continue
+	#fi
+	#if [ "$d" == "$ROOT/downloaded_$ctgry/schnorrkel-0.9.1/" ]
+	#then
+	#	continue
+	#fi
+	#if [ "$d" == "$ROOT/downloaded_$ctgry/rdrand-0.7.0/" ]
+	#then
+	#	continue
+	#fi
 	echo "$d" >> "$DIRLIST"
 done
 
@@ -250,7 +250,7 @@ then
 			tries=0
 
 			# Spawn timeout script to kill hanging cargo rustc
-			python3 $TIMEOUT_SCRIPT $$
+			python3 $TIMEOUT_SCRIPT $$ &
 			# Rerun until no more segfault occurs
 			cargo rustc --verbose --release --$cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $COMP_PASSLIST > $LINKARGS
 			#while [ $(grep -c 'SIGSEGV: invalid memory reference' "$COMP_PASSLIST") -gt 0 ]; do

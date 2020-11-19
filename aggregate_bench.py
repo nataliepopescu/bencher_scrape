@@ -71,9 +71,13 @@ def dump_benchmark(
             # three number per line; middle is the best estimate
             unmod_mid = unmod_line[1]
             bcrmp_mid = bcrmp_line[1]
-            # other two numbers we take the avg of -> error
-            unmod_err = str((float(unmod_line[0]) + float(unmod_line[2])) / 2)
-            bcrmp_err = str((float(bcrmp_line[0]) + float(bcrmp_line[2])) / 2)
+            # other two numbers we take the avg of diff -> error
+            u_lo = float(unmod_mid) - float(unmod_line[0])
+            u_hi = float(unmod_line[2]) - float(unmod_mid)
+            unmod_err = str((u_lo + u_hi) / 2)
+            b_lo = float(bcrmp_mid) - float(bcrmp_line[0])
+            b_hi = float(bcrmp_line[2]) - float(bcrmp_mid)
+            bcrmp_err = str((b_lo + b_hi) / 2)
             # add to line
             line.append(unmod_mid)
             line.append(unmod_err)

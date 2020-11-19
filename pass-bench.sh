@@ -139,7 +139,19 @@ set -x
 rm "$DIRLIST"
 for d in ${SUBDIRS[@]}
 do
-	if [ "$d" == "$ROOT/downloaded_$ctgry/bex-0.1.4/" -o "$d" == "$ROOT/downloaded_$ctgry/sluice-0.5.3/" ]
+	if [ "$d" == "$ROOT/downloaded_$ctgry/bex-0.1.4/" ]
+	then
+		continue
+	fi
+	if [ "$d" == "$ROOT/downloaded_$ctgry/sluice-0.5.3/" ]
+	then
+		continue
+	fi
+	if [ "$d" == "$ROOT/downloaded_$ctgry/schnorrkel-0.9.1/" ]
+	then
+		continue
+	fi
+	if [ "$d" == "$ROOT/downloaded_$ctgry/rdrand-0.7.0/" ]
 	then
 		continue
 	fi
@@ -172,6 +184,7 @@ NOPIE_SCRIPT=$ROOT/make_no_pie.py
 SAVE_EXE_SCRIPT=$ROOT/save_execs.py
 NAME_SCRIPT=$ROOT/process_benchnames.py
 CONVERT_ARGS_SCRIPT=$ROOT/convert_rustc_to_opt_args.py
+TIMEOUT_SCRIPT=$ROOT/timeout.py
 
 for exp in ${EXPERIMENTS[@]}
 do
@@ -189,6 +202,7 @@ export RUSTFLAGS
 # Compile benchmarks or tests using rustc
 #RANDDIRS=( "/benchdata/rust/bencher_scrape/downloaded_top_200/arrayvec-0.5.1/" )
 #RANDDIRS=( "/benchdata/rust/bencher_scrape/downloaded_criterion_rev_deps/pem-0.8.1/" )
+#RANDDIRS=( "/benchdata/rust/bencher_scrape/downloaded_criterion_rev_deps/rdrand-0.7.0/" )
 #RANDDIRS=( "/benchdata/rust/assume_true/iterator_bench/" )
 #RANDDIRS=( "/benchdata/rust/assume_true/example/" )
 if [ $rustc -eq 1 ] && [ $bench -eq 0 -o $tst -eq 0 ]
@@ -235,18 +249,20 @@ then
 			rm -f $COMP_PASSLIST && touch $COMP_PASSLIST
 			tries=0
 
+			# Spawn timeout script to kill hanging cargo rustc
+			python3 $TIMEOUT_SCRIPT $$
 			# Rerun until no more segfault occurs
 			cargo rustc --verbose --release --$cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $COMP_PASSLIST > $LINKARGS
-			while [ $(grep -c 'SIGSEGV: invalid memory reference' "$COMP_PASSLIST") -gt 0 ]; do
-				cp $COMP_PASSLIST $COMP_PASSLIST-$tries
-				tries=$((tries+1))
-				echo "try #: $tries"
-				echo "total tries: $tries" > "recomp_tries"
-				cargo rustc --verbose --release --$cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $COMP_PASSLIST > $LINKARGS
-				if [ $tries -gt 7 ]; then
-					break
-				fi
-			done
+			#while [ $(grep -c 'SIGSEGV: invalid memory reference' "$COMP_PASSLIST") -gt 0 ]; do
+			#	cp $COMP_PASSLIST $COMP_PASSLIST-$tries
+			#	tries=$((tries+1))
+			#	echo "try #: $tries"
+			#	echo "total tries: $tries" > "recomp_tries"
+			#	cargo rustc --verbose --release --$cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $COMP_PASSLIST > $LINKARGS
+			#	if [ $tries -gt 7 ]; then
+			#		break
+			#	fi
+			#done
 			python3 $SAVE_EXE_SCRIPT $LINKARGS $EXECLIST
 		done
 		cd $ROOT
@@ -279,11 +295,11 @@ then
 
 		# Rerun until no more segfault occurs
 		cargo $cmd --no-run --verbose 2> $COMP_PASSLIST
-		while [ $(grep -c 'SIGSEGV: invalid memory reference' "$COMP_PASSLIST") -gt 0 ]; do
-			tries=$((tries+1))
-			echo "try #: $tries"
-			cargo $cmd --no-run --verbose 2> $COMP_PASSLIST
-		done
+		#while [ $(grep -c 'SIGSEGV: invalid memory reference' "$COMP_PASSLIST") -gt 0 ]; do
+		#	tries=$((tries+1))
+		#	echo "try #: $tries"
+		#	cargo $cmd --no-run --verbose 2> $COMP_PASSLIST
+		#done
 		cd $ROOT
 		mv $DEFAULT_TGT $PRECOMPDIR
 	done

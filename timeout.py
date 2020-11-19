@@ -11,6 +11,10 @@ def stall():
 
 if __name__ == "__main__":
     pid = sys.argv[1]
+    d = sys.argv[2]
+    bname = ""
+    if len(sys.argv) == 4:
+        bname = sys.argv[3]
 
     p = Process(target=stall, name='process_stall')
     p.start()
@@ -23,5 +27,11 @@ pid1 = cur + 1
 child2 = subprocess.run(["pgrep", "-P", str(pid1)], stdout=subprocess.PIPE, text=True)
 pid2 = child2.stdout[:-1]
 
+if bname == "":
+    fname = d + "/timedout"
+else:
+    fname = d + "/timedout-" + bname
+
 if not pid2 == "":
     subprocess.run(["kill", "-15", pid2])
+    subprocess.run(["touch", fname])

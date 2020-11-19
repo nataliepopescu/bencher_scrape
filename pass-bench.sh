@@ -13,7 +13,7 @@ runs=1
 # Names
 name="sanity"
 output="results-bcrmpass-embed-bitcode-yes-lto-thin" #output"
-rustc=1
+rustc=0
 #ctgry="top_200"
 #ctgry="bencher_rev_deps"
 ctgry="criterion_rev_deps"
@@ -250,7 +250,7 @@ then
 			tries=0
 
 			# Spawn timeout script to kill hanging cargo rustc
-			python3 $TIMEOUT_SCRIPT $$ &
+			python3 $TIMEOUT_SCRIPT $$ $PRECOMPDIR $n &
 			# Rerun until no more segfault occurs
 			cargo rustc --verbose --release --$cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $COMP_PASSLIST > $LINKARGS
 			#while [ $(grep -c 'SIGSEGV: invalid memory reference' "$COMP_PASSLIST") -gt 0 ]; do
@@ -293,6 +293,8 @@ then
 		rm -f $COMP_PASSLIST && touch $COMP_PASSLIST
 		tries=0
 
+		# Spawn timeout script to kill hanging cargo rustc
+		python3 $TIMEOUT_SCRIPT $$ $PRECOMPDIR &
 		# Rerun until no more segfault occurs
 		cargo $cmd --no-run --verbose 2> $COMP_PASSLIST
 		#while [ $(grep -c 'SIGSEGV: invalid memory reference' "$COMP_PASSLIST") -gt 0 ]; do

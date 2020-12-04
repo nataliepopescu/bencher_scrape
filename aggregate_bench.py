@@ -40,10 +40,11 @@ def dump_benchmark(
         name_pattern = "(?<=test\s).*(?=\s+[.]{3}\s+bench)"
     else: 
         pattern = "time:\s+\[([0-9,.]+)\s[a-z]s\s+([0-9,.]+)\s[a-z]s\s+([0-9,.]+)\s[a-z]s\]"
-        name_pattern = "\S+(?=\s+time)"
+        name_pattern = "(?<=Analyzing\n).+(?=\s+time)"
 
     # capture benchmark output
     bnames = re.findall(name_pattern, check_output(["cat", unmod]).decode('utf-8'))
+    print(bnames)
     unmod_result = re.findall(pattern, check_output(["cat", unmod]).decode('utf-8'))
     bcrmp_result = re.findall(pattern, check_output(["cat", bcrmp]).decode('utf-8'))
     # get rid of nasty commas
@@ -54,7 +55,7 @@ def dump_benchmark(
     for i in range(length):
         line = []
         # grab and append benchmark name to line
-        bname = bnames[i]
+        bname = re.sub("\s", "_", bnames[i].strip())
         line.append(bname)
         # grab each matched line
         unmod_line = unmod_result[i]

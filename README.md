@@ -65,6 +65,10 @@ llvm-config = "path/to/local/llvm-config"
 $ ./x.py build && ./x.py install && ./x.py install cargo && ./x.py doc
 ```
 
+```sh
+cargo install cargo-edit
+```
+
 # Benchmarking
 
 Clone our [framework](https://github.com/nataliepopescu/bencher_scrape) for downloading and benchmarking 

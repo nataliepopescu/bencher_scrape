@@ -7,10 +7,11 @@ SSH_NODES=(
 )
 
 numnodes=1
-runs=2
+runs=3
 output="results-bcrmpass-embed-bitcode-yes-lto-thin"
 cpy=$numnodes
 ctgry="criterion_rev_deps" #"top_200"
+lcl=0
 
 usage () {
     echo ""
@@ -23,10 +24,11 @@ usage () {
     echo "   -n <num-nodes>   How many nodes were used [default = 13]."
     echo "   -o <dir-label>   How to label the output directory of this invocation."
     echo "   -r <num-runs>    How many runs were executed [default = 3]."
+    echo "   -l               Don't copy between two different machine, just aggregate locally."
     echo ""
 }
 
-while getopts "c:n:o:r:h" opt
+while getopts "c:n:o:r:lh" opt
 do
     case "$opt" in
     c)
@@ -41,6 +43,9 @@ do
     o)
         output="$OPTARG"
         ;;
+    l)
+	lcl=1
+	;;
     h)
         usage
         exit 0
@@ -90,9 +95,12 @@ OUTPUT="$output"
 FNAME="bench"
 LOCAL_PATH="$ROOT/downloaded_$ctgry"
 REMOTE_PATH="/benchdata/rust/bencher_scrape/downloaded_$ctgry"
+CRATES=( "atoi-0.4.0" )
 
 i=0
-CRATES=( "metrics-0.12.1" )
+
+if [ $lcl -eq 0 ]
+then
 for node in ${SSH_NODES[@]}
 do
     for crate in ${CRATES[@]}
@@ -129,6 +137,22 @@ do
     done
     i=$((i+1))
 done
+fi
+
+if [ $lcl -eq 1 ]
+then
+    for crate in ${CRATES[@]}
+    do
+        agg_dir="$LOCAL_PATH/$crate/$OUTPUT"
+        iso_dir="$LOCAL_PATH/$crate/$OUTPUT"
+	mkdir -p $agg_dir
+        for r in $(seq 1 $runs)
+        do
+            cp "$iso_dir-$r/$FNAME.data" "$agg_dir/$FNAME-$i-$r.data"
+        done
+
+    done
+fi
 
 # Read out benchmark names from one file and create arrays
 #   One array = 1 crate, 1 benchmark (function), 1 rustc version (out of the four)

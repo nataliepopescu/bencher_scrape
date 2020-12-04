@@ -183,7 +183,7 @@ export RUSTFLAGS
 # Compile benchmarks or tests using rustc
 #RANDDIRS=( "/benchdata/rust/bencher_scrape/downloaded_top_200/arrayvec-0.5.1/" )
 #RANDDIRS=( "/benchdata/rust/assume_true/forpaper/" )
-RANDDIRS=( "/benchdata/rust/bencher_scrape/downloaded_criterion_rev_deps/metrics-0.12.1/" )
+RANDDIRS=( "/benchdata/rust/bencher_scrape/downloaded_criterion_rev_deps/atoi-0.4.0/" )
 if [ $rustc -eq 1 ] && [ $bench -eq 0 -o $tst -eq 0 ]
 then
 	for d in ${RANDDIRS[@]}

@@ -80,6 +80,56 @@ $ ./pass-bench.sh -h
 
 to see your options for benchmarking. 
 
+## Example Workflow for Benchmarking Reverse Dependencies of [Criterion](https://crates.io/crates/criterion)
+
+1. Scrape crates.io and download the latest set of Criterion reverse dependencies, by running the
+following command from the top-level directory in this repository:
+
+```sh
+./pass-bench.sh -s -c "criterion_rev_deps"
+```
+
+This will create and populate a directory called "downloaded_criterion_rev_deps". 
+
+2. Revert the criterion dependency versions to v0.3.2 (for some reason, v0.3.3 hangs). Also run 
+this from the repository's root directory: 
+
+```sh
+./spawn -c
+```
+
+3. Now you can pre-compile the benchmarks with: 
+
+```sh
+./spawn -b 0
+```
+
+4. Finally, run the benchmarks by passing the number of rounds you want each benchmark to run for: 
+
+```sh
+./spawn -b $num_runs
+```
+
+5. If you would like to aggregate all the crate-specific results that you ran on a single machine, 
+run:
+
+```sh
+./post-run.sh -l -r $num_runs
+```
+
+You will find the aggregated results in the "bench-CRUNCHED.data" file in the newly-generated
+directory. This file can be easily visualized (see command in the next section). 
+
+6. If you would like to aggregate all the crate-specific results that you ran of various machines, 
+run: 
+
+```sh
+./post-run.sh -n $num_nodes -r $num_runs
+```
+
+Where $num_runs must be the same on every machine. The implementation for this step is still in 
+progress, so you will likely have to customize the script yourself. 
+
 # Visualizing Results
 
 ```sh

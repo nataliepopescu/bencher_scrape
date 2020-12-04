@@ -58,13 +58,14 @@ def crunch(
     data_file,
     data_file_loc,
     numnodes,
-    numruns):
+    numruns,
+    ctgry):
     # Use same headers and will be using similar logic as "aggregate_bench.py" later on
-    headers = ['#','bench-name','unmod-time', 'unmod-error','nobc-time','nobc-error'] #'nobc+sl-time','nobc+sl-error','safelib-time','safelib-error']
-    #headers = ['#','bench-name','unmod-time', 'unmod-error','nobc-time','nobc-error','nobc+sl-time','nobc+sl-error','safelib-time','safelib-error']
+    headers = ['#','bench-name','unmod-time', 'unmod-error','bcrm-time','bcrm-error'] #'bcrm+sl-time','bcrm+sl-error','safelib-time','safelib-error']
+    #headers = ['#','bench-name','unmod-time', 'unmod-error','bcrm-time','bcrm-error','bcrm+sl-time','bcrm+sl-error','safelib-time','safelib-error']
     
     # Grab the numbers for each [benchmark x rustc] combo (per crate)
-    base_file = "./get-crates/" + crate + "/" + data_file_loc + "/" + data_file
+    base_file = "./downloaded_" + ctgry + "/" + crate + "/" + data_file_loc + "/" + data_file
     crunched_output = base_file + "-CRUNCHED.data"
     #geomean_output = base_file + "-GEOMEAN.data"
     # Write headers
@@ -138,8 +139,8 @@ def crunch(
         for c in range(cols):
             # Order when print matrix: 
             #   unmod
-            #   nobc
-            #   nobc+sl
+            #   bcrm
+            #   bcrm+sl
             #   safelib
             avg = average(matrix[r][c])
             stdev = stddev(matrix[r][c], avg)
@@ -178,13 +179,14 @@ def writerow(filehandle, array):
 
 # Called like: python3 "$CRUNCH" "$crate" "$FNAME" "$LOCAL_OUTPUT" "$numnodes" "$runs"
 if __name__ == "__main__":
-    if len(sys.argv) != 6: 
-        sys.exit("Wrong number of arguments! Need 6.")
+    if len(sys.argv) != 7: 
+        sys.exit("Wrong number of arguments! Need 7.")
     crate = sys.argv[1]
     data_file_name = sys.argv[2]
     data_file_loc = sys.argv[3]
     numnodes = sys.argv[4]
     numruns = sys.argv[5]
+    ctgry = sys.argv[6]
 
     # Get average and stddev across all nodes + runs
     crunch(
@@ -192,5 +194,6 @@ if __name__ == "__main__":
         data_file=data_file_name,
         data_file_loc=data_file_loc,
         numnodes=numnodes,
-        numruns=numruns
+        numruns=numruns,
+        ctgry=ctgry,
     )

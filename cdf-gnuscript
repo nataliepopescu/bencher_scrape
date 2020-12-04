@@ -1,0 +1,20 @@
+#!/usr/bin/gnuplot -persist
+
+#set xtics format ""
+#set x2tics
+set xlabel "Speedup"
+set ylabel "Number of Benchmarks"
+set xrange [:1.566]
+set yrange [:478]
+set nokey
+set termoption noenhanced
+set grid
+#set logscale x
+set object rectangle from 0,0.7314814814814814 to 0.9526372059761149,10 behind fillcolor rgb "gray80" fillstyle solid noborder
+set object rectangle from 0,0.7314814814814814 to 0.9,10 behind fillcolor rgb "gray60" fillstyle solid noborder
+#set object rectangle from 0,0.7314814814814814 to ,10 behind fillcolor rgb "gray40" fillstyle solid noborder
+set object rectangle from 0.9526372059761149,10 to 1.049761704513597,428 behind fillcolor rgb "gray90" fillstyle solid noborder
+set object rectangle from 1.049761704513597,428 to 1.5663157894736843,500 behind fillcolor rgb "gray80" fillstyle solid noborder
+set object rectangle from 1.1,428 to 1.5663157894736843,500 behind fillcolor rgb "gray60" fillstyle solid noborder
+set object rectangle from 1.3,428 to 1.5663157894736843,500 behind fillcolor rgb "gray40" fillstyle solid noborder
+plot "no_outliers_speedups" u 2:1 w lines

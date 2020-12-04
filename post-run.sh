@@ -1,36 +1,37 @@
 #!/bin/bash
 
 SSH_NODES=(
-#"npopescu@clnode104.clemson.cloudlab.us"
-#"npopescu@clnode126.clemson.cloudlab.us"
-#"npopescu@clnode124.clemson.cloudlab.us"
-#"npopescu@clnode097.clemson.cloudlab.us"
-#"npopescu@clnode119.clemson.cloudlab.us"
-#"npopescu@clnode103.clemson.cloudlab.us"
-#"npopescu@clnode131.clemson.cloudlab.us"
+#"npopescu@clnode157.clemson.cloudlab.us"
+#"npopescu@clnode154.clemson.cloudlab.us"
+"npopescu@clnode115.clemson.cloudlab.us"
 )
 
-numnodes=7
-runs=5
-output="results-bcrmpass-embed-bitcode-yes-lto-thin-append-simplifycfg-cargobench"
+numnodes=1
+runs=2
+output="results-bcrmpass-embed-bitcode-yes-lto-thin"
 cpy=$numnodes
+ctgry="criterion_rev_deps" #"top_200"
 
 usage () {
     echo ""
     echo "Usage: $0 [-c] [-n <num-nodes>] [-o <dir-label>] [-r <num-runs>]"
-    echo "   -c		      Copy file listing transformation passes run [default = off]."
+    echo "   -c <category>    Category of crates to download [default = 'criterion_rev_deps']."
+    echo "				-c 'bencher_rev_deps'	: reverse dependencies of the bencher crate"
+    echo "				-c 'criterion_rev_deps'	: reverse dependencies of the criterion crate"
+    echo "				-c 'top_200'		: top 200 most downloaded crates on crates.io"
+    echo "				-c 'top_500'		: top 500 most downloaded crates on crates.io"
     echo "   -n <num-nodes>   How many nodes were used [default = 13]."
     echo "   -o <dir-label>   How to label the output directory of this invocation."
     echo "   -r <num-runs>    How many runs were executed [default = 3]."
     echo ""
 }
 
-while getopts "cn:o:r:h" opt
+while getopts "c:n:o:r:h" opt
 do
     case "$opt" in
     c)
-	cpy=0
-        ;;
+	ctgry="$(($OPTARG))"
+	;;
     n)
         numnodes="$(($OPTARG))"
         ;;
@@ -53,7 +54,7 @@ done
 
 # Parse paths to get concise crate names
 ROOT="$PWD"
-SUBDIRS="$ROOT/get-crates/*/"
+SUBDIRS="$ROOT/downloaded_$ctgry/*/"
 DIRLIST="dirlist"
 CRATELIST="cratelist"
 ISO_SCRIPT="isolate_crate_names.py"
@@ -66,10 +67,6 @@ touch "$DIRLIST"
 
 for d in ${SUBDIRS[@]}
 do
-    if [ "$d" == "/disk/scratch2/npopescu/hack/bencher_scrape/get-crates/spiders/" ]
-    then
-        continue
-    fi
     echo "$d" >> "$DIRLIST"
 done
 
@@ -91,11 +88,11 @@ done < "$CRATELIST"
 
 OUTPUT="$output"
 FNAME="bench"
-LOCAL_PATH="$ROOT/get-crates"
-REMOTE_PATH="/benchdata/rust/bencher_scrape/get-crates"
+LOCAL_PATH="$ROOT/downloaded_$ctgry"
+REMOTE_PATH="/benchdata/rust/bencher_scrape/downloaded_$ctgry"
 
 i=0
-#CRATES=( "wireguard-vanity-address-0.4.0" "woodpecker-0.4.0" "xoroshiro-0.3.0" "xoshiro-0.0.5" "zip-0.5.6" "zip-0.5.7" )
+CRATES=( "metrics-0.12.1" )
 for node in ${SSH_NODES[@]}
 do
     for crate in ${CRATES[@]}
@@ -148,6 +145,6 @@ do
 CRUNCH="crunch.py"
 
 echo "$crate"
-python3 "$CRUNCH" "$crate" "$FNAME" "$OUTPUT" "$numnodes" "$runs"
+python3 "$CRUNCH" "$crate" "$FNAME" "$OUTPUT" "$numnodes" "$runs" "$ctgry"
 
 done

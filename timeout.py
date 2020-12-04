@@ -19,7 +19,7 @@ if __name__ == "__main__":
     p = Process(target=stall, name='process_stall')
     p.start()
     # in seconds
-    p.join(timeout=600)
+    p.join(timeout=300)
     p.terminate()
 
 cur = os.getpid()

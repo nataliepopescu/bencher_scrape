@@ -13,7 +13,7 @@ categ_attributes = {
     'criterion_rev_deps': {
         'url': 'https://crates.io/api/v1/crates/criterion/reverse_dependencies?page={page}&per_page={per_page}',
         'per_page': 10,
-        'total_page': 10, # FIXME
+        'total_page': 132,
     },
     'top_200': {
         'url': 'https://crates.io/api/v1/crates?page={page}&per_page={per_page}&sort=downloads',

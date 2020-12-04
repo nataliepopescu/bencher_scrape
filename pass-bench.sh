@@ -12,9 +12,8 @@ tst=-1
 runs=1
 # Names
 name="sanity"
-output="results-bcrmpass-embed-bitcode-yes-lto-thin" #output"
+output="results-bcrmpass-embed-bitcode-yes-lto-thin"
 rustc=0
-#ctgry="top_200"
 #ctgry="bencher_rev_deps"
 ctgry="criterion_rev_deps"
 b_type=0
@@ -22,7 +21,6 @@ b_type=0
 
 # Optimization Level Management
 OPTFLAGS_3="-C opt-level=3"
-#OPTFLAGS_0="-C opt-level=0"
 OPTFLAGS_NONE="-C no-prepopulate-passes -C passes=name-anon-globals" # NO OPTS at all, stricter than opt-level=0
 
 # Debug Management
@@ -41,7 +39,6 @@ RUSTFLAGS_NONE=""$OPTFLAGS_NONE" "$DBGFLAGS" "$LTOFLAGS_A""
 #VERSION="nightly-2020-07-05"
 TARGET="x86_64-unknown-linux-gnu"
 #UNMOD="$VERSION-$TARGET"
-#BCRMP="bcrm"
 UNMOD="UNMOD"
 BCRMP="BCRMP"
 
@@ -62,7 +59,7 @@ usage () {
 	echo "				-t 0: compile tests"
 	echo "				-t 1: run tests"
 	echo "   -c <category>	Category of crates for which to download code and/or run benchmarks/tests."
-	echo "			[default = 'top_200']."
+	echo "			[default = 'criterion_rev_deps']."
 	echo "				-c 'bencher_rev_deps'	: reverse dependencies of the bencher crate"
 	echo "				-c 'criterion_rev_deps'	: reverse dependencies of the criterion crate"
 	echo "				-c 'top_200'		: top 200 most downloaded crates on crates.io"
@@ -102,6 +99,7 @@ done
 if [ ctgry == "criterion_rev_deps" ]
 then
 	b_type=1
+	rustc=0
 fi
 
 ROOT="$PWD"
@@ -111,7 +109,6 @@ DIRLIST="dirlist"
 RAND_DIRLIST="rand-dirlist"
 RAND_SCRIPT="randomize.py"
 
-#cp bash_profile_bcrm ~/.bash_profile
 source bash_profile
 #rustup override set bcrm
 
@@ -139,22 +136,6 @@ set -x
 rm "$DIRLIST"
 for d in ${SUBDIRS[@]}
 do
-	#if [ "$d" == "$ROOT/downloaded_$ctgry/bex-0.1.4/" ]
-	#then
-	#	continue
-	#fi
-	#if [ "$d" == "$ROOT/downloaded_$ctgry/sluice-0.5.3/" ]
-	#then
-	#	continue
-	#fi
-	#if [ "$d" == "$ROOT/downloaded_$ctgry/schnorrkel-0.9.1/" ]
-	#then
-	#	continue
-	#fi
-	#if [ "$d" == "$ROOT/downloaded_$ctgry/rdrand-0.7.0/" ]
-	#then
-	#	continue
-	#fi
 	echo "$d" >> "$DIRLIST"
 done
 
@@ -201,10 +182,8 @@ export RUSTFLAGS
 
 # Compile benchmarks or tests using rustc
 #RANDDIRS=( "/benchdata/rust/bencher_scrape/downloaded_top_200/arrayvec-0.5.1/" )
-#RANDDIRS=( "/benchdata/rust/bencher_scrape/downloaded_criterion_rev_deps/pem-0.8.1/" )
-#RANDDIRS=( "/benchdata/rust/bencher_scrape/downloaded_criterion_rev_deps/rdrand-0.7.0/" )
-#RANDDIRS=( "/benchdata/rust/assume_true/iterator_bench/" )
-#RANDDIRS=( "/benchdata/rust/assume_true/example/" )
+#RANDDIRS=( "/benchdata/rust/assume_true/forpaper/" )
+RANDDIRS=( "/benchdata/rust/bencher_scrape/downloaded_criterion_rev_deps/metrics-0.12.1/" )
 if [ $rustc -eq 1 ] && [ $bench -eq 0 -o $tst -eq 0 ]
 then
 	for d in ${RANDDIRS[@]}
@@ -235,6 +214,8 @@ then
 		do
 			NAMES=( "${NAMES[@]}" "$name" )
 		done < "$NAMELIST"
+		EXECLIST="$PRECOMPDIR/exec-list"
+		rm -f $EXECLIST && touch $EXECLIST
 
 		for n in ${NAMES[@]}
 		do
@@ -242,12 +223,10 @@ then
 			COMP_PASSLIST="$PRECOMPDIR/$n-rustc-pass-list"
 			LINKARGS="$PRECOMPDIR/$n-link-args"
 			REMARKS="$PRECOMPDIR/$n-remarks"
-			EXECLIST="$PRECOMPDIR/exec-list"
 			rm -f $REMARKS && touch $REMARKS
-			rm -f $EXECLIST && touch $EXECLIST
 			rm -f $LINKARGS && touch $LINKARGS
 			rm -f $COMP_PASSLIST && touch $COMP_PASSLIST
-			tries=0
+			#tries=0
 
 			# Spawn timeout script to kill hanging cargo rustc
 			python3 $TIMEOUT_SCRIPT $$ $PRECOMPDIR $n &
@@ -291,7 +270,7 @@ then
 		REMARKS="$PRECOMPDIR/remarks"
 		rm -f $REMARKS && touch $REMARKS
 		rm -f $COMP_PASSLIST && touch $COMP_PASSLIST
-		tries=0
+		#tries=0
 
 		# Spawn timeout script to kill hanging cargo rustc
 		python3 $TIMEOUT_SCRIPT $$ $PRECOMPDIR &
@@ -324,8 +303,10 @@ then
 		EXECS=()
 		while read -r name
 		do
+			echo "EXECing $name"
 			EXECS=( ${EXECS[@]} $name )
 		done < $EXECLIST
+		echo "DONE EXECing"
 
 		if [ $tst -eq 1 ]; then OUTDIR=$PRECOMPDIR; else OUTDIR=$d$OUTPUT; fi
 		mkdir -p $OUTDIR
@@ -379,6 +360,7 @@ then
 		cd $ROOT
 	done
 fi
+done
 
 # *****AGGREGATE RESULTS*****
 
@@ -397,7 +379,6 @@ then
 		cd $ROOT
 	done
 fi
-done
 
 if [ $tst -eq 1 ]
 then

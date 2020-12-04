@@ -118,7 +118,7 @@ run:
 ```
 
 You will find the aggregated results in the "bench-CRUNCHED.data" file in the newly-generated
-directory. This file can be easily visualized (see command in the next section). 
+directory. This file can be easily visualized (see command in [this](https://github.com/nataliepopescu/bencher_scrape#visualizing-results) section). 
 
 6. If you would like to aggregate all the crate-specific results that you ran of various machines, 
 run: 

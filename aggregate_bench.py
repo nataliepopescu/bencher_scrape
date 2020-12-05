@@ -44,7 +44,6 @@ def dump_benchmark(
 
     # capture benchmark output
     bnames = re.findall(name_pattern, check_output(["cat", unmod]).decode('utf-8'))
-    print(bnames)
     unmod_result = re.findall(pattern, check_output(["cat", unmod]).decode('utf-8'))
     bcrmp_result = re.findall(pattern, check_output(["cat", bcrmp]).decode('utf-8'))
     # get rid of nasty commas

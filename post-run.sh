@@ -3,11 +3,11 @@
 SSH_NODES=(
 #"npopescu@clnode157.clemson.cloudlab.us"
 #"npopescu@clnode154.clemson.cloudlab.us"
-"npopescu@clnode115.clemson.cloudlab.us"
+#"npopescu@clnode115.clemson.cloudlab.us"
 )
 
 numnodes=1
-runs=3
+runs=1
 output="results-bcrmpass-embed-bitcode-yes-lto-thin"
 cpy=$numnodes
 ctgry="criterion_rev_deps" #"top_200"
@@ -95,7 +95,7 @@ OUTPUT="$output"
 FNAME="bench"
 LOCAL_PATH="$ROOT/downloaded_$ctgry"
 REMOTE_PATH="/benchdata/rust/bencher_scrape/downloaded_$ctgry"
-CRATES=( "atoi-0.4.0" )
+#CRATES=( "atoi-0.4.0" )
 
 i=0
 

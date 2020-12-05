@@ -12,7 +12,7 @@ tst=-1
 runs=1
 # Names
 name="sanity"
-output="results-bcrmpass-embed-bitcode-yes-lto-thin"
+output="results-bcrmpass-embed-bitcode-yes-lto-thin-1"
 rustc=0
 #ctgry="bencher_rev_deps"
 ctgry="criterion_rev_deps"
@@ -183,7 +183,7 @@ export RUSTFLAGS
 # Compile benchmarks or tests using rustc
 #RANDDIRS=( "/benchdata/rust/bencher_scrape/downloaded_top_200/arrayvec-0.5.1/" )
 #RANDDIRS=( "/benchdata/rust/assume_true/forpaper/" )
-RANDDIRS=( "/benchdata/rust/bencher_scrape/downloaded_criterion_rev_deps/atoi-0.4.0/" )
+#RANDDIRS=( "/benchdata/rust/bencher_scrape/downloaded_criterion_rev_deps/atoi-0.4.0/" )
 if [ $rustc -eq 1 ] && [ $bench -eq 0 -o $tst -eq 0 ]
 then
 	for d in ${RANDDIRS[@]}
@@ -229,7 +229,7 @@ then
 			#tries=0
 
 			# Spawn timeout script to kill hanging cargo rustc
-			python3 $TIMEOUT_SCRIPT $$ $PRECOMPDIR $n &
+			python3 $TIMEOUT_SCRIPT $$ $PRECOMPDIR 300 $n &
 			# Rerun until no more segfault occurs
 			cargo rustc --verbose --release --$cmd $n -- -Z print-link-args -v -C save-temps --emit=llvm-ir 2> $COMP_PASSLIST > $LINKARGS
 			#while [ $(grep -c 'SIGSEGV: invalid memory reference' "$COMP_PASSLIST") -gt 0 ]; do
@@ -273,7 +273,7 @@ then
 		#tries=0
 
 		# Spawn timeout script to kill hanging cargo rustc
-		python3 $TIMEOUT_SCRIPT $$ $PRECOMPDIR &
+		python3 $TIMEOUT_SCRIPT $$ $PRECOMPDIR 300 &
 		# Rerun until no more segfault occurs
 		cargo $cmd --no-run --verbose 2> $COMP_PASSLIST
 		#while [ $(grep -c 'SIGSEGV: invalid memory reference' "$COMP_PASSLIST") -gt 0 ]; do
@@ -303,10 +303,8 @@ then
 		EXECS=()
 		while read -r name
 		do
-			echo "EXECing $name"
 			EXECS=( ${EXECS[@]} $name )
 		done < $EXECLIST
-		echo "DONE EXECing"
 
 		if [ $tst -eq 1 ]; then OUTDIR=$PRECOMPDIR; else OUTDIR=$d$OUTPUT; fi
 		mkdir -p $OUTDIR
@@ -325,6 +323,7 @@ then
 		cd $PRECOMPDIR/target/release/deps
 		for e in ${EXECS[@]}
 		do
+			python3 $TIMEOUT_SCRIPT $$ $OUTDIR 1200 $e &
 			./$e >> $RESULTS 2>> $COMP_OUT
 		done
 		cd $ROOT
@@ -355,6 +354,7 @@ then
 		# Run
 		cargo clean
 		mv $PRECOMPDIR/target $DEFAULT_TGT
+		python3 $TIMEOUT_SCRIPT $$ $OUTDIR 1200 &
 		cargo $cmd >> $RESULTS 2>> $COMP_OUT
 		mv $DEFAULT_TGT $PRECOMPDIR/target
 		cd $ROOT
@@ -366,7 +366,7 @@ done
 
 AGGLOC="$ROOT/aggregate_bench.py"
 
-if [ $bench -gt 0 ] # -o $agg -eq 1 ]
+if [ $bench -gt 0 ] #-o $agg -eq 1 ]
 then
 	for d in ${RANDDIRS[@]}
 	do

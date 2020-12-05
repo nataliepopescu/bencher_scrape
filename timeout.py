@@ -12,14 +12,15 @@ def stall():
 if __name__ == "__main__":
     pid = sys.argv[1]
     d = sys.argv[2]
+    timeout = sys.argv[3]
     bname = ""
-    if len(sys.argv) == 4:
-        bname = sys.argv[3]
+    if len(sys.argv) == 5:
+        bname = sys.argv[4]
 
     p = Process(target=stall, name='process_stall')
     p.start()
     # in seconds
-    p.join(timeout=300)
+    p.join(timeout=float(timeout))
     p.terminate()
 
 cur = os.getpid()

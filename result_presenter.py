@@ -16,12 +16,12 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 
-path_to_crates = "./downloaded_bencher_rev_deps"
-path_to_top = "./downloaded_top_200"
+path_to_bencher = "./downloaded_bencher_rev_deps"
+path_to_criterion = "./downloaded_criterion_rev_deps"
 data_file = "bench-sanity-CRUNCHED.data"
 data_file_new = "bench-CRUNCHED.data"
 bencher_rev_dep_crates = []
-top_crates = []
+criterion_rev_dep_crates = []
 
 graph_styles = {
     0: {
@@ -71,14 +71,18 @@ irce_rustflags_thin_append_simplifycfg_cargobench = "results-ircepass-embed-bitc
 # post segfault fix
 bcrm_rustflags_thin = "results-bcrmpass-embed-bitcode-yes-lto-thin"
 
-top_switcher = {
-    "top-200": {
-        "label": "1: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 40 runs]",
-        "dir": bcrm_rustflags_thin_retry_again
-    }
+criterion_switcher = {
+    #"top-200": {
+    #    "label": "1: [In-Tree LLVM Pass] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 40 runs]",
+    #    "dir": bcrm_rustflags_thin_retry_again
+    #}
+    "crit": {
+        "label": "1: [Fixed SegFault] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 36 runs]",
+        "dir": bcrm_rustflags_thin
+    },
 }
 
-switcher = {
+bencher_switcher = {
     "lto-off-1": {
         "label": "1: [MIR modification] -C embed-bitcode=no -C opt-level=3",
         "dir": lto_off_1
@@ -353,29 +357,29 @@ switcher = {
         "label": "23: [Fixed SegFault] RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin -Z remove-bc' vs RUSTFLAGS='-C opt-level=3 -C embed-bitcode=yes -C lto=thin' [average of 36 runs]",
         "dir": bcrm_rustflags_thin
     },
-    "diff-bcrm-segfault": {
-        "label": "23 vs 19",
-        "y-axis-label": "23 Time per Iteration Relative to 19 [%]",
-        "dir-baseline": bcrm_rustflags_thin_retry_again,
-        "dir-tocompare": bcrm_rustflags_thin,
-    },
+    #"diff-bcrm-segfault": {
+    #    "label": "23 vs 19",
+    #    "y-axis-label": "23 Time per Iteration Relative to 19 [%]",
+    #    "dir-baseline": bcrm_rustflags_thin_retry_again,
+    #    "dir-tocompare": bcrm_rustflags_thin,
+    #},
 }
 
 
-def get_crates():
+def get_bencher_crates():
     global bencher_rev_dep_crates
-    for name in os.listdir(path_to_crates):
-        if os.path.isdir(os.path.join(path_to_crates, name)):
+    for name in os.listdir(path_to_bencher):
+        if os.path.isdir(os.path.join(path_to_bencher, name)):
             bencher_rev_dep_crates.append(name)
     bencher_rev_dep_crates.sort()
 
 
-def get_top_crates():
-    global top_crates
-    for name in os.listdir(path_to_top):
-        if os.path.isdir(os.path.join(path_to_top, name)):
-            top_crates.append(name)
-    top_crates.sort()
+def get_criterion_crates():
+    global criterion_rev_dep_crates
+    for name in os.listdir(path_to_criterion):
+        if os.path.isdir(os.path.join(path_to_criterion, name)):
+            criterion_rev_dep_crates.append(name)
+    criterion_rev_dep_crates.sort()
 
 
 # Geometric mean helper
@@ -415,7 +419,7 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.config.suppress_callback_exceptions = True
 
 
-def crate_options():
+def crate_options_bencher():
     options = []
     global bencher_rev_dep_crates
     for crate in bencher_rev_dep_crates:
@@ -423,30 +427,30 @@ def crate_options():
     return options
 
 
-def top_crate_options():
+def crate_options_criterion():
     options = []
-    global top_crates
-    for crate in top_crates:
+    global criterion_rev_dep_crates
+    for crate in criterion_rev_dep_crates:
         options.append({'label': crate, 'value': crate})
     return options
 
 
-def setting_options(): 
+def setting_options_bencher(): 
     options = []
-    global switcher
-    keys = switcher.keys()
+    global bencher_switcher
+    keys = bencher_switcher.keys()
     for k in keys:
-        label = switcher.get(k).get("label")
+        label = bencher_switcher.get(k).get("label")
         options.append({'label': label, 'value': k})
     return options
 
 
-def top_setting_options():
+def setting_options_criterion():
     options = []
-    global top_switcher
-    keys = top_switcher.keys()
+    global criterion_switcher
+    keys = criterion_switcher.keys()
     for k in keys:
-        label = top_switcher.get(k).get("label")
+        label = criterion_switcher.get(k).get("label")
         options.append({'label': label, 'value': k})
     return options
 
@@ -461,22 +465,22 @@ def is_empty_datafile(filepath):
     return True
 
 
-def getPerfTopLayout():
+def getPerfCriterionLayout():
 
     layout = html.Div([
         html.Br(),
         html.Label('Pick a crate:'),
         dcc.Dropdown(id='crate_name',
-            options=top_crate_options(),
-            value='adler32-1.2.0', #aerospike-0.5.0',
+            options=crate_options_criterion(),
+            value='adler32-1.2.0',
             style={'width': '50%'}
         ),
 
         html.Br(),
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
-            options=top_setting_options(),
-            value="top-200" #diff-bcrm-thin-to-simplifycfg"
+            options=setting_options_criterion(),
+            value="crit"
         ),
 
         html.Br(),
@@ -487,13 +491,13 @@ def getPerfTopLayout():
     return layout
 
 
-def getPerfRustcsLayout():
+def getPerfBencherLayout():
 
     layout = html.Div([
         html.Br(),
         html.Label('Pick a crate:'),
         dcc.Dropdown(id='crate_name',
-            options=crate_options(),
+            options=crate_options_bencher(),
             value='aerospike-0.5.0',
             style={'width': '50%'}
         ),
@@ -501,7 +505,7 @@ def getPerfRustcsLayout():
         html.Br(),
         html.Label('Pick a setting:'),
         dcc.RadioItems(id='crate_opt',
-            options=setting_options(),
+            options=setting_options_bencher(),
             value="diff-bcrm-thin-to-simplifycfg"
         ),
 
@@ -513,7 +517,7 @@ def getPerfRustcsLayout():
     return layout
 
 
-def getPerfPassLayout():
+def getOverviewLayout():
 
     layout = html.Div([
         #html.Br(),
@@ -560,14 +564,14 @@ def display_crate_info(result_type):
 def display_diff(crate_name, crate_opt):
 
     if "bcrm" in crate_opt and not "mir" in crate_opt:
-        file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-baseline") + "/" + data_file_new
-        file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file_new
+        file_baseline = path_to_bencher + "/" + crate_name + "/" + bencher_switcher.get(crate_opt).get("dir-baseline") + "/" + data_file_new
+        file_tocompare = path_to_bencher + "/" + crate_name + "/" + bencher_switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file_new
     elif "bcrm" in crate_opt and "mir" in crate_opt:
-        file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-baseline") + "/" + data_file
-        file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file_new
+        file_baseline = path_to_bencher + "/" + crate_name + "/" + bencher_switcher.get(crate_opt).get("dir-baseline") + "/" + data_file
+        file_tocompare = path_to_bencher + "/" + crate_name + "/" + bencher_switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file_new
     else:
-        file_baseline = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-baseline") + "/" + data_file
-        file_tocompare = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file
+        file_baseline = path_to_bencher + "/" + crate_name + "/" + bencher_switcher.get(crate_opt).get("dir-baseline") + "/" + data_file
+        file_tocompare = path_to_bencher + "/" + crate_name + "/" + bencher_switcher.get(crate_opt).get("dir-tocompare") + "/" + data_file
 
     #if ((not os.path.exists(file_baseline)) or is_empty_datafile(file_baseline)) or ((not os.path.exists(file_tocompare)) or is_empty_datafile(file_tocompare)):
     #    return "\n\nNo diff data for [" + str(crate_name) + "] with these settings."
@@ -658,7 +662,7 @@ def display_diff(crate_name, crate_opt):
                             'linecolor': 'black',
                             'gridcolor':'rgb(200,200,200)', 
                             'nticks': 20,
-                            'title': {'text': switcher.get(crate_opt).get("y-axis-label")},
+                            'title': {'text': bencher_switcher.get(crate_opt).get("y-axis-label")},
                         },
                         'xaxis': {
                             'linecolor': 'black',
@@ -687,12 +691,12 @@ def display_diff(crate_name, crate_opt):
 
 def display_relative(crate_name, crate_opt): 
 
-    if "top" in crate_opt:
-        filepath = path_to_top + "/" + crate_name + "/" + top_switcher.get(crate_opt).get("dir") + "/" + data_file_new
+    if "crit" in crate_opt:
+        filepath = path_to_criterion + "/" + crate_name + "/" + criterion_switcher.get(crate_opt).get("dir") + "/" + data_file_new
     elif "bcrm" in crate_opt:
-        filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file_new
+        filepath = path_to_bencher + "/" + crate_name + "/" + bencher_switcher.get(crate_opt).get("dir") + "/" + data_file_new
     else: 
-        filepath = path_to_crates + "/" + crate_name + "/" + switcher.get(crate_opt).get("dir") + "/" + data_file
+        filepath = path_to_bencher + "/" + crate_name + "/" + bencher_switcher.get(crate_opt).get("dir") + "/" + data_file
 
     if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
         return "\n\nNo relative data for [" + str(crate_name) + "] with these settings."
@@ -825,13 +829,15 @@ def display_significant(result_type):
 
     def get_one_bar(bar_name, bar_color):
 
-        global bencher_rev_dep_crates
+        global criterion_rev_dep_crates
+        #global bencher_rev_dep_crates
         bmark_ctr = 0
 
-        for c in bencher_rev_dep_crates: 
+        for c in criterion_rev_dep_crates: 
+        #for c in bencher_rev_dep_crates: 
 
-            #filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags-thin-retry-again').get("dir") + "/" + data_file_new
-            filepath = path_to_crates + "/" + c + "/" + switcher.get('bcrm-rustflags-thin').get("dir") + "/" + data_file_new
+            filepath = path_to_criterion + "/" + c + "/" + criterion_switcher.get('crit').get("dir") + "/" + data_file_new
+            #filepath = path_to_bencher + "/" + c + "/" + bencher_switcher.get('bcrm-rustflags-thin').get("dir") + "/" + data_file_new
 
             if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
                 continue
@@ -1064,13 +1070,13 @@ def display_page(pathname):
         pathname = '/comparePass'
 
     if pathname == '/compareBencherRevDeps':
-        layout = getPerfRustcsLayout() #app._resultProvider)
+        layout = getPerfBencherLayout() #app._resultProvider)
         return layout
-    if pathname == '/compareTop200':
-        layout = getPerfTopLayout()
+    if pathname == '/compareCriterionRevDeps':
+        layout = getPerfCriterionLayout()
         return layout
     if pathname == '/comparePass':
-        layout = getPerfPassLayout() #app._resultProvider)
+        layout = getOverviewLayout() #app._resultProvider)
         return layout
     else:
         return 404
@@ -1082,14 +1088,14 @@ if __name__ == '__main__':
     #result_path = os.path.join(cpf_root, "./crates/crates")
     #app._resultProvider = ResultProvider(result_path)
 
-    get_crates()
-    get_top_crates()
+    get_bencher_crates()
+    get_criterion_crates()
 
     app.layout = html.Div([
         dcc.Location(id='url', refresh=False),
         dcc.Link('All Techniques on Bencher Reverse Dependencies', href='/compareBencherRevDeps'),
         html.Br(),
-        dcc.Link('All Techniques on Top 200 Most Downloaded Crates', href='/compareTop200'),
+        dcc.Link('All Techniques on Criterion Reverse Dependencies', href='/compareCriterionRevDeps'),
         html.Br(),
         dcc.Link('In-Tree LLVM Pass', href='/comparePass'),
         html.Br(),

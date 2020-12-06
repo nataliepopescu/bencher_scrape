@@ -863,12 +863,12 @@ def display_significant(result_type):
 
                 speedup_div = 1 + (perc_time / 100)
                 speedup = 1 if speedup_div == 0 else 1 / speedup_div
-                if result_type == 'unintuitive' and speedup < 1: 
-                    speedup_arr_setting[speedup] = name
-                elif result_type == 'intuitive' and speedup >= 1 and speedup < 1.6:
-                    speedup_arr_setting[speedup] = name
+                #if result_type == 'unintuitive' and speedup < 1 and speedup > 0.4: 
+                #    speedup_arr_setting[speedup] = name
+                #elif result_type == 'intuitive' and speedup >= 1 and speedup < 1.6:
+                #    speedup_arr_setting[speedup] = name
 
-                if speedup < 1.6:
+                if speedup < 1.6 and speedup > 0.4:
                     speedup_arr.append(speedup)
                 if speedup >= 1 and speedup < 1.6: 
                     max_benefit.append(speedup)
@@ -885,10 +885,6 @@ def display_significant(result_type):
                 if result_type == 'unintuitive' and perc_time > 0:
                     # perc_time is within vanilla stdev
                     if perc_time < float(vanilla_perc_error): 
-                        #print("bmark = " + c + "::" + name)
-                        #print("perc_time = " + str(perc_time))
-                        #print("vanilla_error = " + str(vanilla_error))
-                        #print("vanilla_perc_error = " + str(vanilla_perc_error))
                         continue
                     # stdev magnitude is larger than perc_time magnitude
                     elif perc_time < float(perc_error):
@@ -896,18 +892,16 @@ def display_significant(result_type):
                     # perc_time magnitude is less than 3%
                     elif perc_time < 3:
                         continue
-                    else:
-                        one_bmark_list.append(name)
-                        one_perf_list.append(perc_time)
-                        one_yerror_list.append(perc_error)
+                    if speedup < 1 and speedup > 0.4:
+                        speedup_arr_setting[speedup] = name
+                    #else:
+                    one_bmark_list.append(name)
+                    one_perf_list.append(perc_time)
+                    one_yerror_list.append(perc_error)
                 # if negative and intuitive
                 elif result_type == 'intuitive' and perc_time < 0:
                     # perc_time is within vanilla stdev
                     if abs(perc_time) < float(vanilla_perc_error): 
-                        #print("bmark = " + c + "::" + name)
-                        #print("perc_time = " + str(perc_time))
-                        #print("vanilla_error = " + str(vanilla_error))
-                        #print("vanilla_perc_error = " + str(vanilla_perc_error))
                         continue
                     # stdev magnitude is larger than perc_time magnitude
                     elif abs(perc_time) < float(perc_error):
@@ -915,16 +909,19 @@ def display_significant(result_type):
                     # perc_time magnitude is less than 3%
                     elif abs(perc_time) < 3:
                         continue
-                    else:
-                        one_bmark_list.append(name)
-                        one_perf_list.append(perc_time)
-                        one_yerror_list.append(perc_error)
+                    if speedup > 1 and speedup < 1.6:
+                        speedup_arr_setting[speedup] = name
+                    #else:
+                    one_bmark_list.append(name)
+                    one_perf_list.append(perc_time)
+                    one_yerror_list.append(perc_error)
                 # add all other benchmarks to this graph
                 elif result_type == 'other': # and perc_time < 0:
                     if abs(perc_time) < float(vanilla_perc_error) or abs(perc_time) < float(perc_error) or abs(perc_time) < 3:
                         one_bmark_list.append(name)
                         one_perf_list.append(perc_time)
                         one_yerror_list.append(perc_error)
+                        speedup_arr_setting[speedup] = name
 
 
             handle.close()

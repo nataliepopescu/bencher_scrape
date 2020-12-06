@@ -1,0 +1,23 @@
+#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
+atomic_f64	12.036	0.0	12.038	0.0	
+atomic_i64	6.3643	0.0	6.3524	0.0	
+counter_no_labels	12.036	0.0	12.047	0.0	
+counter_no_labels_concurrent_nop	13.019	0.0	12.989	0.0	
+counter_no_labels_concurrent_write	264.18	0.0	872.6	0.0	
+counter_with_label_values	59.521	0.0	59.558	0.0	
+counter_with_label_values_concurrent_write	3.3335	0.0	3.4504	0.0	
+counter_with_mapped_labels	265.95	0.0	271.71	0.0	
+counter_with_prepared_mapped_labels	144.68	0.0	154.02	0.0	
+int_counter_no_labels	6.353	0.0	6.3533	0.0	
+int_counter_no_labels_concurrent_write	235.44	0.0	181.21	0.0	
+description_validation	717.02	0.0	716.74	0.0	
+gauge_with_label_values	60.717	0.0	60.713	0.0	
+gauge_no_labels	12.037	0.0	12.038	0.0	
+int_gauge_no_labels	6.3531	0.0	6.3531	0.0	
+bench_histogram_with_label_values	93.36	0.0	85.882	0.0	
+bench_histogram_no_labels	33.644	0.0	31.411	0.0	
+bench_histogram_timer	110.74	0.0	105.78	0.0	
+bench_histogram_local	10.034	0.0	9.3638	0.0	
+bench_local_histogram_timer	161.64	0.0	165.6	0.0	
+concurrent_observe_and_collect	2.4083	0.0	2.2805	0.0	
+text_encoder_without_escaping	87.062	0.0	88.6	0.0	

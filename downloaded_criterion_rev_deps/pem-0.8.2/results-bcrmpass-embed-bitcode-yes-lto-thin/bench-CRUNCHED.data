@@ -1,0 +1,5 @@
+#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
+pem::parse	16.75	0.0	15.558	0.0	
+pem::parse_many	34.004	0.0	30.885	0.0	
+pem::encode	2.0702	0.0	2.0607	0.0	
+pem::encode_many	4.3501	0.0	4.3284	0.0	

@@ -1,0 +1,3 @@
+#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
+update_buffer/512_B	319.58	0.0	319.56	0.0	
+update_buffer/100_KiB	62.563	0.0	62.359	0.0	

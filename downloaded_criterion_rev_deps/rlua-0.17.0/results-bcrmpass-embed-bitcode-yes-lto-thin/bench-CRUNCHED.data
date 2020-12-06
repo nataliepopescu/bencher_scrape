@@ -1,0 +1,9 @@
+#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
+create_table	196.56	0.0	216.09	0.0	
+create_array_10	2.288	0.0	2.3957	0.0	
+create_string_table_10	4.8857	0.0	4.914	0.0	
+call_add_function_3_10	3.3225	0.0	3.3744	0.0	
+call_callback_add_2_10	4.5338	0.0	5.2312	0.0	
+call_callback_append_10	7.7267	0.0	8.3727	0.0	
+create_registry_10	4.3066	0.0	4.395	0.0	
+create_userdata_10	6.0098	0.0	6.3037	0.0	

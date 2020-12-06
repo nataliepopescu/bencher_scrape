@@ -1,0 +1,6 @@
+#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
+parse_ipv4_prefix	70.296	0.0	69.873	0.0	
+parse_ipv6	188.51	0.0	187.3	0.0	
+parse_ipv4_netmask	96.63	0.0	96.129	0.0	
+contains_ipv4	7.0228	0.0	6.6888	0.0	
+contains_ipv6	52.944	0.0	52.905	0.0	

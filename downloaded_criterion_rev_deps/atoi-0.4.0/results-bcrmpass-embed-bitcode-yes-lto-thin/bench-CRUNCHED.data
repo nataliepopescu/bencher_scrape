@@ -1,0 +1,13 @@
+#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
+i32_four_digit_number	9.7005	0.0	9.3622	0.0	
+i32_checked_four_digit_number	5.3808	0.0	5.7753	0.0	
+u32_four_digit_number	9.6979	0.0	9.3615	0.0	
+u32_checked_four_digit_number	11.372	0.0	11.37	0.0	
+i32_four_digit_hex_number	8.6925	0.0	8.6926	0.0	
+i32_checked_four_digit_hex_number	10.699	0.0	11.369	0.0	
+u32_four_digit_hex_number	9.0299	0.0	8.6946	0.0	
+u32_checked_four_digit_hex_number	11.367	0.0	11.367	0.0	
+signed_i32_four_digit_number	8.1076	0.0	11.982	0.0	
+negative_i32_four_digit_number	8.3972	0.0	12.706	0.0	
+positive_i32_four_digit_number	8.4767	0.0	12.371	0.0	
+via_UTF-8	13.727	0.0	13.524	0.0	

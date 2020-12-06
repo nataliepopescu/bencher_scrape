@@ -1,0 +1,10 @@
+#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
+hex_encode	126.53	0.0	145.29	0.0	
+rustc_hex_encode	87.92	0.0	84.297	0.0	
+faster_hex_encode	2.2492	0.0	2.0916	0.0	
+faster_hex_encode_fallback	26.234	0.0	12.32	0.0	
+hex_decode	148.87	0.0	157.32	0.0	
+rustc_hex_decode	141.56	0.0	147.99	0.0	
+faster_hex_decode	5.7649	0.0	5.7001	0.0	
+faster_hex_decode_unchecked	2.4826	0.0	2.4728	0.0	
+faster_hex_decode_fallback	23.767	0.0	11.997	0.0	

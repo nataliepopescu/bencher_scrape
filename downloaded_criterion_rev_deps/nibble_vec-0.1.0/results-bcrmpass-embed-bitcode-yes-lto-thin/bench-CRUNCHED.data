@@ -1,0 +1,7 @@
+#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
+nibvec_split_even	48.661	0.0	48.705	0.0	
+nibvec_split_odd	50.25	0.0	49.318	0.0	
+join_even_nibvec_to_odd_nib	97.523	0.0	95.694	0.0	
+nib_get_on_vec_of_9_elements	9.4753	0.0	4.1351	0.0	
+nib_from_vec_and_into_vec	56.496	0.0	57.905	0.0	
+bench_eq_and_not_eq	256.77	0.0	234.0	0.0	

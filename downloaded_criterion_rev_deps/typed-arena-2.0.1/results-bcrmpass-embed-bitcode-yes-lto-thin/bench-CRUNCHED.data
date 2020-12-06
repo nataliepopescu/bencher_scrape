@@ -1,0 +1,9 @@
+#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
+allocate/allocate-small/1000	2.6601	0.0	2.6997	0.0	
+allocate/allocate-small/2000	5.1509	0.0	5.1524	0.0	
+allocate/allocate-small/3000	7.2502	0.0	7.3881	0.0	
+allocate/allocate-small/4000	9.761	0.0	9.703	0.0	
+allocate/allocate-big/1000	25.629	0.0	24.828	0.0	
+allocate/allocate-big/2000	52.48	0.0	58.142	0.0	
+allocate/allocate-big/3000	83.214	0.0	79.484	0.0	
+allocate/allocate-big/4000	107.77	0.0	110.83	0.0	

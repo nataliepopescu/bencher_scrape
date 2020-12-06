@@ -1,0 +1,12 @@
+#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
+accrue_raw	1.236	0.0	1.2312	0.0	
+accrue_hash	18.265	0.0	18.061	0.0	
+contains_input_raw	1.5513	0.0	1.5451	0.0	
+contains_input_hash	327.96	0.0	329.47	0.0	
+does_not_contain_raw	1.3077	0.0	1.3027	0.0	
+does_not_contain_hash	90.215	0.0	88.723	0.0	
+does_not_contain_random_hash	15.787	0.0	15.95	0.0	
+forwards_with_crunchy	194.38	0.0	192.88	0.0	
+forwards_without_crunchy	199.46	0.0	205.71	0.0	
+backwards_with_crunchy	195.98	0.0	195.14	0.0	
+backwards_without_crunchy	219.57	0.0	221.45	0.0	

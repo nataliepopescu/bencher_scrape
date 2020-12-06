@@ -1,0 +1,11 @@
+#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
+order_statistic/order_statistic	24.953	0.0	25.276	0.0	
+order_statistic/median	1.5453	0.0	1.4932	0.0	
+order_statistic/quantile	1.4476	0.0	1.531	0.0	
+order_statistic/percentile	37.295	0.0	36.552	0.0	
+order_statistic/lower_quartile	1.5457	0.0	1.4974	0.0	
+order_statistic/upper_quartile	1.5331	0.0	1.4821	0.0	
+order_statistic/interquartile_range	2.5136	0.0	2.4478	0.0	
+order_statistic/ranks:_RankTieBreaker::First	4.9906	0.0	4.8998	0.0	
+order_statistic/ranks:_RankTieBreaker::Average	5.1993	0.0	5.2352	0.0	
+order_statistic/ranks:_RankTieBreaker::Min	5.1813	0.0	5.2437	0.0	

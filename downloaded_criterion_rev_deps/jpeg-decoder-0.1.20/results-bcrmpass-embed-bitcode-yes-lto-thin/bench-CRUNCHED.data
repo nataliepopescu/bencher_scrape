@@ -1,0 +1,5 @@
+#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
+decode_a_512x512_JPEG	5.1706	0.0	4.5253	0.0	
+decode_a_512x512_progressive_JPEG	9.5991	0.0	8.5638	0.0	
+decode_a_512x512_grayscale_JPEG	2.3448	0.0	2.0996	0.0	
+extract_metadata_from_an_image	1.1486	0.0	1.2302	0.0	

@@ -1,0 +1,14 @@
+#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
+stdlib/instant_now	20.512	0.0	21.065	0.0	
+stdlib/instant_delta	49.713	0.0	49.827	0.0	
+quanta/quanta_now	18.723	0.0	18.391	0.0	
+quanta/quanta_now_delta	39.13	0.0	38.788	0.0	
+quanta/quanta_raw	13.046	0.0	13.04	0.0	
+quanta/quanta_raw_scaled	17.057	0.0	17.059	0.0	
+quanta/quanta_raw_delta	33.099	0.0	32.6	0.0	
+quanta/quanta_start	19.726	0.0	19.059	0.0	
+quanta/quanta_start_scaled	24.079	0.0	23.405	0.0	
+quanta/quanta_end	19.394	0.0	18.391	0.0	
+quanta/quanta_end_scaled	23.764	0.0	22.475	0.0	
+quanta/quanta_start/end_delta	45.663	0.0	43.13	0.0	
+quanta/quanta_recent	2.0062	0.0	2.0062	0.0	

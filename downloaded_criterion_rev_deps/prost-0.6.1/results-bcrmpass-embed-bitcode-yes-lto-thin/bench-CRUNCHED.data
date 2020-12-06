@@ -1,0 +1,13 @@
+#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
+varint/small/encode	256.69	0.0	263.19	0.0	
+varint/small/decode	387.25	0.0	387.69	0.0	
+varint/small/encoded_len	116.79	0.0	116.9	0.0	
+varint/medium/encode	651.71	0.0	646.72	0.0	
+varint/medium/decode	641.25	0.0	639.05	0.0	
+varint/medium/encoded_len	116.81	0.0	124.06	0.0	
+varint/large/encode	1.1458	0.0	1.1488	0.0	
+varint/large/decode	923.23	0.0	923.31	0.0	
+varint/large/encoded_len	116.98	0.0	117.03	0.0	
+varint/mixed/encode	688.18	0.0	691.34	0.0	
+varint/mixed/decode	680.04	0.0	688.63	0.0	
+varint/mixed/encoded_len	116.82	0.0	116.79	0.0	

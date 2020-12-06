@@ -1,0 +1,13 @@
+#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
+insert/insert-small/100	846.85	0.0	849.99	0.0	
+insert/insert-small/200	1.7478	0.0	1.6471	0.0	
+insert/insert-big/100	4.229	0.0	4.5828	0.0	
+insert/insert-big/200	8.5928	0.0	8.2226	0.0	
+lookup/lookup-small/100	68.788	0.0	66.538	0.0	
+lookup/lookup-small/200	121.1	0.0	119.34	0.0	
+lookup/lookup-big/100	64.434	0.0	65.016	0.0	
+lookup/lookup-big/200	117.2	0.0	117.81	0.0	
+collect/collect-small/100	370.2	0.0	367.07	0.0	
+collect/collect-small/200	736.25	0.0	734.1	0.0	
+collect/collect-big/100	393.24	0.0	394.95	0.0	
+collect/collect-big/200	785.51	0.0	791.19	0.0	

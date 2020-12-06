@@ -1,0 +1,8 @@
+#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
+simple_query	19.588	0.0	19.978	0.0	
+complex_query	117.68	0.0	120.86	0.0	
+named_params	37.514	0.0	37.883	0.0	
+explicit_indexed_params	37.262	0.0	37.569	0.0	
+implicit_indexed_params	37.218	0.0	37.412	0.0	
+issue_633	20.598	0.0	21.011	0.0	
+issue_633_query_2	164.94	0.0	168.93	0.0	

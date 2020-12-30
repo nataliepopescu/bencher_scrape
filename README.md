@@ -72,14 +72,11 @@ cargo install cargo-edit
 
 # Benchmarking
 
-Clone [this](https://github.com/nataliepopescu/bencher_scrape) tool for 
-downloading and benchmarking crates from `crates.io`. Run: 
+Clone this repository and run: 
 
 ```sh
 $ python3 tool.py -h
 ```
-
-to see your options for benchmarking. 
 
 ## Example Workflow: Benchmarking Reverse Dependencies of [Criterion](https://crates.io/crates/criterion)
 

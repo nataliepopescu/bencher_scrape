@@ -87,7 +87,7 @@ to see your options for benchmarking.
 following command from the top-level directory in this repository:
 
 ```sh
-$ python3 tool.py criterion --scrape 200
+$ python3 tool.py --scrape 200
 ```
 
 This will create and populate a directory called "criterion_rev_deps" with the 
@@ -96,20 +96,20 @@ This will create and populate a directory called "criterion_rev_deps" with the
 2. Now you can pre-compile the benchmarks with: 
 
 ```sh
-$ python3 tool.py criterion --compile
+$ python3 tool.py --compile
 ```
 
 3. Finally, run the benchmarks by passing the number of rounds you want each benchmark to run for: 
 
 ```sh
-$ python3 tool.py criterion --bench 10
+$ python3 tool.py --bench 10
 ```
 
 Note, you can also run steps 1-3 in a single command depending on how the 
 benchmarks will be run: 
 
 ```sh
-$ python3 tool.py criterion --scrape 200 --compile --bench 10
+$ python3 tool.py --scrape 200 --compile --bench 10
 ```
 
 4. If you would like to aggregate all the crate-specific results that you ran on a single machine, 

@@ -16,7 +16,8 @@ dash >= 0.42.0
 
 ## LLVM
 
-Clone [this](https://github.com/nataliepopescu/llvm-project/tree/match-version-from-rust) LLVM repository.
+Clone [this](https://github.com/nataliepopescu/llvm-project/tree/match-version-from-rust) 
+LLVM repository and branch.
 
 ### Configure
 
@@ -71,11 +72,11 @@ cargo install cargo-edit
 
 # Benchmarking
 
-Clone our [framework](https://github.com/nataliepopescu/bencher_scrape) for downloading and benchmarking 
-crates from `crates.io`. Run: 
+Clone [this](https://github.com/nataliepopescu/bencher_scrape) tool for 
+downloading and benchmarking crates from `crates.io`. Run: 
 
 ```sh
-$ ./pass-bench.sh -h
+$ python3 tool.py -h
 ```
 
 to see your options for benchmarking. 
@@ -86,45 +87,46 @@ to see your options for benchmarking.
 following command from the top-level directory in this repository:
 
 ```sh
-./pass-bench.sh -s -c "criterion_rev_deps"
+$ python3 tool.py criterion --scrape 200
 ```
 
-This will create and populate a directory called "downloaded_criterion_rev_deps". 
+This will create and populate a directory called "criterion_rev_deps" with the 
+200 most downloaded reverse dependencies of the `criterion` benchmarking crate. 
 
-2. Revert the criterion dependency versions to v0.3.2 (for some reason, v0.3.3 hangs). Also run 
-this from the repository's root directory: 
+2. Now you can pre-compile the benchmarks with: 
 
 ```sh
-./spawn -c
+$ python3 tool.py criterion --compile
 ```
 
-3. Now you can pre-compile the benchmarks with: 
+3. Finally, run the benchmarks by passing the number of rounds you want each benchmark to run for: 
 
 ```sh
-./spawn -b 0
+$ python3 tool.py criterion --bench 10
 ```
 
-4. Finally, run the benchmarks by passing the number of rounds you want each benchmark to run for: 
+Note, you can also run steps 1-3 in a single command depending on how the 
+benchmarks will be run: 
 
 ```sh
-./spawn -b $num_runs
+$ python3 tool.py criterion --scrape 200 --compile --bench 10
 ```
 
-5. If you would like to aggregate all the crate-specific results that you ran on a single machine, 
+4. If you would like to aggregate all the crate-specific results that you ran on a single machine, 
 run:
 
 ```sh
-./post-run.sh -l -r $num_runs
+$ ./post-run.sh -l -r $num_runs
 ```
 
 You will find the aggregated results in the "bench-CRUNCHED.data" file in the newly-generated
 directory. This file can be easily visualized (see command in [this](https://github.com/nataliepopescu/bencher_scrape#visualizing-results) section). 
 
-6. If you would like to aggregate all the crate-specific results that you ran of various machines, 
+5. If you would like to aggregate all the crate-specific results that you ran of various machines, 
 run: 
 
 ```sh
-./post-run.sh -n $num_nodes -r $num_runs
+$ ./post-run.sh -n $num_nodes -r $num_runs
 ```
 
 Where $num_runs must be the same on every machine. The implementation for this step is still in 

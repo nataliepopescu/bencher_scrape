@@ -5,42 +5,34 @@ import re
 import subprocess
 
 categ_attributes = {
-    'bencher_rev_deps': {
+    'bencher': {
         'url': 'https://crates.io/api/v1/crates/bencher/reverse_dependencies?page={page}&per_page={per_page}',
         'per_page': 10,
-        'total_page': 12,
     },
-    'criterion_rev_deps': {
+    'criterion': {
         'url': 'https://crates.io/api/v1/crates/criterion/reverse_dependencies?page={page}&per_page={per_page}',
         'per_page': 10,
-        'total_page': 132,
     },
-    'top_200': {
-        'url': 'https://crates.io/api/v1/crates?page={page}&per_page={per_page}&sort=downloads',
-        'per_page': 50,
-        'total_page': 4,
-    },
-    'top_500': {
-        'url': 'https://crates.io/api/v1/crates?page={page}&per_page={per_page}&sort=downloads',
-        'per_page': 50,
-        'total_page': 10,
-    },
+    #'top_200': {
+    #    'url': 'https://crates.io/api/v1/crates?page={page}&per_page={per_page}&sort=downloads',
+    #    'per_page': 50,
+    #},
+    #'top_500': {
+    #    'url': 'https://crates.io/api/v1/crates?page={page}&per_page={per_page}&sort=downloads',
+    #    'per_page': 50,
+    #},
 }
 
 class CratesSpider(scrapy.Spider):
     name = 'get-crates'
     crates = {}
 
-    def __init__(self, category=None, *args, **kwargs):
+    def __init__(self, category='criterion', x='100', *args, **kwargs):
         super(CratesSpider, self).__init__(*args, **kwargs)
-        if category == None:
-            self.category = 'criterion_rev_deps'
-        else:
-            self.category = category
+        self.category = category
         self.url = categ_attributes[self.category].get('url')
         self.per_page = categ_attributes[self.category].get('per_page')
-        self.total_page = categ_attributes[self.category].get('total_page')
-
+        self.total_page = int(int(x) / self.per_page) if int(x) % self.per_page == 0 else int(int(x) / self.per_page) + 1
 
     def start_requests(self):
         url = self.url
@@ -49,12 +41,11 @@ class CratesSpider(scrapy.Spider):
                 "curl " + url.format(page=page+1, per_page=self.per_page),
                 callback=self.parse)
 
-
     def parse(self, response):
         data = json.loads(response.body.decode('utf-8'))
         crates = {}
 
-        if self.category == "bencher_rev_deps" or self.category == "criterion_rev_deps":
+        if self.category == "bencher" or self.category == "criterion":
             if 'dependencies' not in data or 'versions' not in data:
                 print("Error: invalid json")
                 return None
@@ -79,10 +70,9 @@ class CratesSpider(scrapy.Spider):
         self.crates.update(crates)
         self.download(crates)
 
-
     def download(self, crates):
         print("Start downloading!")
-        newtopdir = "../downloaded_" + self.category
+        newtopdir = "../" + self.category + "_rev_deps"
         subprocess.run(["mkdir", "-p", newtopdir])
         for vid, crate in crates.items():
             subprocess.run(["wget", "https://crates.io" + crate['dl_path']])

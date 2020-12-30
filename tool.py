@@ -19,44 +19,32 @@ RBCFLAGS =  " -Z remove-bc"
 UNMODFLAGS = OPTFLAGS + DBGFLAGS + EMBDFLAGS
 BCRMPFLAGS = OPTFLAGS + DBGFLAGS + EMBDFLAGS + RBCFLAGS
 
-system_name_map = {
-    "Darwin": "apple-darwin"
-}
-
 category_map = {
-    "bencher":      "downloaded_bencher_rev_deps",
-    "criterion":    "downloaded_criterion_rev_deps",
+    "bencher":      "bencher_rev_deps",
+    "criterion":    "criterion_rev_deps",
 }
-
-def get_target():
-    machine = platform.machine()
-    os_name = platform.system()
-    mapped_os = system_name_map.get(os_name)
-    return machine + "-" + mapped_os
 
 class State: 
 
-    def __init__(self, action, ctgry, runs, scrape, top):
-        self.action = action
+    def __init__(self, ctgry, scrape, test, cmpl, bench):
         self.ctgry = ctgry
-        self.runs = runs
+        self.ctgrydir = category_map.get(ctgry)
         self.scrape = scrape
-        self.top = top
+        self.test = test
+        self.cmpl = cmpl
+        self.bench = bench
 
         self.root = os.getcwd()
-        self.scrape_dir = os.path.join(self.root, "get-crates")
-        self.subdirs = os.path.join(self.root, category_map.get(self.ctgry))
-
-        self.target = get_target()
-        self.output = "output_" + action \
-                + "_" + str(runs) \
-                + "_o" + optval \
+        self.scrapedir = os.path.join(self.root, "get-crates")
+        self.subdirs = os.path.join(self.root, self.ctgrydir)
+        self.output = "output_o" + optval \
                 + "_dbg" + dbgval \
                 + "_embed=" + embdval
 
-    def get_crates(self):
-        os.chdir(self.scrape_dir)
-        # TODO scrape...
+    def scrape_crates(self):
+        os.chdir(self.scrapedir)
+        subprocess.run(["scrapy", "crawl", "-a", "category=" + self.ctgry, "-a", 
+                "x=" + str(self.scrape), "get-crates"])
         os.chdir(self.root)
 
     def create_dirlist(self):
@@ -71,6 +59,14 @@ class State:
     def randomize_dirlist(self):
         random.shuffle(self.dirlist)
 
+    def revert_criterion_version(self):
+        subprocess.run(["cargo", "install", "cargo-edit"])
+        for d in self.dirlist: 
+            os.chdir(d)
+            subprocess.run(["cargo", "rm", "criterion", "--dev"])
+            subprocess.run(["cargo", "add", "criterion@=0.3.2", "--dev"])
+            os.chdir(self.root)
+
     def run_tests(self):
         for e in exp_types:
             os.environ["RUSTFLAGS"] = UNMODFLAGS if e == unmod else BCRMPFLAGS
@@ -78,19 +74,20 @@ class State:
             for d in self.dirlist:
                 os.chdir(d)
                 outdir = os.path.join(d, e)
+                print(outdir)
                 subprocess.run(["mkdir", "-p", outdir])
                 f_out = open(outdir + "/tests.out", "w")
                 f_err = open(outdir + "/tests.err", "w")
                 try: 
                     subprocess.run(["cargo", "test", "--verbose"], 
-                            capture_output=True, text=True, timeout=600, 
-                            stdout=f_out, stderr=f_err)
+                            text=True, timeout=600, stdout=f_out, stderr=f_err)
                 except subprocess.TimeoutExpired as e: 
                     print(e)
                     fname = d + e + "/timedout"
                     subprocess.run(["touch", fname])
                 finally: 
-                    f.close()
+                    f_out.close()
+                    f_err.close()
                     os.chdir(self.root)
 
     def compile_benchmarks(self):
@@ -103,7 +100,7 @@ class State:
                 os.chdir(self.root)
 
     def run_benchmarks(self):
-        for r in self.runs: 
+        for r in self.bench: 
             self.randomize_dirlist()
             for e in exp_types: 
                 os.environ["RUSTFLAGS"] = UNMODFLAGS if e == unmod else BCRMPFLAGS
@@ -117,45 +114,49 @@ def arg_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument("ctgry",
             choices=["bencher", "criterion"],
-            help="category of crates on which to run the specified action")
-    parser.add_argument("action",
-            choices=["bench_compile", "bench_run", "test"],
-            help="action to perform on the specified category of crates")
-    parser.add_argument("--top",
-            metavar="X",
-            type=int,
-            required=False,
-            default=100,
-            help="top X crates of specified category on which to perform action "\
-            "(default is 100)")
-    parser.add_argument("--runs",
-            metavar="N",
-            type=int,
-            required=False,
-            default=5,
-            help="run benchmarks N times per node (default is 5); option is only "\
-            "used if performing the -bench_run- action")
+            help="category of crates on which to run the specified action(s)")
     parser.add_argument("--scrape",
+            metavar="X",
+            nargs="?",
+            type=int,
+            required=False,
+            const=100,
+            help="scrape top X crates of specified category from crates.io, "\
+            "where X is rounded up to a multiple of 10 (default is 100 if this "\
+            "option is specified).")
+    parser.add_argument("--test",
             required=False,
             action="store_true",
-            help="scrape crates.io for specified set of crates before performing "\
-            "action")
+            help="")
+    parser.add_argument("--compile",
+            required=False,
+            action="store_true",
+            help="")
+    parser.add_argument("--bench",
+            metavar="N",
+            nargs="?",
+            type=int,
+            required=False,
+            const=5,
+            help="run each benchmark N times per node (default is 5 if this "\
+            "option is specified)")
     args = parser.parse_args()
     print(args)
-    return args.action, args.ctgry, args.runs, args.scrape, args.top
+    return args.ctgry, args.scrape, args.test, args.compile, args.bench
 
 if __name__ == "__main__":
-    action, ctgry, runs, scrape, top = arg_parse()
-    s = State(action, ctgry, runs, scrape, top)
+    ctgry, scrape, test, cmpl, bench = arg_parse()
+    s = State(ctgry, scrape, test, cmpl, bench)
 
-    if s.scrape == True:
-        s.get_crates()
-
+    if s.scrape:
+        s.scrape_crates()
     s.create_dirlist()
-
-    if s.action == "test":
+    if ctgry == "criterion":
+        s.revert_criterion_version()
+    if s.test == True:
         s.run_tests()
-    elif s.action == "bench_compile": 
+    if s.cmpl == True:
         s.compile_benchmarks()
-    else: 
+    if s.bench: 
         s.run_benchmarks()
+

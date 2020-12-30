@@ -6,9 +6,9 @@ import random
 import subprocess
 import shutil
 
-unmod = "UNMOD"
-bcrmp = "BCRMP"
-exp_types = [unmod, bcrmp]
+UNMOD = "UNMOD"
+BCRMP = "BCRMP"
+exp_types = [UNMOD, BCRMP]
 
 optval =    "3"
 dbgval =    "2"
@@ -19,6 +19,13 @@ EMBDFLAGS = " -C embed-bitcode=" + embdval
 RBCFLAGS =  " -Z remove-bc"
 UNMODFLAGS = OPTFLAGS + DBGFLAGS + EMBDFLAGS
 BCRMPFLAGS = OPTFLAGS + DBGFLAGS + EMBDFLAGS + RBCFLAGS
+
+TESTS_OUT = "tests.out"
+TESTS_ERR = "tests.err"
+COMP_OUT =  "compile.out"
+COMP_ERR =  "compile.err"
+BENCH_OUT = "bench.out"
+BENCH_ERR = "bench.err"
 
 category_map = {
     #"bencher":      "bencher_rev_deps",
@@ -71,46 +78,79 @@ class State:
 
     def run_tests(self):
         for e in exp_types:
-            os.environ["RUSTFLAGS"] = UNMODFLAGS if e == unmod else BCRMPFLAGS
+            os.environ["RUSTFLAGS"] = UNMODFLAGS if e == UNMOD else BCRMPFLAGS
 
             for d in self.dirlist:
                 os.chdir(d)
                 outdir = os.path.join(d, e, self.resname)
                 print(outdir)
                 subprocess.run(["mkdir", "-p", outdir])
-                f_out = open(outdir + "/tests.out", "w")
-                f_err = open(outdir + "/tests.err", "w")
+                f_out = open(os.path.join(outdir, TESTS_OUT), "w")
+                f_err = open(os.path.join(outdir, TESTS_ERR), "w")
                 try: 
                     subprocess.run(["cargo", "test", "--verbose"], 
                             text=True, timeout=600, stdout=f_out, stderr=f_err)
                 except subprocess.TimeoutExpired as err: 
                     print(err)
-                    fname = outdir + "/timedout"
+                    fname = os.path.join(outdir, "test-timedout")
                     subprocess.run(["touch", fname])
                 finally: 
                     f_out.close()
                     f_err.close()
                     os.chdir(self.root)
 
+    def aggregate_test_results(self):
+        for d in self.dirlist: 
+            os.chdir(d)
+            unmod_res = os.path.join(d, UNMOD, self.resname, TESTS_OUT)
+            unmod_oks = subprocess.run(["grep", "-cw", "ok", unmod_res],
+                    capture_output=True, text=True)
+            bcrmp_res = os.path.join(d, BCRMP, self.resname, TESTS_OUT)
+            bcrmp_oks = subprocess.run(["grep", "-cw", "ok", bcrmp_res],
+                    capture_output=True, text=True)
+            if not int(unmod_oks.stdout) == int(bcrmp_oks.stdout): 
+                print("Mismatch in number of passed tests for: " + d.split("/")[-1])
+                fname = os.path.join(d, "test-mismatch")
+                subprocess.run(["touch", fname])
+            os.chdir(self.root)
+
     def compile_benchmarks(self):
         for e in exp_types:
-            os.environ["RUSTFLAGS"] = UNMODFLAGS if e == unmod else BCRMPFLAGS
+            os.environ["RUSTFLAGS"] = UNMODFLAGS if e == UNMOD else BCRMPFLAGS
 
             for d in self.dirlist:
-                # TODO compile...
                 os.chdir(d)
-                os.chdir(self.root)
+                outdir = os.path.join(d, e, self.resname)
+                print(outdir)
+                subprocess.run(["mkdir", "-p", outdir])
+                f_out = open(os.path.join(outdir, COMP_OUT), "w")
+                f_err = open(os.path.join(outdir, COMP_ERR), "w")
+                try: 
+                    subprocess.run(["cargo", "bench", "--no-run", "--verbose"], 
+                            text=True, timeout=600, stdout=f_out, stderr=f_err)
+                except subprocess.TimeoutExpired as err: 
+                    print(err)
+                    fname = os.path.join(outdir, "bench-timedout")
+                    subprocess.run(["touch", fname])
+                finally: 
+                    f_out.close()
+                    f_err.close()
+                    os.chdir(self.root)
 
     def run_benchmarks(self):
         for r in self.bench: 
             self.randomize_dirlist()
             for e in exp_types: 
-                os.environ["RUSTFLAGS"] = UNMODFLAGS if e == unmod else BCRMPFLAGS
+                os.environ["RUSTFLAGS"] = UNMODFLAGS if e == UNMOD else BCRMPFLAGS
 
                 for d in self.dirlist:
                     # TODO bench...
                     os.chdir(d)
                     os.chdir(self.root)
+
+    def aggregate_bench_results(self):
+        # TODO
+        print("aggregating...")
 
     def cleanup(self):
         for d in self.dirlist: 
@@ -152,24 +192,27 @@ def arg_parse():
             help="remove compilation output and/or result artifacts from "\
             "prior use")
     args = parser.parse_args()
-    print(args)
     return args.scrape, args.test, args.compile, args.bench, args.clean
 
 if __name__ == "__main__":
     scrape, test, cmpl, bench, clean = arg_parse()
     s = State(scrape, test, cmpl, bench, clean)
+    s.create_dirlist()
+    s.aggregate_test_results()
 
-    if s.scrape:
-        s.scrape_crates()
-    if not s.clean: 
-        s.create_dirlist()
-        s.revert_criterion_version()
-        if s.test == True:
-            s.run_tests()
-        if s.cmpl == True:
-            s.compile_benchmarks()
-        if s.bench: 
-            s.run_benchmarks()
-    else:
-        s.cleanup()
+    #if s.scrape:
+    #    s.scrape_crates()
+    #if not s.clean: 
+    #    s.create_dirlist()
+    #    s.revert_criterion_version()
+    #    if s.test == True:
+    #        s.run_tests()
+    #        s.aggregate_test_results()
+    #    if s.cmpl == True:
+    #        s.compile_benchmarks()
+    #    if s.bench: 
+    #        s.run_benchmarks()
+    #        s.aggregate_bench_results()
+    #else:
+    #    s.cleanup()
 

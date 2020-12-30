@@ -4,6 +4,7 @@ import argparse
 import platform
 import random
 import subprocess
+import shutil
 
 unmod = "UNMOD"
 bcrmp = "BCRMP"
@@ -26,18 +27,19 @@ category_map = {
 
 class State: 
 
-    def __init__(self, ctgry, scrape, test, cmpl, bench):
+    def __init__(self, ctgry, scrape, test, cmpl, bench, clean):
         self.ctgry = ctgry
         self.ctgrydir = category_map.get(ctgry)
         self.scrape = scrape
         self.test = test
         self.cmpl = cmpl
         self.bench = bench
+        self.clean = clean
 
         self.root = os.getcwd()
         self.scrapedir = os.path.join(self.root, "get-crates")
         self.subdirs = os.path.join(self.root, self.ctgrydir)
-        self.output = "output_o" + optval \
+        self.resname = "results_o" + optval \
                 + "_dbg" + dbgval \
                 + "_embed=" + embdval
 
@@ -73,7 +75,7 @@ class State:
 
             for d in self.dirlist:
                 os.chdir(d)
-                outdir = os.path.join(d, e)
+                outdir = os.path.join(d, e, self.resname)
                 print(outdir)
                 subprocess.run(["mkdir", "-p", outdir])
                 f_out = open(outdir + "/tests.out", "w")
@@ -81,9 +83,9 @@ class State:
                 try: 
                     subprocess.run(["cargo", "test", "--verbose"], 
                             text=True, timeout=600, stdout=f_out, stderr=f_err)
-                except subprocess.TimeoutExpired as e: 
-                    print(e)
-                    fname = d + e + "/timedout"
+                except subprocess.TimeoutExpired as err: 
+                    print(err)
+                    fname = outdir + "/timedout"
                     subprocess.run(["touch", fname])
                 finally: 
                     f_out.close()
@@ -110,6 +112,15 @@ class State:
                     os.chdir(d)
                     os.chdir(self.root)
 
+    def cleanup(self):
+        for d in self.dirlist: 
+            for e in exp_types: 
+                dirname = os.path.join(d, e)
+                try: 
+                    shutil.rmtree(dirname)
+                except OSError as err: 
+                    print("Error: %s : %s" % (dirname, err.strerror))
+
 def arg_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument("ctgry",
@@ -127,11 +138,12 @@ def arg_parse():
     parser.add_argument("--test",
             required=False,
             action="store_true",
-            help="")
+            help="run tests for all scraped crates")
     parser.add_argument("--compile",
             required=False,
             action="store_true",
-            help="")
+            help="compile benchmarks (intended as a precursor for eventually "\
+            "running the benchmarks multiple times on multiple machines)")
     parser.add_argument("--bench",
             metavar="N",
             nargs="?",
@@ -140,13 +152,18 @@ def arg_parse():
             const=5,
             help="run each benchmark N times per node (default is 5 if this "\
             "option is specified)")
+    parser.add_argument("--clean",
+            required=False,
+            action="store_true",
+            help="remove compilation output and/or result artifacts from "\
+            "prior use")
     args = parser.parse_args()
     print(args)
-    return args.ctgry, args.scrape, args.test, args.compile, args.bench
+    return args.ctgry, args.scrape, args.test, args.compile, args.bench, args.clean
 
 if __name__ == "__main__":
-    ctgry, scrape, test, cmpl, bench = arg_parse()
-    s = State(ctgry, scrape, test, cmpl, bench)
+    ctgry, scrape, test, cmpl, bench, clean = arg_parse()
+    s = State(ctgry, scrape, test, cmpl, bench, clean)
 
     if s.scrape:
         s.scrape_crates()
@@ -159,4 +176,6 @@ if __name__ == "__main__":
         s.compile_benchmarks()
     if s.bench: 
         s.run_benchmarks()
+    if s.clean and not (s.bench or s.cmpl or s.test): # for safety
+        s.cleanup()
 

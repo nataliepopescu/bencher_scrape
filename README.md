@@ -81,7 +81,7 @@ $ python3 tool.py -h
 
 to see your options for benchmarking. 
 
-## Example Workflow for Benchmarking Reverse Dependencies of [Criterion](https://crates.io/crates/criterion)
+## Example Workflow: Benchmarking Reverse Dependencies of [Criterion](https://crates.io/crates/criterion)
 
 1. Scrape crates.io and download the latest set of Criterion reverse dependencies, by running the
 following command from the top-level directory in this repository:

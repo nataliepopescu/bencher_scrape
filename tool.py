@@ -116,6 +116,7 @@ class State:
         for d in self.dirlist: 
             for e in exp_types: 
                 dirname = os.path.join(d, e)
+                print("deleting directory: " + dirname + "...")
                 try: 
                     shutil.rmtree(dirname)
                 except OSError as err: 
@@ -168,7 +169,7 @@ if __name__ == "__main__":
     if s.scrape:
         s.scrape_crates()
     s.create_dirlist()
-    if ctgry == "criterion":
+    if s.ctgry == "criterion" and not s.clean:
         s.revert_criterion_version()
     if s.test == True:
         s.run_tests()

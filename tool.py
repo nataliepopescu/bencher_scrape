@@ -21,15 +21,15 @@ UNMODFLAGS = OPTFLAGS + DBGFLAGS + EMBDFLAGS
 BCRMPFLAGS = OPTFLAGS + DBGFLAGS + EMBDFLAGS + RBCFLAGS
 
 category_map = {
-    "bencher":      "bencher_rev_deps",
+    #"bencher":      "bencher_rev_deps",
     "criterion":    "criterion_rev_deps",
 }
 
 class State: 
 
-    def __init__(self, ctgry, scrape, test, cmpl, bench, clean):
-        self.ctgry = ctgry
-        self.ctgrydir = category_map.get(ctgry)
+    def __init__(self, scrape, test, cmpl, bench, clean):
+        self.ctgry = 'criterion'
+        self.ctgrydir = category_map.get(self.ctgry)
         self.scrape = scrape
         self.test = test
         self.cmpl = cmpl
@@ -124,59 +124,52 @@ class State:
 
 def arg_parse():
     parser = argparse.ArgumentParser()
-    parser.add_argument("ctgry",
-            choices=["bencher", "criterion"],
-            help="category of crates on which to run the specified action(s)")
-    parser.add_argument("--scrape",
+    #parser.add_argument("ctgry",
+    #        choices=["bencher", "criterion"],
+    #        help="category of crates on which to run the specified action(s)")
+    parser.add_argument("--scrape", "-s",
             metavar="X",
             nargs="?",
             type=int,
-            required=False,
             const=100,
             help="scrape top X crates of specified category from crates.io, "\
-            "where X is rounded up to a multiple of 10 (default is 100 if this "\
-            "option is specified).")
-    parser.add_argument("--test",
-            required=False,
+            "where X is rounded up to a multiple of 10 (default is 100)")
+    parser.add_argument("--test", "-t",
             action="store_true",
             help="run tests for all scraped crates")
-    parser.add_argument("--compile",
-            required=False,
+    parser.add_argument("--compile", "-c",
             action="store_true",
             help="compile benchmarks (intended as a precursor for eventually "\
             "running the benchmarks multiple times on multiple machines)")
-    parser.add_argument("--bench",
+    parser.add_argument("--bench", "-b",
             metavar="N",
             nargs="?",
             type=int,
-            required=False,
             const=5,
-            help="run each benchmark N times per node (default is 5 if this "\
-            "option is specified)")
+            help="run each benchmark N times per node (default is 5)")
     parser.add_argument("--clean",
-            required=False,
             action="store_true",
             help="remove compilation output and/or result artifacts from "\
             "prior use")
     args = parser.parse_args()
     print(args)
-    return args.ctgry, args.scrape, args.test, args.compile, args.bench, args.clean
+    return args.scrape, args.test, args.compile, args.bench, args.clean
 
 if __name__ == "__main__":
-    ctgry, scrape, test, cmpl, bench, clean = arg_parse()
-    s = State(ctgry, scrape, test, cmpl, bench, clean)
+    scrape, test, cmpl, bench, clean = arg_parse()
+    s = State(scrape, test, cmpl, bench, clean)
 
     if s.scrape:
         s.scrape_crates()
-    s.create_dirlist()
-    if s.ctgry == "criterion" and not s.clean:
+    if not s.clean: 
+        s.create_dirlist()
         s.revert_criterion_version()
-    if s.test == True:
-        s.run_tests()
-    if s.cmpl == True:
-        s.compile_benchmarks()
-    if s.bench: 
-        s.run_benchmarks()
-    if s.clean and not (s.bench or s.cmpl or s.test): # for safety
+        if s.test == True:
+            s.run_tests()
+        if s.cmpl == True:
+            s.compile_benchmarks()
+        if s.bench: 
+            s.run_benchmarks()
+    else:
         s.cleanup()
 

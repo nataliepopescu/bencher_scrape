@@ -125,12 +125,13 @@ class State:
                 subprocess.run(["mkdir", "-p", outdir])
                 f_out = open(os.path.join(outdir, COMP_OUT), "w")
                 f_err = open(os.path.join(outdir, COMP_ERR), "w")
-                try: 
-                    subprocess.run(["cargo", "bench", "--no-run", "--verbose"], 
+                try: # TODO make lightweight
+                    subprocess.run(["cargo", "bench", "--no-run", "--verbose",
+                            "--target-dir", outdir], 
                             text=True, timeout=600, stdout=f_out, stderr=f_err)
                 except subprocess.TimeoutExpired as err: 
                     print(err)
-                    fname = os.path.join(outdir, "bench-timedout")
+                    fname = os.path.join(outdir, "compile-timedout")
                     subprocess.run(["touch", fname])
                 finally: 
                     f_out.close()
@@ -138,15 +139,31 @@ class State:
                     os.chdir(self.root)
 
     def run_benchmarks(self):
-        for r in self.bench: 
+        for r in range(self.bench): 
             self.randomize_dirlist()
             for e in exp_types: 
                 os.environ["RUSTFLAGS"] = UNMODFLAGS if e == UNMOD else BCRMPFLAGS
 
                 for d in self.dirlist:
-                    # TODO bench...
                     os.chdir(d)
-                    os.chdir(self.root)
+                    targetdir = os.path.join(d, e, self.resname)
+                    outdir = os.path.join(d, self.resname, str(r))
+                    print(outdir)
+                    subprocess.run(["mkdir", "-p", outdir])
+                    f_out = open(os.path.join(outdir, BENCH_OUT), "w")
+                    f_err = open(os.path.join(outdir, BENCH_ERR), "w")
+                    try:
+                        subprocess.run(["cargo", "bench", "--verbose",
+                                "--target-dir", targetdir], 
+                                text=True, timeout=1200, stdout=f_out, stderr=f_err)
+                    except subprocess.TimeoutExpired as err: 
+                        print(err)
+                        fname = os.path.join(outdir, "bench-timedout")
+                        subprocess.run(["touch", fname])
+                    finally: 
+                        f_out.close()
+                        f_err.close()
+                        os.chdir(self.root)
 
     def aggregate_bench_results(self):
         # TODO
@@ -197,22 +214,21 @@ def arg_parse():
 if __name__ == "__main__":
     scrape, test, cmpl, bench, clean = arg_parse()
     s = State(scrape, test, cmpl, bench, clean)
-    s.create_dirlist()
-    s.aggregate_test_results()
 
-    #if s.scrape:
-    #    s.scrape_crates()
-    #if not s.clean: 
-    #    s.create_dirlist()
-    #    s.revert_criterion_version()
-    #    if s.test == True:
-    #        s.run_tests()
-    #        s.aggregate_test_results()
-    #    if s.cmpl == True:
-    #        s.compile_benchmarks()
-    #    if s.bench: 
-    #        s.run_benchmarks()
-    #        s.aggregate_bench_results()
-    #else:
-    #    s.cleanup()
+    if s.scrape:
+        s.scrape_crates()
+
+    s.create_dirlist()
+    if not s.clean: 
+        s.revert_criterion_version()
+        if s.test == True:
+            s.run_tests()
+            s.aggregate_test_results()
+        if s.cmpl == True:
+            s.compile_benchmarks()
+        if s.bench: 
+            s.run_benchmarks()
+            s.aggregate_bench_results()
+    else:
+        s.cleanup()
 

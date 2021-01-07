@@ -6,7 +6,7 @@ Its numeric output is parsed and dumped to a csv
 Pass an an optional independent variable from the command line
 And also any other static keys and values
 
-USAGE: python aggregate_bench.py [independent variable]
+USAGE: python aggregate.py [independent variable]
 Writes to measurements.csv in the cwd by default, pass a different filepath to alter this
 any other keyword arguments will be written as a header row and value. Be careful with that.
 
@@ -21,7 +21,6 @@ import sys
 from subprocess import check_output
 import re
 
-# default == criterion
 default_type = 1
 
 def dump_benchmark(

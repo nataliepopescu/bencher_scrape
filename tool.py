@@ -5,6 +5,7 @@ import platform
 import random
 import subprocess
 import shutil
+from aggregate import dump_benchmark
 
 UNMOD = "UNMOD"
 BCRMP = "BCRMP"
@@ -24,11 +25,9 @@ TESTS_OUT = "tests.out"
 TESTS_ERR = "tests.err"
 COMP_OUT =  "compile.out"
 COMP_ERR =  "compile.err"
-BENCH_OUT = "bench.out"
-BENCH_ERR = "bench.err"
+BENCH_DATA = "bench.data"
 
 category_map = {
-    #"bencher":      "bencher_rev_deps",
     "criterion":    "criterion_rev_deps",
 }
 
@@ -127,7 +126,7 @@ class State:
                 f_err = open(os.path.join(outdir, COMP_ERR), "w")
                 try: # TODO make lightweight
                     subprocess.run(["cargo", "bench", "--no-run", "--verbose",
-                            "--target-dir", outdir], 
+                            "--target-dir", os.path.join(outdir, "target")], 
                             text=True, timeout=600, stdout=f_out, stderr=f_err)
                 except subprocess.TimeoutExpired as err: 
                     print(err)
@@ -146,12 +145,12 @@ class State:
 
                 for d in self.dirlist:
                     os.chdir(d)
-                    targetdir = os.path.join(d, e, self.resname)
+                    targetdir = os.path.join(d, e, self.resname, "target")
                     outdir = os.path.join(d, self.resname, str(r))
                     print(outdir)
                     subprocess.run(["mkdir", "-p", outdir])
-                    f_out = open(os.path.join(outdir, BENCH_OUT), "w")
-                    f_err = open(os.path.join(outdir, BENCH_ERR), "w")
+                    f_out = open(os.path.join(outdir, e + ".out"), "w")
+                    f_err = open(os.path.join(outdir, e + ".err"), "w")
                     try:
                         subprocess.run(["cargo", "bench", "--verbose",
                                 "--target-dir", targetdir], 
@@ -166,24 +165,56 @@ class State:
                         os.chdir(self.root)
 
     def aggregate_bench_results(self):
-        # TODO
-        print("aggregating...")
+        for r in range(self.bench):
+            for d in self.dirlist:
+                os.chdir(d)
+                unmodres = os.path.join(d, self.resname, str(r), UNMOD + ".out")
+                bcrmpres = os.path.join(d, self.resname, str(r), BCRMP + ".out")
+                outfile = os.path.join(d, self.resname, str(r), BENCH_DATA)
+                dump_benchmark(outfile, unmodres, bcrmpres, 1)
+                os.chdir(self.root)
 
     def cleanup(self):
-        for d in self.dirlist: 
-            for e in exp_types: 
-                dirname = os.path.join(d, e)
+        if self.clean == "c":
+            for d in self.dirlist: 
+                for e in exp_types: 
+                    os.chdir(d)
+                    subprocess.run(["cargo", "clean"])
+                    dirname = os.path.join(d, e, self.resname, "target")
+                    print("deleting directory: " + dirname + "...")
+                    try: 
+                        shutil.rmtree(dirname)
+                    except OSError as err: 
+                        print("Error: %s : %s" % (dirname, err.strerror))
+                    finally: 
+                        os.chdir(self.root)
+        if self.clean == "a":
+            for d in self.dirlist: 
+                for e in exp_types: 
+                    os.chdir(d)
+                    dirname = os.path.join(d, e)
+                    print("deleting directory: " + dirname + "...")
+                    try: 
+                        shutil.rmtree(dirname)
+                    except OSError as err: 
+                        print("Error: %s : %s" % (dirname, err.strerror))
+                    finally:
+                        os.chdir(self.root)
+        if self.clean == "a" or self.clean == "b":
+            for d in self.dirlist: 
+                os.chdir(d)
+                subprocess.run(["cargo", "clean"])
+                dirname = os.path.join(d, self.resname)
                 print("deleting directory: " + dirname + "...")
-                try: 
+                try:
                     shutil.rmtree(dirname)
-                except OSError as err: 
+                except OSError as err:
                     print("Error: %s : %s" % (dirname, err.strerror))
+                finally: 
+                    os.chdir(self.root)
 
 def arg_parse():
     parser = argparse.ArgumentParser()
-    #parser.add_argument("ctgry",
-    #        choices=["bencher", "criterion"],
-    #        help="category of crates on which to run the specified action(s)")
     parser.add_argument("--scrape", "-s",
             metavar="X",
             nargs="?",
@@ -205,9 +236,14 @@ def arg_parse():
             const=5,
             help="run each benchmark N times per node (default is 5)")
     parser.add_argument("--clean",
-            action="store_true",
+            metavar="S",
+            nargs="?",
+            type=str,
+            const="c",
             help="remove compilation output and/or result artifacts from "\
-            "prior use")
+            "prior use (default just removes compilation dirs, can use option "\
+            "'a' to additionally remove benchmark result dirs or 'b' to only "\
+            "remove benchmark result dirs and not compilation dirs)")
     args = parser.parse_args()
     return args.scrape, args.test, args.compile, args.bench, args.clean
 
@@ -219,16 +255,15 @@ if __name__ == "__main__":
         s.scrape_crates()
 
     s.create_dirlist()
-    if not s.clean: 
-        s.revert_criterion_version()
-        if s.test == True:
-            s.run_tests()
-            s.aggregate_test_results()
-        if s.cmpl == True:
-            s.compile_benchmarks()
-        if s.bench: 
-            s.run_benchmarks()
-            s.aggregate_bench_results()
-    else:
+    if s.clean: 
         s.cleanup()
+    s.revert_criterion_version()
+    if s.test == True:
+        s.run_tests()
+        s.aggregate_test_results()
+    if s.cmpl == True:
+        s.compile_benchmarks()
+    if s.bench: 
+        s.run_benchmarks()
+        s.aggregate_bench_results()
 

@@ -39,13 +39,14 @@ category_map = {
 
 class State: 
 
-    def __init__(self, scrape, test, cmpl, bench, clean):
+    def __init__(self, scrape, test, cmpl, bench, local, clean):
         self.ctgry = 'criterion'
         self.ctgrydir = category_map.get(self.ctgry)
         self.scrape = scrape
         self.test = test
         self.cmpl = cmpl
         self.bench = bench
+        self.local = local
         self.clean = clean
 
         self.root = os.getcwd()
@@ -190,13 +191,14 @@ class State:
             outfile = os.path.join(d, self.resname, CRUNCHED_DATA)
             path_wrangle(outfile, headers)
 
+            runs = self.bench if self.bench else sum(os.path.isdir(os.path.join(aggdir, i)) for i in os.listdir(aggdir))
             sample_file = os.path.join(d, self.resname, "0", BENCH_DATA)
             # count number of distinctly captured benchmarks
             rows = len(open(sample_file).readlines()) - 1
             cols = 2
-            matrix = numpy.zeros((rows, cols, self.bench))
+            matrix = numpy.zeros((rows, cols, runs))
             bench_names = []
-            for r in range(self.bench):
+            for r in range(runs):
                 infile = os.path.join(d, self.resname, str(r), BENCH_DATA)
                 infd = open(infile)
                 row = 0
@@ -289,6 +291,10 @@ def arg_parse():
             type=int,
             const=5,
             help="run each benchmark N times per node (default is 5)")
+    parser.add_argument("--local", "-l",
+            action="store_true",
+            help="consolidate benchmark results across all runs on the current "\
+            "node")
     parser.add_argument("--clean",
             metavar="S",
             nargs="?",
@@ -299,11 +305,11 @@ def arg_parse():
             "'a' to additionally remove benchmark result dirs or 'b' to only "\
             "remove benchmark result dirs and not compilation dirs)")
     args = parser.parse_args()
-    return args.scrape, args.test, args.compile, args.bench, args.clean
+    return args.scrape, args.test, args.compile, args.bench, args.local, args.clean
 
 if __name__ == "__main__":
-    scrape, test, cmpl, bench, clean = arg_parse()
-    s = State(scrape, test, cmpl, bench, clean)
+    scrape, test, cmpl, bench, local, clean = arg_parse()
+    s = State(scrape, test, cmpl, bench, local, clean)
 
     if s.scrape:
         s.scrape_crates()
@@ -321,5 +327,6 @@ if __name__ == "__main__":
     if s.bench: 
         s.run_benchmarks()
         s.aggregate_bench_results()
+    if s.local:
         s.crunch_local()
 

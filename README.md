@@ -109,17 +109,22 @@ benchmarks will be run:
 $ python3 tool.py --scrape 200 --compile --bench 10
 ```
 
-4. If you would like to aggregate all the crate-specific results that you ran on a single machine, 
-run:
+4. If you would like to consolidate per-crate results from all runs on the current 
+node, you can run this instead of the above step: 
 
 ```sh
-$ ./post-run.sh -l -r $num_runs
+$ python3 tool.py --scrape 200 --compile --bench 10 --local
+```
+or consolidate separately like: 
+
+```sh
+$ python3 tool.py --local
 ```
 
-You will find the aggregated results in the "bench-CRUNCHED.data" file in the newly-generated
-directory. This file can be easily visualized (see command in [this](https://github.com/nataliepopescu/bencher_scrape#visualizing-results) section). 
+You will find the consolidated results in the "crunched.data" file in the results
+directory, which can then be visualized (see command in [this](https://github.com/nataliepopescu/bencher_scrape#visualizing-results) section). 
 
-5. If you would like to aggregate all the crate-specific results that you ran of various machines, 
+5. If you would like to aggregate all results across one or more remote machines, 
 run: 
 
 ```sh

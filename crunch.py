@@ -7,6 +7,23 @@ from subprocess import check_output
 import numpy
 import re
 
+def stats(array):
+    # average calc
+    avg = average(array)
+    # standard deviation calc
+    length = len(array)
+    sqrs = []
+    # squares of diffs
+    for a in array:
+        diff = avg - a
+        sqr = diff * diff
+        sqrs.append(sqr)
+    # average of squares
+    sqrs_avg = average(sqrs)
+    # square root
+    stdev = math.sqrt(sqrs_avg)
+    return avg, stdev
+
 def average(array):
     avg = 0
     t = 1
@@ -15,21 +32,19 @@ def average(array):
         t += 1
     return avg
 
-
-def stddev(array, arr_avg):
-    length = len(array)
-    sqrs = []
-    # Squares of diffs
-    for a in array:
-        diff = arr_avg - a
-        sqr = diff * diff
-        sqrs.append(sqr)
-    # Average of squares of diffs
-    sqrs_avg = average(sqrs)
-    # Square root
-    res = math.sqrt(sqrs_avg)
-    return res
-
+#def stddev(array, arr_avg):
+#    length = len(array)
+#    sqrs = []
+#    # Squares of diffs
+#    for a in array:
+#        diff = arr_avg - a
+#        sqr = diff * diff
+#        sqrs.append(sqr)
+#    # Average of squares of diffs
+#    sqrs_avg = average(sqrs)
+#    # Square root
+#    res = math.sqrt(sqrs_avg)
+#    return res
 
 #def arr_logs(array):
 #    locarr = []
@@ -40,18 +55,6 @@ def stddev(array, arr_avg):
 #        else: 
 #            locarr.append(a)
 #    return numpy.log(locarr)
-#
-#
-#def geomean(array):
-#    arr = arr_logs(array)
-#    return numpy.exp(arr.sum() / len(arr))
-#
-#
-#def geo_stddev(array):
-#    arr = arr_logs(array)
-#    log_avg = arr.sum() / len(arr)
-#    return numpy.exp(stddev(arr, log_avg))
-    
 
 def crunch(
     crate,
@@ -61,16 +64,13 @@ def crunch(
     numruns,
     ctgry):
     # Use same headers and will be using similar logic as "aggregate_bench.py" later on
-    headers = ['#','bench-name','unmod-time', 'unmod-error','bcrm-time','bcrm-error'] #'bcrm+sl-time','bcrm+sl-error','safelib-time','safelib-error']
-    #headers = ['#','bench-name','unmod-time', 'unmod-error','bcrm-time','bcrm-error','bcrm+sl-time','bcrm+sl-error','safelib-time','safelib-error']
+    headers = ['#', 'bench-name', 'unmod-time', 'unmod-error', 'bcrm-time', 'bcrm-error']
     
     # Grab the numbers for each [benchmark x rustc] combo (per crate)
     base_file = "./downloaded_" + ctgry + "/" + crate + "/" + data_file_loc + "/" + data_file
     crunched_output = base_file + "-CRUNCHED.data"
-    #geomean_output = base_file + "-GEOMEAN.data"
     # Write headers
     path_wrangle(crunched_output, headers)
-    #path_wrangle(geomean_output, headers)
 
     # Each loop here represents a different .data file, meaning that
     # each loop iteration adds to all the arrays _once_ (one data point
@@ -101,7 +101,7 @@ def crunch(
                 # Skip header line
                 if line[:1] == '#':
                     continue
-                # Each line = results of one benchmark name/function runs with four different rustc
+                # Each line = results for one benchmark name/function run
                 columns = line.split()
                 col = 0
                 for c in range(len(columns)):
@@ -128,30 +128,18 @@ def crunch(
             run += 1
 
     fd_crunched_output = open(crunched_output, 'a')
-    #fd_geomean_output = open(geomean_output, 'a')
     # Now that we've populated our matrix, can start crunching numbers
     for r in range(rows):
         row = []
-        #gm_row = []
         label = labels[r]
         row.append(label)
-        #gm_row.append(label)
         for c in range(cols):
-            # Order when print matrix: 
-            #   unmod
-            #   bcrm
-            #   bcrm+sl
-            #   safelib
-            avg = average(matrix[r][c])
-            stdev = stddev(matrix[r][c], avg)
-            #gm = geomean(matrix[r][c])
-            #gstdev = geo_stddev(matrix[r][c])
+            #avg = average(matrix[r][c])
+            #stdev = stddev(matrix[r][c], avg)
+            avg, stdev = stats(matrix[r][c])
             row.append(str(avg))
             row.append(str(stdev))
-            #gm_row.append(str(gm))
-            #gm_row.append(str(gstdev))
         writerow(fd_crunched_output, row)
-        #writerow(fd_geomean_output, gm_row)
 
 def path_wrangle(filepath, headers):
     """ Check for or create path and output file
@@ -166,7 +154,6 @@ def path_wrangle(filepath, headers):
     with open(filepath, 'w') as newhandle:
         writerow(newhandle, headers)
 
-
 def writerow(filehandle, array):
     """ Write the contents of the array as a white-space
     delimited row in the file
@@ -175,7 +162,6 @@ def writerow(filehandle, array):
         filehandle.write(elem)
         filehandle.write("\t")
     filehandle.write("\n")
-
 
 # Called like: python3 "$CRUNCH" "$crate" "$FNAME" "$LOCAL_OUTPUT" "$numnodes" "$runs"
 if __name__ == "__main__":

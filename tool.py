@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import sys
 import argparse
@@ -5,11 +7,14 @@ import platform
 import random
 import subprocess
 import shutil
+import numpy
 from aggregate import dump_benchmark
+from crunch import crunch, path_wrangle, writerow, stats
 
 UNMOD = "UNMOD"
 BCRMP = "BCRMP"
 exp_types = [UNMOD, BCRMP]
+headers = ['#', 'bench-name', 'unmod-time', 'unmod-error', 'bcrm-time', 'bcrm-error']
 
 optval =    "3"
 dbgval =    "2"
@@ -21,11 +26,12 @@ RBCFLAGS =  " -Z remove-bc"
 UNMODFLAGS = OPTFLAGS + DBGFLAGS + EMBDFLAGS
 BCRMPFLAGS = OPTFLAGS + DBGFLAGS + EMBDFLAGS + RBCFLAGS
 
-TESTS_OUT = "tests.out"
-TESTS_ERR = "tests.err"
-COMP_OUT =  "compile.out"
-COMP_ERR =  "compile.err"
-BENCH_DATA = "bench.data"
+TESTS_OUT =     "tests.out"
+TESTS_ERR =     "tests.err"
+COMP_OUT =      "compile.out"
+COMP_ERR =      "compile.err"
+BENCH_DATA =    "bench.data"
+CRUNCHED_DATA = "crunched.data"
 
 category_map = {
     "criterion":    "criterion_rev_deps",
@@ -148,7 +154,7 @@ class State:
                     targetdir = os.path.join(d, e, self.resname, "target")
                     outdir = os.path.join(d, self.resname, str(r))
                     print(outdir)
-                    subprocess.run(["mkdir", "-p", outdir])
+                    subprocess.run(["mkdir", "-p", outdir]) # TODO if exists, differentiate
                     f_out = open(os.path.join(outdir, e + ".out"), "w")
                     f_err = open(os.path.join(outdir, e + ".err"), "w")
                     try:
@@ -164,6 +170,7 @@ class State:
                         f_err.close()
                         os.chdir(self.root)
 
+    # summarize data for each run of each crate
     def aggregate_bench_results(self):
         for r in range(self.bench):
             for d in self.dirlist:
@@ -173,6 +180,53 @@ class State:
                 outfile = os.path.join(d, self.resname, str(r), BENCH_DATA)
                 dump_benchmark(outfile, unmodres, bcrmpres, 1)
                 os.chdir(self.root)
+
+    # summarize data for all runs of each crate on current node 
+    # (assuming all data is on this node)
+    def crunch_local(self):
+        for d in self.dirlist: 
+            os.chdir(d)
+            aggdir = os.path.join(d, self.resname)
+            outfile = os.path.join(d, self.resname, CRUNCHED_DATA)
+            path_wrangle(outfile, headers)
+
+            sample_file = os.path.join(d, self.resname, "0", BENCH_DATA)
+            # count number of distinctly captured benchmarks
+            rows = len(open(sample_file).readlines()) - 1
+            cols = 2
+            matrix = numpy.zeros((rows, cols, self.bench))
+            bench_names = []
+            for r in range(self.bench):
+                infile = os.path.join(d, self.resname, str(r), BENCH_DATA)
+                infd = open(infile)
+                row = 0
+                for line in infd: 
+                    # skip comments (i.e. header)
+                    if line[:1] == '#': 
+                        continue
+                    columns = line.split()
+                    for col in range(len(columns)): 
+                        # only get the benchmark names from one file
+                        if r == 0 and col == 0: 
+                            bench_names.append(columns[col])
+                        # collect <time> only (not <error>)
+                        if col % 2 == 1: 
+                            mcol_idx = int((col - 1) / 2)
+                            matrix[row][mcol_idx][r] = columns[col]
+                    row += 1
+
+            # crunch matrix numbers
+            outfd = open(outfile, 'a')
+            for row in range(rows):
+                cur = []
+                bench_name = bench_names[row]
+                cur.append(bench_name)
+                for col in range(cols):
+                    avg, stdev = stats(matrix[row][col])
+                    cur.append(str(avg))
+                    cur.append(str(stdev))
+                writerow(outfd, cur)
+            os.chdir(self.root)
 
     def cleanup(self):
         if self.clean == "c":
@@ -257,7 +311,8 @@ if __name__ == "__main__":
     s.create_dirlist()
     if s.clean: 
         s.cleanup()
-    s.revert_criterion_version()
+    if s.test == True or s.cmpl == True or s.bench:
+        s.revert_criterion_version()
     if s.test == True:
         s.run_tests()
         s.aggregate_test_results()
@@ -266,4 +321,5 @@ if __name__ == "__main__":
     if s.bench: 
         s.run_benchmarks()
         s.aggregate_bench_results()
+        s.crunch_local()
 

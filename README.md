@@ -137,8 +137,10 @@ where \<filename\> should contain a list of the remote ssh destination nodes fro
 which to get results and an absolute path pointing to the location of this 
 repository on the remote nodes. If this repository lives in 
 the same place on all nodes, a single absolute path can be used. Otherwise, 
-an absolute path must be specified per remote node. See <remote_same.example> 
-and <remote.example> for what such files should look like. 
+an absolute path must be specified per remote node. See 
+[remote_same.example](https://github.com/nataliepopescu/bencher_scrape/blob/master/remote_same.example) 
+and [remote.example](https://github.com/nataliepopescu/bencher_scrape/blob/master/remote.example) 
+for what such files should look like. 
 
 # Visualizing Results
 

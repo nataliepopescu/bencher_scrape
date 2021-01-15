@@ -147,3 +147,9 @@ for what such files should look like.
 ```sh
 $ python3 result_presenter.py -p .
 ```
+
+# Coarse Findings
+
+Top 200 crates: 8811 Lines of Unsafe Rust Code (LoURC) - 0.83%
+
+Top 500 crates: 17260 LoURC - 0.84%

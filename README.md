@@ -122,17 +122,23 @@ $ python3 tool.py --local
 ```
 
 You will find the consolidated results in the "crunched.data" file in the results
-directory, which can then be visualized (see command in [this](https://github.com/nataliepopescu/bencher_scrape#visualizing-results) section). 
+directory, which can then be visualized (see [this](https://github.com/nataliepopescu/bencher_scrape#visualizing-results) section). 
 
-5. If you would like to aggregate all results across one or more remote machines, 
-run: 
+5. If you would like to consolidate all results across one or more remote machines, 
+assuming benchmarks were run on the remote machines with some version of the 
+command from step 2 and every remote machine contains results for the same number 
+of runs, run: 
 
 ```sh
-$ ./post-run.sh -n $num_nodes -r $num_runs
+$ python3 tool.py --remote <filename>
 ```
 
-Where $num_runs must be the same on every machine. The implementation for this step is still in 
-progress, so you will likely have to customize the script yourself. 
+where <filename> should contain a list of the remote ssh destination nodes from 
+which to get results and an absolute path pointing to the location of this 
+repository on the remote nodes. If this repository lives in 
+the same place on all nodes, a single absolute path can be used. Otherwise, 
+an absolute path must be specified per remote node. See <remote_same.example> 
+and <remote.example> for what such files should look like. 
 
 # Visualizing Results
 

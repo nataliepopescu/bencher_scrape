@@ -1,0 +1,10 @@
+username@clnode0.clemson.cloudlab.us
+/home/username/foo/bencher_scrape
+username@clnode1.clemson.cloudlab.us
+/home/username/foobar/bencher_scrape
+username@clnode2.clemson.cloudlab.us
+/home/username/bar/bencher_scrape
+username@clnode3.clemson.cloudlab.us
+/home/username/baz/bencher_scrape
+username@clnode4.clemson.cloudlab.us
+/home/username/bencher_scrape

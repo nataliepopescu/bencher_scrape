@@ -6,6 +6,7 @@ import math
 from subprocess import check_output
 import numpy
 import re
+from aggregate import path_wrangle, writerow
 
 def stats(array):
     # average calc
@@ -140,28 +141,6 @@ def crunch(
             row.append(str(avg))
             row.append(str(stdev))
         writerow(fd_crunched_output, row)
-
-def path_wrangle(filepath, headers):
-    """ Check for or create path and output file
-    There's no error handling, because noisy failure's probably a good thing
-    """
-    # check for or create directory path
-    directory = os.path.split(filepath)[0]
-    if not os.path.exists(directory):
-            os.makedirs(directory)
-    # regardless if file itself exists or not, want blank slate so:
-    # create new or overwrite existing data
-    with open(filepath, 'w') as newhandle:
-        writerow(newhandle, headers)
-
-def writerow(filehandle, array):
-    """ Write the contents of the array as a white-space
-    delimited row in the file
-    """
-    for elem in array:
-        filehandle.write(elem)
-        filehandle.write("\t")
-    filehandle.write("\n")
 
 # Called like: python3 "$CRUNCH" "$crate" "$FNAME" "$LOCAL_OUTPUT" "$numnodes" "$runs"
 if __name__ == "__main__":

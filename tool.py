@@ -8,8 +8,8 @@ import random
 import subprocess
 import shutil
 import numpy
-from aggregate import dump_benchmark
-from crunch import crunch, path_wrangle, writerow, stats
+from aggregate import dump_benchmark, path_wrangle, writerow
+from crunch import crunch, stats
 
 UNMOD = "UNMOD"
 BCRMP = "BCRMP"

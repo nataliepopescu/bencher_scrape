@@ -12,17 +12,7 @@ def stats(array):
     # average calc
     avg = average(array)
     # standard deviation calc
-    length = len(array)
-    sqrs = []
-    # squares of diffs
-    for a in array:
-        diff = avg - a
-        sqr = diff * diff
-        sqrs.append(sqr)
-    # average of squares
-    sqrs_avg = average(sqrs)
-    # square root
-    stdev = math.sqrt(sqrs_avg)
+    stdev = stddev(array, avg)
     return avg, stdev
 
 def average(array):
@@ -33,29 +23,19 @@ def average(array):
         t += 1
     return avg
 
-#def stddev(array, arr_avg):
-#    length = len(array)
-#    sqrs = []
-#    # Squares of diffs
-#    for a in array:
-#        diff = arr_avg - a
-#        sqr = diff * diff
-#        sqrs.append(sqr)
-#    # Average of squares of diffs
-#    sqrs_avg = average(sqrs)
-#    # Square root
-#    res = math.sqrt(sqrs_avg)
-#    return res
-
-#def arr_logs(array):
-#    locarr = []
-#    for a in array:
-#        if a == 0:
-#            # Instead of 0, replace w a small value... 
-#            locarr.append(10**-100)
-#        else: 
-#            locarr.append(a)
-#    return numpy.log(locarr)
+def stddev(array, arr_avg):
+    length = len(array)
+    sqrs = []
+    # squares of diffs
+    for a in array:
+        diff = arr_avg - a
+        sqr = diff * diff
+        sqrs.append(sqr)
+    # average of squares of diffs
+    sqrs_avg = average(sqrs)
+    # square root
+    res = math.sqrt(sqrs_avg)
+    return res
 
 def crunch(
     crate,
@@ -81,7 +61,7 @@ def crunch(
 
     totalruns = int(numnodes) * int(numruns)
     rows = len(open(get_names_file, 'r').readlines()) - 1
-    cols = 2 #4
+    cols = 2
     matrix = numpy.zeros((rows, cols, totalruns))
 
     get_names = True
@@ -135,8 +115,6 @@ def crunch(
         label = labels[r]
         row.append(label)
         for c in range(cols):
-            #avg = average(matrix[r][c])
-            #stdev = stddev(matrix[r][c], avg)
             avg, stdev = stats(matrix[r][c])
             row.append(str(avg))
             row.append(str(stdev))

@@ -106,7 +106,7 @@ class State:
                     f_err.close()
                     os.chdir(self.root)
 
-    def aggregate_test_results(self):
+    def crunch_test_results(self):
         for d in self.dirlist: 
             os.chdir(d)
             unmod_res = os.path.join(d, UNMOD, self.resname, TESTS_OUT)
@@ -173,7 +173,7 @@ class State:
                         os.chdir(self.root)
 
     # summarize data for each run of each crate
-    def aggregate_bench_results(self):
+    def crunch_per_run(self):
         for r in range(self.bench):
             for d in self.dirlist:
                 os.chdir(d)
@@ -332,12 +332,12 @@ if __name__ == "__main__":
         s.revert_criterion_version()
     if s.test == True:
         s.run_tests()
-        s.aggregate_test_results()
+        s.crunch_test_results()
     if s.cmpl == True:
         s.compile_benchmarks()
     if s.bench: 
         s.run_benchmarks()
-        s.aggregate_bench_results()
+        s.crunch_per_run()
     if s.local:
         s.crunch_local()
     if s.remote: 

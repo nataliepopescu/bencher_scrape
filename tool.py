@@ -214,7 +214,7 @@ class State:
                         # only get the benchmark names from one file
                         if r == 0 and col == 0: 
                             bench_names.append(columns[col])
-                        # collect <time> only (not <error>)
+                        # collect <time> columns only (not <error>)
                         if col % 2 == 1: 
                             mcol_idx = int((col - 1) / 2)
                             matrix[row][mcol_idx][r] = columns[col]

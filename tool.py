@@ -10,6 +10,7 @@ import shutil
 import numpy
 from aggregate import dump_benchmark, path_wrangle, writerow
 from crunch import crunch, stats
+import datetime
 
 UNMOD = "UNMOD"
 BCRMP = "BCRMP"
@@ -233,6 +234,28 @@ class State:
                 writerow(outfd, cur)
             os.chdir(self.root)
 
+    def crunch_remote(self):
+        # parse input file
+        fd = open(self.remote)
+        num_path = 0
+        nodes = []
+        for line in fd: 
+            if line[:1] == "/":
+                num_path += 1
+            else:
+                nodes.append(line.strip())
+        # single path case
+        if num_path == 1:
+            print(nodes)
+        # multiple paths case
+        elif num_path == len(nodes):
+            print(num_path)
+        # input file is incorrect
+        else:
+            exit("cannot parse <" + self.remote + ">, please see "\
+            "<remote_same.example> and/or <remote.example> files for how "\
+            "to format input file")
+
     def cleanup(self):
         if self.clean == "c":
             for d in self.dirlist: 
@@ -300,12 +323,11 @@ def arg_parse():
             "node")
     parser.add_argument("--remote", "-r", 
             metavar="filename",
-            nargs=1,
             type=str,
             help="consolidate benchmark results across all runs across one or "\
             "more remote nodes--specify with a file containing the list of "\
             "ssh destination nodes and the absolute path to this repository "\
-            "on those nodes (see <remote.example>)")
+            "on those nodes (see <remote.example> and <remote_same.example>)")
     parser.add_argument("--clean",
             metavar="S",
             nargs="?",
@@ -321,6 +343,8 @@ def arg_parse():
 if __name__ == "__main__":
     scrape, test, cmpl, bench, local, remote, clean = arg_parse()
     s = State(scrape, test, cmpl, bench, local, remote, clean)
+
+    start = datetime.datetime.now()
 
     if s.scrape:
         s.scrape_crates()
@@ -342,4 +366,20 @@ if __name__ == "__main__":
         s.crunch_local()
     if s.remote: 
         s.crunch_remote()
+
+    end = datetime.datetime.now()
+    duration = end - start
+
+    # log duration of command
+    cmdfile = str(scrape) + "_" + \
+            str(test) + "_" + \
+            str(cmpl) + "_" + \
+            str(bench) + "_" + \
+            str(local) + "_" + \
+            str(remote) + "_" + \
+            str(clean) + ".time"
+    cmdfd = open(cmdfile, "w")
+    cmdfd.write("start:\t\t{}\n".format(str(start)))
+    cmdfd.write("end:\t\t{}\n".format(str(end)))
+    cmdfd.write("duration:\t{}\n".format(str(duration)))
 

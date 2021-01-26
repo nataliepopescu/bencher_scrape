@@ -145,7 +145,7 @@ for what such files should look like.
 # Visualizing Results
 
 ```sh
-$ python3 result_presenter.py -p .
+$ python3 result_presenter.py
 ```
 
 # Coarse Findings

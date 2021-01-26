@@ -28,7 +28,7 @@ $ git checkout match-version-from-rust
 Configure LLVM with your desired build system (we used Unix Makefiles) and these flags:
 
 ```sh
-$ cmake -G "Unix Makefiles" \
+$ mkdir build && cd build && cmake -G "Unix Makefiles" \
 	-DCMAKE_INSTALL_PREFIX="/path/you/have/read/write/access/to" \
 	-DLLVM_ENABLE_PROJECTS="clang" \
 	-DCMAKE_BUILD_TYPE=Release ../llvm

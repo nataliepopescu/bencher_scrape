@@ -17,7 +17,11 @@ dash >= 0.42.0
 ## LLVM
 
 Clone [this](https://github.com/nataliepopescu/llvm-project/tree/match-version-from-rust) 
-LLVM repository and branch.
+LLVM repository and make sure you're in the right branch: 
+
+```sh
+$ git checkout match-version-from-rust
+```
 
 ### Configure
 

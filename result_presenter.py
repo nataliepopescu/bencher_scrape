@@ -21,18 +21,20 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.config.suppress_callback_exceptions = True
 
+data = dict()
+
 graph_styles = {
-    0: {
-        "bar-name": "Vanilla Rustc",
-        "bar-color": "#FF4500"
-    },
-    1: {
-        "bar-name": "Rustc No Slice Bounds Checks",
-        "bar-color": "#FFA500"
-    },
+    #0: {
+    #    "bar_name": "Vanilla Rustc",
+    #    "bar_color": "#FF4500"
+    #},
+    #1: {
+    #    "bar_name": "Rustc No Slice Bounds Checks",
+    #    "bar_color": "#FFA500"
+    #},
     2: {
-        "bar-name": "Speedup",
-        "bar-color": "#FEA500"
+        "bar_name": "Speedup",
+        "bar_color": "#58D68D"
     }
 }
 
@@ -47,15 +49,6 @@ def geomean_overflow(iterable):
     # convert all elements to positive numbers
     a = np.log(locarr)
     return np.exp(a.sum() / len(a))
-
-# arithmetic mean helper
-#def arithmean_overflow(iterable):
-#    rng_avg = 0
-#    count = 1
-#    for i in iterable:
-#        rng_avg += (i - rng_avg) / count
-#        count += 1
-#    return rng_avg
 
 # helper for checking if a datafile has no data
 def is_empty_datafile(filepath):
@@ -72,25 +65,32 @@ class ResultProvider:
     # complete object has the following fields: 
     # - root
     # - datafile
-    # - crates
-    # - options
+    # - options (for dropdown menu)
+    # - data (dictionary with all crate/benchmark/perf info)
     # - better
     # - worse
     # - neither
+    # - better_ (outliers removed)
+    # - worse_ (outliers removed)
+
     def __init__(self, root):
         self.root = root
         self.datafile = "crunched.data"
 
         # populate list of crates
-        self.crates = []
+        loc_data = dict()
         for name in os.listdir(self.root):
-            if os.path.isdir(os.path.join(self.root, name)):
-                self.crates.append(name)
-        self.crates.sort()
+            if os.path.isdir(os.path.join(self.root, name)):            
+                loc_data[name] = None
+        #self.data = dict()
+        # sort for the purpose of displaying later
+        global data
+        for crate in sorted(loc_data): 
+            data[crate] = None
 
-        # populate options array for drop-down menu
+        # populate options array for dropdown menu
         self.options = []
-        for crate in self.crates:
+        for crate in list(data.keys()):
             self.options.append({'label': crate, 'value': crate})
 
     def get_speedups(self):
@@ -100,13 +100,15 @@ class ResultProvider:
         self.neither = dict()
         self.better_ = dict()
         self.worse_ = dict()
-        for c in self.crates: 
-            # FIXME
+        global data
+        for c in list(data.keys()):
+            # FIXME hardcoded
             filepath = os.path.join(self.root, c, "results_o3_dbg2_embed=yes", self.datafile)
             if is_empty_datafile(filepath) or not os.path.exists(filepath):
                 continue
             # open data file for reading
             handle = open(filepath)
+            bmarks = dict()
 
             for line in handle: 
                 if line[:1] == '#':
@@ -132,6 +134,8 @@ class ResultProvider:
                 else: 
                     speedup = float(unmod_time) / float(bcrm_time)
 
+                bmarks[cols[0]] = speedup
+
                 # categorize speedup: better, worse, neither
                 if speedup < 0.97: 
                     self.worse[name] = speedup
@@ -146,8 +150,44 @@ class ResultProvider:
                 else:
                     self.neither[name] = speedup
 
+            # populate data dictionary w bmarks
+            data[c] = bmarks
+
+def make_graph(d, title):
+    trace = {'x': list(d.keys()), 'y': list(d.values()), 'type': 'bar', 
+            'name': graph_styles.get(2).get('bar_name'), 
+            'marker_color': graph_styles.get(2).get('bar_color')}
+    return go.Figure({
+        'data': trace,
+        'layout': {
+            'title': title,
+            'xaxis': {
+                'linecolor': 'black',
+                'showline': True, 
+                'linewidth': 2,
+                'mirror': 'all',
+                'nticks': 10,
+                'showticklabels': True,
+                'title': {'text': 'Benchmarks'},
+            },
+            'yaxis': {
+                'showline': True, 
+                'linewidth': 2,
+                'ticks': 'outside',
+                'mirror': 'all',
+                'linecolor': 'black',
+                'gridcolor': 'rgb(200,200,200)', 
+                'nticks': 20,
+                'title': {'text': 'Speedup'},
+            },
+            'font': {'family': 'Helvetica', 'color': 'black', 'size': 16},
+            'plot_bgcolor': 'white',
+            'autosize': False,
+            'width': 2000, 
+            'height': 700}
+        })
+
 def get_overview_layout(rp):
-    rp.get_speedups()
     # for counting + average calc
     all_bmarks = {**rp.better, **rp.worse, **rp.neither}
     trimmed_bmarks = {**rp.better_, **rp.worse_, **rp.neither}
@@ -159,7 +199,7 @@ def get_overview_layout(rp):
     fig_hist = go.Figure({
         'data': trace,
         'layout': {
-            'title': 'Histogram of Speedups',
+            'title': 'Histogram of all speedups',
             'xaxis': {
                 'linecolor': 'black',
                 'ticks': 'outside',
@@ -185,42 +225,9 @@ def get_overview_layout(rp):
             'height': 700}
         })
 
-    def make_graph(d):
-        trace = {'x': list(d.keys()), 'y': list(d.values()), 'type': 'bar', 
-                'name': graph_styles.get(2).get('bar-name'), 
-                'marker_color': graph_styles.get(2).get('bar-color')}
-        return go.Figure({
-            'data': trace,
-            'layout': {
-                'xaxis': {
-                    'linecolor': 'black',
-                    'showline': True, 
-                    'linewidth': 2,
-                    'mirror': 'all',
-                    'nticks': 10,
-                    'showticklabels': True,
-                    'title': {'text': 'Benchmarks'},
-                },
-                'yaxis': {
-                    'showline': True, 
-                    'linewidth': 2,
-                    'ticks': 'outside',
-                    'mirror': 'all',
-                    'linecolor': 'black',
-                    'gridcolor': 'rgb(200,200,200)', 
-                    'nticks': 20,
-                    'title': {'text': 'Speedup'},
-                },
-                'font': {'family': 'Helvetica', 'color': 'black', 'size': 16},
-                'plot_bgcolor': 'white',
-                'autosize': False,
-                'width': 2000, 
-                'height': 700}
-            })
-
-    fig_better = make_graph(rp.better)
-    fig_worse = make_graph(rp.worse)
-    fig_neither = make_graph(rp.neither)
+    fig_better = make_graph(rp.better, 'Bar chart of improved benchmarks')
+    fig_worse = make_graph(rp.worse, 'Bar chart of worsened benchmarks')
+    fig_neither = make_graph(rp.neither, 'Bar chart of everything else')
 
     layout = html.Div([
         # to calculate: 
@@ -255,7 +262,7 @@ def get_overview_layout(rp):
         html.H5('Average speedup across benchmarks in this category (- outliers): {}'.format(geomean_overflow(list(rp.better_.values())))),
         html.Br(),
         dcc.Graph(
-            id='better-graph',
+            id='better_graph',
             figure=fig_better
         ),
         html.Br(),
@@ -267,7 +274,7 @@ def get_overview_layout(rp):
         html.H5('Average speedup across benchmarks in this category (- outliers): {}'.format(geomean_overflow(list(rp.worse_.values())))),
         html.Br(),
         dcc.Graph(
-            id='worse-graph',
+            id='worse_graph',
             figure=fig_worse
         ),
         html.Br(),
@@ -277,7 +284,7 @@ def get_overview_layout(rp):
         html.H5('Average speedup across benchmarks in this category: {}'.format(geomean_overflow(list(rp.neither.values())))),
         html.Br(),
         dcc.Graph(
-            id='neither-graph',
+            id='neither_graph',
             figure=fig_neither
         ),
         html.Br(),
@@ -285,431 +292,49 @@ def get_overview_layout(rp):
 
     return layout
 
-#@app.callback(dash.dependencies.Output('crate-content', 'children'),
-#              [dash.dependencies.Input('result_type', 'value')])
-#def display_crate_info(result_type):
-#    print("right here")
-#    print(rp)
-#    return display_overview(rp)
-#
-#def display_overview(rp):
-
-#def display_diff(crate_name, crate_opt):
-#
-#    no_baseline = 0
-#    no_tocompare = 0
-#
-#    if (not os.path.exists(file_baseline)) or is_empty_datafile(file_baseline): 
-#        no_baseline = 1
-#    if (not os.path.exists(file_tocompare)) or is_empty_datafile(file_tocompare):
-#        no_tocompare = 1
-#    if no_baseline == 1 and no_tocompare == 1: 
-#        return "\n\nNo diff data for [" + str(crate_name) + "] with these settings."
-#    elif no_baseline == 0 and no_tocompare == 1: 
-#        return "\n\nMISMATCH: No diff data for [" + str(crate_name) + "] with the ~to compare~ setting."
-#    elif no_baseline == 1 and no_tocompare == 0: 
-#        return "\n\nMISMATCH: No diff data for [" + str(crate_name) + "] with the ~baseline~ setting."
-#
-#    def get_one_bar(rustc_type, bar_name, color):
-#        one_bmark_list = []
-#        one_perf_list = []
-#        one_y_error_list = []
-#
-#        # open files for reading
-#        handle_baseline = open(file_baseline, 'r')
-#        handle_tocompare = open(file_tocompare, 'r')
-#
-#        col = rustc_type * 2 + 1
-#
-#        for line_baseline, line_tocompare in zip(handle_baseline, handle_tocompare):
-#            if line_baseline[:1] == '#':
-#                continue
-#
-#            # get columns from files
-#            cols_baseline = line_baseline.split()
-#            cols_tocompare = line_tocompare.split()
-#
-#            # get benchmark names for this crate
-#            name = cols_baseline[0]
-#            one_bmark_list.append(name)
-#
-#            # get times from specified (column * 2 + 1)
-#            time_baseline = cols_baseline[col]
-#            time_tocompare = cols_tocompare[col]
-#            error = cols_tocompare[col + 1]
-#
-#            # calculate the percent speedup or slowdown
-#            div = float(time_baseline) if float(time_baseline) != 0 else 1
-#            perc_time = ((float(time_tocompare) - float(time_baseline)) / div) * 100
-#            one_perf_list.append(perc_time)
-#
-#            div = float(time_tocompare) if float(time_tocompare) != 0 else 1
-#            perc_e = (float(error) / div) * 100
-#            one_y_error_list.append(perc_e)
-#
-#
-#        handle_baseline.close()
-#        handle_tocompare.close()
-#
-#        bar_one = {'x': one_bmark_list, 'y': one_perf_list, 'error_y': {'type': 'data', 'array': one_y_error_list},
-#                   'type': 'bar', 'name': bar_name, 'marker_color': color}
-#        return bar_one
-#
-#
-#    bar_list = []
-#    #if ("bcrm" in crate_opt) or ("mir" in crate_opt):
-#    bar_unmod = get_one_bar(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
-#    bar_bcrm = get_one_bar(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
-#
-#    bar_list = [bar_unmod, bar_bcrm]
-#    #else:
-#    #    bar_unmod = get_one_bar(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
-#    #    bar_bcrm = get_one_bar(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
-#    #    bar_both = get_one_bar(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
-#    #    bar_safelib = get_one_bar(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
-#
-#    #    bar_list = [bar_unmod, bar_bcrm, bar_both, bar_safelib]
-#
-#    fig = go.Figure({
-#                    'data': bar_list,
-#                    'layout': {
-#                        'legend': {'orientation': 'h', 'x': 0.2, 'y': 1.3},
-#                        'yaxis': {
-#                            'showline': True, 
-#                            'linewidth': 2,
-#                            'ticks': "outside",
-#                            'mirror': 'all',
-#                            'linecolor': 'black',
-#                            'gridcolor':'rgb(200,200,200)', 
-#                            'nticks': 20,
-#                            'title': {'text': bencher_switcher.get(crate_opt).get("y-axis-label")},
-#                        },
-#                        'xaxis': {
-#                            'linecolor': 'black',
-#                            'showline': True, 
-#                            'linewidth': 2,
-#                            'mirror': 'all',
-#                            'nticks': 10,
-#                            'showticklabels': True,
-#                            'title': {'text': "Benchmarks"},
-#                        },
-#                        'font': {'family': 'Helvetica', 'color': "Black"},
-#                        'plot_bgcolor': 'white',
-#                        'autosize': False,
-#                        'width': 1450, 
-#                        'height': 700}
-#                    })
-#
-#        
-#    return html.Div([
-#        dcc.Graph(
-#            id='rustc-compare-ltos',
-#            figure=fig
-#        )
-#    ])
-#
-#
-#def display_relative(crate_name, crate_opt): 
-#
-#    if "crit" in crate_opt:
-#        filepath = path_to_criterion + "/" + crate_name + "/" + criterion_switcher.get(crate_opt).get("dir") + "/" + data_file_new
-#    elif "bcrm" in crate_opt:
-#        filepath = path_to_bencher + "/" + crate_name + "/" + bencher_switcher.get(crate_opt).get("dir") + "/" + data_file_new
-#    else: 
-#        filepath = path_to_bencher + "/" + crate_name + "/" + bencher_switcher.get(crate_opt).get("dir") + "/" + data_file
-#
-#    if (not os.path.exists(filepath)) or is_empty_datafile(filepath):
-#        return "\n\nNo relative data for [" + str(crate_name) + "] with these settings."
-#
-#    speedup_arr = []
-#
-#    def get_one_bar_rel(rustc_type, bar_name, color):
-#        one_bmark_list = []
-#        one_perf_list = []
-#        one_y_error_list = []
-#
-#        # open file for reading
-#        handle = open(filepath, 'r')
-#
-#        for line in handle:
-#            if line[:1] == '#':
-#                continue
-#            cols = line.split()
-#
-#            # get benchmark names for this crate
-#            name = cols[0]
-#            one_bmark_list.append(name)
-#
-#            # get baseline (unmod times) to compare this version againt
-#            unmod = cols[1]
-#            unmod_error = cols[2]
-#
-#            # get the times from the specified (column * 2 + 1)
-#            col = rustc_type * 2 + 1
-#            time = cols[col]
-#            error = cols[col + 1]
-#
-#            # calculate the percent speedup or slowdown
-#            div = float(unmod) if float(unmod) != 0 else 1
-#            perc_time = ((float(time) - float(unmod)) / div) * 100
-#            div_e = float(time) if float(time) != 0 else 1
-#            perc_e = (float(error) / div_e) * 100
-#
-#            # calculate actual speedup
-#            speedup_div = 1 + (perc_time / 100)
-#            speedup = 1 if speedup_div == 0 else 1 / speedup_div
-#            #speedup = 1 / (1 + (perc_time / 100))
-#            speedup_arr.append(speedup)
-#
-#            one_perf_list.append(perc_time)
-#            one_y_error_list.append(perc_e)
-#
-#        handle.close()
-#
-#        color_e = 'black' if rustc_type != 0 else color
-#
-#        bar_one = {'x': one_bmark_list, 'y': one_perf_list, 'error_y': {'type': 'data', 'array': one_y_error_list, 'color': color_e},
-#                   'type': 'bar', 'name': bar_name, 'marker_color': color}
-#
-#        return bar_one
-#
-#    
-#    bar_list = []
-#    #if "bcrm" in crate_opt: #.startswith("bcrm"):
-#    #bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
-#    bar_bcrm = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
-#
-#    bar_list = [bar_bcrm]
-#    #bar_list = [bar_unmod, bar_bcrm]
-#
-#    #else: 
-#    #    bar_unmod = get_one_bar_rel(0, graph_styles.get(0).get("bar-name"), graph_styles.get(0).get("bar-color"))
-#    #    bar_nobc = get_one_bar_rel(1, graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
-#    #    bar_both = get_one_bar_rel(2, graph_styles.get(2).get("bar-name"), graph_styles.get(2).get("bar-color"))
-#    #    bar_safelib = get_one_bar_rel(3, graph_styles.get(3).get("bar-name"), graph_styles.get(3).get("bar-color"))
-#
-#    #    bar_list = [bar_unmod, bar_nobc, bar_both, bar_safelib]
-#
-#    fig = go.Figure({
-#                    'data': bar_list,
-#                    'layout': {
-#                        'legend': {'orientation': 'h', 'x': 0.2, 'y': 1.3},
-#                        'yaxis': {
-#                            'showline': True, 
-#                            'linewidth': 2,
-#                            'ticks': "outside",
-#                            'mirror': 'all',
-#                            'linecolor': 'black',
-#                            'gridcolor':'rgb(200,200,200)', 
-#                            'nticks': 20,
-#                            'title': {'text': " Performance Relative to Vanilla [%]"},
-#                        },
-#                        'xaxis': {
-#                            'linecolor': 'black',
-#                            'showline': True, 
-#                            'linewidth': 2,
-#                            'mirror': 'all',
-#                            'nticks': 10,
-#                            'showticklabels': True,
-#                            'title': {'text': "Benchmarks"},
-#                        },
-#                        'font': {'family': 'Helvetica', 'color': "Black"},
-#                        'plot_bgcolor': 'white',
-#                        'autosize': False,
-#                        'width': 1450, 
-#                        'height': 700}
-#                    })
-#
-#    geo_speedup = geomean_overflow(speedup_arr)
-#
-#    return html.Div([
-#        html.Br(),
-#        html.Label('Average Speedup for [' + crate_name + ']: ' + str(geo_speedup)),
-#        html.Br(),
-#        html.Label(str(len(speedup_arr)) + ' Benchmarks'),
-#        dcc.Graph(
-#            id='rustc-compare-graph-rel',
-#            figure=fig
-#        )
-#    ])
-
-
-def display_significant(result_type):
-    one_bmark_list = []
-    one_perf_list = []
-    one_yerror_list = []
-
-    # array for just tracking the speedup in the BETTER, WORSE, or neither
-    speedup_arr_setting = dict() # make dictionary: speedup -> name
-    # all speedup (for histogram)
-    speedup_arr = []
-    max_benefit = []
-    histo_arr = []
-
-    def get_one_bar(bar_name, bar_color):
-        #if speedup < 1.6 and speedup > 0.4:
-        #    speedup_arr.append(speedup)
-        #if speedup >= 1 and speedup < 1.6: 
-        #    max_benefit.append(speedup)
-        #else: 
-        #    max_benefit.append(1)
-        ##if speedup < 350:
-        #histo_arr.append(speedup)
-
-        div_e = float(bcrm_time) if float(bcrm_time) != 0 else 1
-        perc_error = (float(bcrm_error) / div_e) * 100
-        unmod_perc_error = (float(unmod_error) / div) * 100
-
-        # if positive and worse
-        #if result_type == 'worse' and perc_time > 0:
-        #    # perc_time is within unmod stdev
-        #    # stdev magnitude is larger than perc_time magnitude
-        #    # perc_time magnitude is less than 3%
-        #    if not (perc_time < float(unmod_perc_error) or perc_time < float(perc_error) or perc_time < 3):
-        #    #if speedup < 1 and speedup > 0.4:
-        #    #    speedup_arr_setting[speedup] = name
-        #    #else:
-        #    one_bmark_list.append(name)
-        #    one_perf_list.append(perc_time)
-        #    one_yerror_list.append(perc_error)
-        ## if negative and better
-        #elif result_type == 'better' and perc_time < 0:
-        #    # perc_time is within unmod stdev
-        #    # stdev magnitude is larger than perc_time magnitude
-        #    # perc_time magnitude is less than 3%
-        #    if not (abs(perc_time) < float(unmod_perc_error) or abs(perc_time) < float(perc_error) or abs(perc_time) < 3):
-        #    #if speedup > 1 and speedup < 1.6:
-        #    #    speedup_arr_setting[speedup] = name
-        #    #else:
-        #    one_bmark_list.append(name)
-        #    one_perf_list.append(perc_time)
-        #    one_yerror_list.append(perc_error)
-        ## add rest of benchmarks to this graph
-        #elif result_type == 'neither': # and perc_time < 0:
-        #    if abs(perc_time) < float(unmod_perc_error) or abs(perc_time) < float(perc_error) or abs(perc_time) < 3:
-        #        one_bmark_list.append(name)
-        #        one_perf_list.append(perc_time)
-        #        one_yerror_list.append(perc_error)
-        #        speedup_arr_setting[speedup] = name
-
-        color_e = 'black'
-        bar_one = {'x': one_bmark_list, 'y': one_perf_list, 'error_y': {'type': 'data', 'array': one_yerror_list, 'color': color_e},
-                    'type': 'bar', 'name': bar_name, 'marker_color': bar_color}        
-        return {0: bar_one, 1: len(one_bmark_list), 2: bmark_ctr}
-
-    results = get_one_bar(graph_styles.get(1).get("bar-name"), graph_styles.get(1).get("bar-color"))
-    bar_list = results.get(0)
-    num_bmarks = results.get(1)
-    total_num_bmarks = results.get(2)
-
-    fig = go.Figure({
-                    'data': bar_list,
-                    'layout': {
-                        'legend': {'orientation': 'h', 'x': 0.2, 'y': 1.3},
-                        'yaxis': {
-                            'showline': True, 
-                            'linewidth': 2,
-                            'ticks': "outside",
-                            'mirror': 'all',
-                            'linecolor': 'black',
-                            'gridcolor':'rgb(200,200,200)', 
-                            'nticks': 20,
-                            'title': {'text': " Performance Relative to Vanilla [%]"},
-                        },
-                        'xaxis': {
-                            'linecolor': 'black',
-                            'showline': True, 
-                            'linewidth': 2,
-                            'mirror': 'all',
-                            'nticks': 10,
-                            'showticklabels': True,
-                            'title': {'text': "Benchmarks"},
-                        },
-                        'font': {'family': 'Helvetica', 'color': "Black"},
-                        'plot_bgcolor': 'white',
-                        'autosize': False,
-                        'width': 2450, 
-                        'height': 1000}
-                    })
-
-    trace = go.Histogram(x=histo_arr, nbinsx=100, autobinx=False)
-    fig_hist = go.Figure({
-                    'data': trace, #, cumulative_enabled=True),
-                    'layout': {
-                        'title': "Histogram of Benchmark Speedups",
-                        'xaxis': {
-                            'linecolor': 'black',
-                            'showline': True, 
-                            'nticks': 100,
-                            'title': {'text': "Speedup"},
-                            #'autobinx': False,
-                        },
-                        'yaxis': {
-                            'linecolor': 'black',
-                            'ticks': "outside",
-                            'showline': True, 
-                            'gridcolor':'rgb(200,200,200)', 
-                            'nticks': 50,
-                            'type': "log",
-                            'title': {'text': "Number of Benchmarks"},
-                        },
-                        'font': {'family': 'Helvetica', 'color': "Black"},
-                        'plot_bgcolor': 'white',
-                        'autosize': False,
-                        'bargap': 0.2,
-                        'width': 4000, 
-                        'height': 1000}
-                    })
-    
-    # add vertical line designating slowdown => speedup shift
-    #fig_hist.add_shape(
-    #    dict(
-    #        type="line",
-    #        x0=1,
-    #        x1=1,
-    #        y0=0,
-    #        y1=500,
-    #        line=dict(
-    #            color="OrangeRed",
-    #            width=4,
-    #            dash="dot",
-    #        )
-    #    )
-    #)
-
-    if result_type == 'neither':
-        avg_speedup_setting = "Not calculated"
-    else: 
-        avg_speedup_setting = geomean_overflow(list(speedup_arr_setting))
-    avg_speedup = geomean_overflow(speedup_arr)
-    max_ben = geomean_overflow(max_benefit)
-    num_bmarks_considered = len(speedup_arr)
-
-    def ordered_benchmarks(dic): 
-        for i in sorted(dic):
-            print((str(i), dic[i]), flush=True)
-        
-    return html.Div([
+def get_crates_layout(rp):
+    layout = html.Div([
         html.Br(),
-        html.Label('Number of Benchmarks in this graph: ' + str(num_bmarks)),
-        html.Label('Total Number of Benchmarks: ' + str(total_num_bmarks)),
-        html.Br(),
-        html.Label('Average Speedup [of benchmarks in graph where speedup < 1.6] = ' + str(avg_speedup_setting)),
-        html.Label('Average Speedup [total of ' + str(num_bmarks_considered) + ' benchmarks where speedup < 1.6] = ' + str(avg_speedup)),
-        html.Label('Potential Speedup [total of benchmarks where speedup < 1.6] = ' + str(max_ben)),
-        html.Br(),
-        dcc.Graph(
-            id='significant-res-graph',
-            figure=fig
+        html.H6('Pick a crate:'),
+        dcc.Dropdown(id='crate_name',
+            options=rp.options,
+            value='hex-0.4.2',
+            style={'width': '50%'}
         ),
         html.Br(),
-        html.Label(ordered_benchmarks(speedup_arr_setting)),
+        html.Div(id='crate_graph'),
         html.Br(),
-        dcc.Graph(
-            id='histogram',
-            figure=fig_hist
-        )
     ])
+
+    return layout
+
+@app.callback(dash.dependencies.Output('crate_graph', 'children'),
+        [dash.dependencies.Input('crate_name', 'value')])
+def display_pipe(crate_name):
+    return display_crate(crate_name)
+
+def display_crate(crate_name):
+    # TODO add error bars
+    global data 
+    if data[crate_name]: 
+        fig = make_graph(data[crate_name], 'Bar Chart of Crate Benchmarks')
+        geo = geomean_overflow(list(data[crate_name].values()))
+
+        return html.Div([
+            html.Br(),
+            html.H6('Average Speedup for [{}] Crate: {}'.format(crate_name, str(geo))),
+            html.H6('{} Benchmarks in Crate'.format(str(len(data[crate_name])))),
+            dcc.Graph(
+                id='crate_fig',
+                figure=fig
+            )
+        ])
+    else: 
+        return html.Div([
+            html.Br(),
+            html.H6('Crate [{}] has no benchmarks'.format(crate_name)),
+            html.Br()
+        ])
 
 def parseArgs():
     parser = argparse.ArgumentParser()
@@ -727,7 +352,7 @@ def parseArgs():
     args = parser.parse_args()
     return args.root_path, args.port
 
-@app.callback(dash.dependencies.Output('page-content', 'children'),
+@app.callback(dash.dependencies.Output('page_content', 'children'),
               [dash.dependencies.Input('url', 'pathname')])
 def display_page(pathname):
     if not pathname:
@@ -737,18 +362,24 @@ def display_page(pathname):
     if pathname == '/passOverview':
         layout = get_overview_layout(app._result_provider)
         return layout
+    elif pathname == '/passCrates':
+        layout = get_crates_layout(app._result_provider)
+        return layout
     else:
         return 404
 
 if __name__ == '__main__':
     root_path, port = parseArgs()
     app._result_provider = ResultProvider(root_path)
+    app._result_provider.get_speedups()
 
     app.layout = html.Div([
         dcc.Location(id='url', refresh=False),
         dcc.Link('Results Overview', href='/passOverview'),
         html.Br(),
-        html.Div(id='page-content')
+        dcc.Link('Results per Crate', href='/passCrates'),
+        html.Br(),
+        html.Div(id='page_content')
     ])
 
     app.run_server(debug=False, host='0.0.0.0', port=port)

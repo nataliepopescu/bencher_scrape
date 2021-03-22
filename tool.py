@@ -87,10 +87,14 @@ class State:
     def run_tests(self):
         for e in exp_types:
             os.environ["RUSTFLAGS"] = UNMODFLAGS if e == UNMOD else BCRMPFLAGS
+            curnum = 0
+            totalnum = len(self.dirlist)
 
             for d in self.dirlist:
                 os.chdir(d)
                 outdir = os.path.join(d, e, self.resname)
+                curnum += 1
+                print("Testing " + curnum + "/" + totalnum + " crates...")
                 print(outdir)
                 subprocess.run(["mkdir", "-p", outdir])
                 f_out = open(os.path.join(outdir, TESTS_OUT), "w")
@@ -125,10 +129,14 @@ class State:
     def compile_benchmarks(self):
         for e in exp_types:
             os.environ["RUSTFLAGS"] = UNMODFLAGS if e == UNMOD else BCRMPFLAGS
+            curnum = 0
+            totalnum = len(self.dirlist)
 
             for d in self.dirlist:
+                curnum += 1
                 os.chdir(d)
                 outdir = os.path.join(d, e, self.resname)
+                print("Compiling " + curnum + "/" + totalnum + " crates...")
                 print(outdir)
                 subprocess.run(["mkdir", "-p", outdir])
                 f_out = open(os.path.join(outdir, COMP_OUT), "w")
@@ -151,11 +159,15 @@ class State:
             self.randomize_dirlist()
             for e in exp_types: 
                 os.environ["RUSTFLAGS"] = UNMODFLAGS if e == UNMOD else BCRMPFLAGS
+                curnum = 0
+                totalnum = len(self.dirlist)
 
                 for d in self.dirlist:
                     os.chdir(d)
                     targetdir = os.path.join(d, e, self.resname, "target")
                     outdir = os.path.join(d, self.resname, str(r))
+                    curnum += 1
+                    print("Benchmarking " + curnum + "/" + totalnum + " crates...")
                     print(outdir)
                     subprocess.run(["mkdir", "-p", outdir]) # TODO if exists, differentiate
                     f_out = open(os.path.join(outdir, e + ".out"), "w")

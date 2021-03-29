@@ -338,19 +338,21 @@ def display_crate(crate_name):
 
 def parseArgs():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-r", "--root_path",
+    parser.add_argument("--root", "-r",
+            metavar="path",
             type=str,
             required=False,
             default="./criterion_rev_deps/",
             help="root path of scraped crates directory with benchmark results; "\
             "default is ./criterion_rev_deps/")
     parser.add_argument("-p", "--port",
+            metavar="num",
             type=str,
             required=False,
             default="8050",
             help="port for Dash server to run; 8050 or 8060 on AWS")
     args = parser.parse_args()
-    return args.root_path, args.port
+    return args.root, args.port
 
 @app.callback(dash.dependencies.Output('page_content', 'children'),
               [dash.dependencies.Input('url', 'pathname')])
@@ -369,8 +371,8 @@ def display_page(pathname):
         return 404
 
 if __name__ == '__main__':
-    root_path, port = parseArgs()
-    app._result_provider = ResultProvider(root_path)
+    root, port = parseArgs()
+    app._result_provider = ResultProvider(root)
     app._result_provider.get_speedups()
 
     app.layout = html.Div([

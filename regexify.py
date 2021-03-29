@@ -7,21 +7,26 @@ import argparse
 
 def arg_parse():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root", "r",
+    parser.add_argument("--root", "-r",
             metavar="path",
             type=str,
             help="root path from where to start source code conversions")
-    parser.add_argument("--logfile", "l",
+    parser.add_argument("--logfile", "-l",
             metavar="filename",
             type=str,
             nargs="?",
             const="changes.txt",
-            help="name of the file in which to store line/column/filename of changes")
+            help="name of the file in which to store line/column/filename of changes; "\
+                    "default is 'changes.txt' in the specified root dir")
     args = parser.parse_args()
     return args.root, args.logfile
 
 root, logfile = arg_parse()
-logs = open(logfile, 'w')
+if logfile: 
+    logfile = os.path.join(root, logfile)
+    logs = open(logfile, 'w')
+else: 
+    logs = None
 
 mutregex_in = r'([a-zA-Z_][a-zA-Z0-9_\.]*)\.get_unchecked_mut[(]([a-zA-Z_][a-zA-Z0-9_\.]*)[)]'
 mutregex_out = r'(&mut \1[\2])'
@@ -55,9 +60,10 @@ for fname in filelist:
                 col = bloc + start + 1
                 if col > end: 
                     exit("Column calculation is off!! [mut]")
-                logs.write(str(idx + 1) + " " + 
-                        str(col) + " " + 
-                        fname + "\n")
+                if logs: 
+                    logs.write(str(idx + 1) + " " + 
+                            str(col) + " " + 
+                            fname + "\n")
             # convert all instances of get_unchecked (per line) one at a time
             while (match := re.search(regex_in, line)): 
                 line = re.sub(regex_in, regex_out, line, count=1)
@@ -74,9 +80,10 @@ for fname in filelist:
                 col = bloc + start + 1
                 if col > end: 
                     exit("Column calculation is off!! [immut]")
-                logs.write(str(idx + 1) + " " + 
-                        str(col) + " " + 
-                        fname + "\n")
+                if logs: 
+                    logs.write(str(idx + 1) + " " + 
+                            str(col) + " " + 
+                            fname + "\n")
             new_lines.append(line)
     with open(fname, 'w') as fd:
         fd.writelines(new_lines)

@@ -3,10 +3,25 @@ import re
 import fileinput
 import os
 import subprocess
+import argparse
 
-root = os.path.join(os.getcwd(), "criterion_rev_deps")
-logfile = "changes.txt"
-out = open(logfile, 'w')
+def arg_parse():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root", "r",
+            metavar="path",
+            type=str,
+            help="root path from where to start source code conversions")
+    parser.add_argument("--logfile", "l",
+            metavar="filename",
+            type=str,
+            nargs="?",
+            const="changes.txt",
+            help="name of the file in which to store line/column/filename of changes")
+    args = parser.parse_args()
+    return args.root, args.logfile
+
+root, logfile = arg_parse()
+logs = open(logfile, 'w')
 
 mutregex_in = r'([a-zA-Z_][a-zA-Z0-9_\.]*)\.get_unchecked_mut[(]([a-zA-Z_][a-zA-Z0-9_\.]*)[)]'
 mutregex_out = r'(&mut \1[\2])'
@@ -14,18 +29,19 @@ regex_in = r'([a-zA-Z_][a-zA-Z0-9_\.]*)\.get_unchecked[(]([a-zA-Z_][a-zA-Z0-9_\.
 regex_out = r'(&\1[\2])'
 left_brack = r'\['
 
-for dir in os.listdir(root): 
-    os.chdir(os.path.join(root, dir))
+os.chdir(os.path.join(root))
+rs_files = subprocess.run(["find", ".", "-name", "*.rs", "-type", "f"], 
+        capture_output=True, text=True)
+filelist = rs_files.stdout.split()
 
-    rs_files = subprocess.run(["find", ".", "-name", "*.rs", "-type", "f"], 
-            capture_output=True, text=True)
-    filelist = rs_files.stdout.split()
-
-    with fileinput.input(files=filelist, inplace=True) as f: 
-        for line in f: 
-            # convert all instances per line one at a time
-            while (match := re.search(mutregex_in, line.strip())): 
-                line = re.sub(mutregex_in, mutregex_out, line.strip(), count=1)
+for fname in filelist:
+    new_lines = []
+    with open(fname, 'r') as fd:
+        old_lines = fd.readlines()
+        for idx, line in enumerate(old_lines): 
+            # convert all instances of get_unchecked_mut (per line) one at a time
+            while (match := re.search(mutregex_in, line)): 
+                line = re.sub(mutregex_in, mutregex_out, line, count=1)
                 start = match.span()[0]
                 end = match.span()[1]
                 # create temp string whose start is "start"
@@ -39,12 +55,12 @@ for dir in os.listdir(root):
                 col = bloc + start + 1
                 if col > end: 
                     exit("Column calculation is off!! [mut]")
-                fname = os.path.join(os.getcwd(), fileinput.filename())
-                out.write(str(fileinput.filelineno()) + " " + 
+                logs.write(str(idx + 1) + " " + 
                         str(col) + " " + 
                         fname + "\n")
-            while (match := re.search(regex_in, line.strip())): 
-                line = re.sub(regex_in, regex_out, line.strip(), count=1)
+            # convert all instances of get_unchecked (per line) one at a time
+            while (match := re.search(regex_in, line)): 
+                line = re.sub(regex_in, regex_out, line, count=1)
                 start = match.span()[0]
                 end = match.span()[1]
                 # create temp string whose start is "start"
@@ -58,8 +74,9 @@ for dir in os.listdir(root):
                 col = bloc + start + 1
                 if col > end: 
                     exit("Column calculation is off!! [immut]")
-                fname = os.path.join(os.getcwd(), fileinput.filename())
-                out.write(str(fileinput.filelineno()) + " " + 
+                logs.write(str(idx + 1) + " " + 
                         str(col) + " " + 
                         fname + "\n")
-            print(line.strip())
+            new_lines.append(line)
+    with open(fname, 'w') as fd:
+        fd.writelines(new_lines)

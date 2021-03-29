@@ -12,6 +12,7 @@ import numpy as np
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+import plotly
 import plotly.graph_objects as go
 import plotly.express as px
 import math
@@ -157,7 +158,7 @@ def make_graph(d, title):
     trace = {'x': list(d.keys()), 'y': list(d.values()), 'type': 'bar', 
             'name': graph_styles.get(2).get('bar_name'), 
             'marker_color': graph_styles.get(2).get('bar_color')}
-    return go.Figure({
+    fig = go.Figure({
         'data': trace,
         'layout': {
             'title': title,
@@ -186,6 +187,19 @@ def make_graph(d, title):
             'width': 2000, 
             'height': 700}
         })
+
+    # add horizontal lines @ 1
+    fig.add_shape(type="line", 
+        xref="paper",
+        yref="y",
+        x0=0,
+        x1=1,
+        y0=1, 
+        y1=1,
+        line=dict(color="Red"),
+    )
+
+    return fig
 
 def get_overview_layout(rp):
     # for counting + average calc
@@ -224,6 +238,16 @@ def get_overview_layout(rp):
             'width': 2000, 
             'height': 700}
         })
+    # add vertical line @ 1
+    fig_hist.add_shape(type="line", 
+        xref="x",
+        yref="paper",
+        x0=1, 
+        x1=1, 
+        y0=0,
+        y1=1,
+        line=dict(color="Red"),
+    )
 
     fig_better = make_graph(rp.better, 'Bar chart of improved benchmarks')
     fig_worse = make_graph(rp.worse, 'Bar chart of worsened benchmarks')
@@ -256,8 +280,8 @@ def get_overview_layout(rp):
         html.Br(),
 
         html.H3('Benchmarks where removing bounds checks IMPROVES performance'),
-        html.H5('Total number of benchmarks in this category: {}'.format(len(rp.better))),
-        html.H5('Total number of benchmarks in this category (- outliers): {}'.format(len(rp.better_))),
+        html.H5('Total number of benchmarks in this category: {} (or {}%)'.format(len(rp.better), float(len(rp.better)/len(all_bmarks)))),
+        html.H5('Total number of benchmarks in this category (- outliers): {} (or {}%)'.format(len(rp.better_), float(len(rp.better_)/len(trimmed_bmarks)))),
         html.H5('Average speedup across benchmarks in this category: {}'.format(geomean_overflow(list(rp.better.values())))),
         html.H5('Average speedup across benchmarks in this category (- outliers): {}'.format(geomean_overflow(list(rp.better_.values())))),
         html.Br(),
@@ -268,8 +292,8 @@ def get_overview_layout(rp):
         html.Br(),
 
         html.H3('Benchmarks where removing bounds checks HURTS performance'),
-        html.H5('Total number of benchmarks in this category: {}'.format(len(rp.worse))),
-        html.H5('Total number of benchmarks in this category (- outliers): {}'.format(len(rp.worse_))),
+        html.H5('Total number of benchmarks in this category: {} (or {}%)'.format(len(rp.worse), float(len(rp.worse)/len(all_bmarks)))),
+        html.H5('Total number of benchmarks in this category (- outliers): {} (or {}%)'.format(len(rp.worse_), float(len(rp.worse_)/len(trimmed_bmarks)))),
         html.H5('Average speedup across benchmarks in this category: {}'.format(geomean_overflow(list(rp.worse.values())))),
         html.H5('Average speedup across benchmarks in this category (- outliers): {}'.format(geomean_overflow(list(rp.worse_.values())))),
         html.Br(),
@@ -280,7 +304,7 @@ def get_overview_layout(rp):
         html.Br(),
 
         html.H3('Benchmarks where removing bounds checks trivially affects performance'),
-        html.H5('Total number of benchmarks in this category: {}'.format(len(rp.neither))),
+        html.H5('Total number of benchmarks in this category: {} (or {}%)'.format(len(rp.neither), float(len(rp.neither)/len(all_bmarks)))),
         html.H5('Average speedup across benchmarks in this category: {}'.format(geomean_overflow(list(rp.neither.values())))),
         html.Br(),
         dcc.Graph(
@@ -316,14 +340,14 @@ def display_pipe(crate_name):
 def display_crate(crate_name):
     # TODO add error bars
     global data 
-    if data[crate_name]: 
+    if crate_name and data[crate_name]: 
         fig = make_graph(data[crate_name], 'Bar Chart of Crate Benchmarks')
         geo = geomean_overflow(list(data[crate_name].values()))
 
         return html.Div([
             html.Br(),
             html.H6('Average Speedup for [{}] Crate: {}'.format(crate_name, str(geo))),
-            html.H6('{} Benchmarks in Crate'.format(str(len(data[crate_name])))),
+            html.H6('Number of Benchmarks in [{}] Crate: {}'.format(crate_name, str(len(data[crate_name])))),
             dcc.Graph(
                 id='crate_fig',
                 figure=fig
@@ -383,6 +407,8 @@ if __name__ == '__main__':
         html.Br(),
         html.Div(id='page_content')
     ])
+    print(dash.__version__)
+    print(plotly.__version__)
 
     app.run_server(debug=False, host='0.0.0.0', port=port)
 

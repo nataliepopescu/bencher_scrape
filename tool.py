@@ -321,29 +321,29 @@ class State:
         if len(rt_paths) == 1:
             # get list of crates from one of the nodes
             rt_path = os.path.join(rt_paths[0], self.ctgrydir)
-#            crates = self.get_crates_on_node(rt_path)
+            crates = self.get_crates_on_node(rt_path)
             # get number of runs from one of the nodes
-#            runs = self.get_num_runs(rt_path, crates[0])
+            runs = self.get_num_runs(rt_path, crates[0])
             # create dir to store results
-#            subprocess.run(["mkdir", "-p", RESULTS])
-#            for crate in crates: 
-#                name = os.path.join(RESULTS, crate)
-#                subprocess.run(["mkdir", "-p", name])
-#                resdir = os.path.join(name, self.resname)
-#                subprocess.run(["mkdir", "-p", resdir])
-#                for run in range(runs):
-#                    rundir = os.path.join(resdir, str(run))
-#                    subprocess.run(["mkdir", "-p", rundir])
+            subprocess.run(["mkdir", "-p", RESULTS])
+            for crate in crates: 
+                name = os.path.join(RESULTS, crate)
+                subprocess.run(["mkdir", "-p", name])
+                resdir = os.path.join(name, self.resname)
+                subprocess.run(["mkdir", "-p", resdir])
+                for run in range(runs):
+                    rundir = os.path.join(resdir, str(run))
+                    subprocess.run(["mkdir", "-p", rundir])
             # start copying
-#            for node in self.nodes: 
-#                for crate in crates: 
-#                    print("-----Copying from " + crate + " on " + node + "-----")
-#                    for run in range(runs): 
-#                        rem_path = os.path.join(rt_paths[0], self.ctgrydir, crate, 
-#                                self.resname, str(run), BENCH_DATA)
-#                        loc_path = os.path.join(RESULTS, crate, self.resname, 
-#                                str(run), BENCH_DATA + "_" + node)
-#                        subprocess.run(["scp", node + ":" + rem_path, loc_path])
+            for node in self.nodes: 
+                for crate in crates: 
+                    print("-----Copying from " + crate + " on " + node + "-----")
+                    for run in range(runs): 
+                        rem_path = os.path.join(rt_paths[0], self.ctgrydir, crate, 
+                                self.resname, str(run), BENCH_DATA)
+                        loc_path = os.path.join(RESULTS, crate, self.resname, 
+                                str(run), BENCH_DATA + "_" + node)
+                        subprocess.run(["scp", node + ":" + rem_path, loc_path])
             # crunch_local relies on the construction of dirlist attribute
             self.create_dirlist(remote=True)
             self.crunch_local(from_remote=True)
@@ -355,7 +355,6 @@ class State:
             exit("cannot parse <" + self.remote + ">, please see "\
             "<remote_same.example> and/or <remote.example> files for how "\
             "to format input file")
-
 
     def cleanup(self):
         if self.clean == "c":

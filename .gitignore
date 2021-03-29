@@ -13,3 +13,5 @@ target/
 *.csv
 *.DS_Store
 downloaded_*/*
+results/*
+criterion_rev_deps/*

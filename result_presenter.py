@@ -25,17 +25,9 @@ app.config.suppress_callback_exceptions = True
 data = dict()
 
 graph_styles = {
-    #0: {
-    #    "bar_name": "Vanilla Rustc",
-    #    "bar_color": "#FF4500"
-    #},
-    #1: {
-    #    "bar_name": "Rustc No Slice Bounds Checks",
-    #    "bar_color": "#FFA500"
-    #},
     2: {
         "bar_name": "Speedup",
-        "bar_color": "#58D68D"
+        "bar_color": "#14D085" #58D68D"
     }
 }
 
@@ -196,7 +188,7 @@ def make_graph(d, title):
         x1=1,
         y0=1, 
         y1=1,
-        line=dict(color="Red"),
+        line=dict(color="#D00D56"), #D81B60"),
     )
 
     return fig
@@ -209,7 +201,8 @@ def get_overview_layout(rp):
     mock_all = list(rp.better.values()) + [1] * len(rp.worse) + list(rp.neither.values())
     mock_trimmed = list(rp.better_.values()) + [1] * len(rp.worse_) + list(rp.neither.values())
 
-    trace = go.Histogram(x=list(all_bmarks.values()), nbinsx=100, autobinx=False)
+    trace = go.Histogram(x=list(all_bmarks.values()), nbinsx=100, autobinx=False, 
+            marker=dict(color='#14D085'))
     fig_hist = go.Figure({
         'data': trace,
         'layout': {
@@ -246,7 +239,8 @@ def get_overview_layout(rp):
         x1=1, 
         y0=0,
         y1=1,
-        line=dict(color="Red"),
+        line=dict(color="#D00D56"), #D81B60"),
+        #line=dict(color="#D0620D"), #D00D56"), #D81B60"),
     )
 
     fig_better = make_graph(rp.better, 'Bar chart of improved benchmarks')
@@ -322,7 +316,7 @@ def get_crates_layout(rp):
         html.H6('Pick a crate:'),
         dcc.Dropdown(id='crate_name',
             options=rp.options,
-            value='hex-0.4.2',
+            value='actix-service-1.0.6',
             style={'width': '50%'}
         ),
         html.Br(),

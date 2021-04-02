@@ -96,7 +96,8 @@ class ResultProvider:
         global data
         for c in list(data.keys()):
             # FIXME hardcoded
-            filepath = os.path.join(self.root, c, "results_o3_dbg2_embed=yes", self.datafile)
+            filepath = os.path.join(self.root, c, "results", self.datafile)
+            #filepath = os.path.join(self.root, c, "results_o3_dbg2_embed=yes", self.datafile)
             if is_empty_datafile(filepath) or not os.path.exists(filepath):
                 continue
             # open data file for reading
@@ -274,8 +275,8 @@ def get_overview_layout(rp):
         html.Br(),
 
         html.H3('Benchmarks where removing bounds checks IMPROVES performance'),
-        html.H5('Total number of benchmarks in this category: {} (or {}%)'.format(len(rp.better), float(len(rp.better)/len(all_bmarks)))),
-        html.H5('Total number of benchmarks in this category (- outliers): {} (or {}%)'.format(len(rp.better_), float(len(rp.better_)/len(trimmed_bmarks)))),
+        html.H5('Total number of benchmarks in this category: {} (or {}%)'.format(len(rp.better), float(100*len(rp.better)/len(all_bmarks)))),
+        html.H5('Total number of benchmarks in this category (- outliers): {} (or {}%)'.format(len(rp.better_), float(100*len(rp.better_)/len(trimmed_bmarks)))),
         html.H5('Average speedup across benchmarks in this category: {}'.format(geomean_overflow(list(rp.better.values())))),
         html.H5('Average speedup across benchmarks in this category (- outliers): {}'.format(geomean_overflow(list(rp.better_.values())))),
         html.Br(),
@@ -286,8 +287,8 @@ def get_overview_layout(rp):
         html.Br(),
 
         html.H3('Benchmarks where removing bounds checks HURTS performance'),
-        html.H5('Total number of benchmarks in this category: {} (or {}%)'.format(len(rp.worse), float(len(rp.worse)/len(all_bmarks)))),
-        html.H5('Total number of benchmarks in this category (- outliers): {} (or {}%)'.format(len(rp.worse_), float(len(rp.worse_)/len(trimmed_bmarks)))),
+        html.H5('Total number of benchmarks in this category: {} (or {}%)'.format(len(rp.worse), float(100*len(rp.worse)/len(all_bmarks)))),
+        html.H5('Total number of benchmarks in this category (- outliers): {} (or {}%)'.format(len(rp.worse_), float(100*len(rp.worse_)/len(trimmed_bmarks)))),
         html.H5('Average speedup across benchmarks in this category: {}'.format(geomean_overflow(list(rp.worse.values())))),
         html.H5('Average speedup across benchmarks in this category (- outliers): {}'.format(geomean_overflow(list(rp.worse_.values())))),
         html.Br(),
@@ -298,7 +299,7 @@ def get_overview_layout(rp):
         html.Br(),
 
         html.H3('Benchmarks where removing bounds checks trivially affects performance'),
-        html.H5('Total number of benchmarks in this category: {} (or {}%)'.format(len(rp.neither), float(len(rp.neither)/len(all_bmarks)))),
+        html.H5('Total number of benchmarks in this category: {} (or {}%)'.format(len(rp.neither), float(100*len(rp.neither)/len(all_bmarks)))),
         html.H5('Average speedup across benchmarks in this category: {}'.format(geomean_overflow(list(rp.neither.values())))),
         html.Br(),
         dcc.Graph(

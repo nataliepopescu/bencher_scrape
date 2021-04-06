@@ -13,16 +13,17 @@ from crunch import crunch, stats
 import datetime
 import re
 
-EXPLORE = "explore_regex"
+EXPLORE_OG = "explore"
+EXPLORE_RX = "explore_regex"
 RESULTS = "results"
-COMPILE = os.path.join("/benchdata", "BoundsCheckExplorer", "compile.sh")
-RUN = os.path.join("/benchdata", "BoundsCheckExplorer", "run_upperbound.sh")
+
+COMPILE = os.path.join("/benchdata", "BoundsCheckExplorer", "onebc.sh")
+RUN = os.path.join("/benchdata", "BoundsCheckExplorer", "gen_and_run_regex_exp.sh")
+REGEX_PY = os.path.join("/benchdata", "BoundsCheckExplorer", "regexify.py")
 
 UNMOD = "UNMOD"
-BCRMP = "BCRMP"
-REGEXD = "REGEXD"
-#exp_types = [UNMOD, BCRMP]
-exp_types = [REGEXD, UNMOD]
+REGEX = "REGEX"
+exp_types = [UNMOD, REGEX]
 headers = ['#', 'bench-name', 'unmod-time', 'unmod-error', 'bcrm-time', 'bcrm-error']
 
 optval =    "3"
@@ -62,10 +63,6 @@ class State:
         self.root = os.getcwd()
         self.scrapedir = os.path.join(self.root, "get-crates")
         self.subdirs = os.path.join(self.root, self.ctgrydir)
-        #self.resname = RESULTS
-                #+ "_o" + optval \
-                #+ "_dbg" + dbgval \
-                #+ "_embed=" + embdval
 
     def scrape_crates(self):
         os.chdir(self.scrapedir)
@@ -168,10 +165,16 @@ class State:
                 names.append(m)
             self.bnames.update({d: names})
 
-    def compile_benchmarks(self):
+    def compile_benchmarks(self, regex=False):
         self.get_bmark_names()
         curnum = 0
         totalnum = len(self.dirlist)
+        EXPLORE = EXPLORE_RX if regex else EXPLORE_OG
+        if EXPLORE == EXPLORE_OG: 
+            print("Compiling original crates")
+        else: 
+            print("Compiling regexified crates")
+
         for d in self.dirlist:
             curnum += 1
             os.chdir(d)
@@ -185,7 +188,7 @@ class State:
                 f_err = open(os.path.join(outdir, "{}_{}".format(b, COMP_ERR)), "w")
                 try:
                     subprocess.run(["cargo", "clean"])
-                    subprocess.run([COMPILE, b], text=True, timeout=600,
+                    subprocess.run([COMPILE, b, EXPLORE], text=True, timeout=600,
                             stdout=f_out, stderr=f_err)
                 except subprocess.TimeoutExpired as err: 
                     print(err)
@@ -211,12 +214,13 @@ class State:
                 subprocess.run(["mkdir", "-p", outdir])
                 for e in exp_types:
                     print(e)
+                    EXPLORE = EXPLORE_RX if e == REGEX else EXPLORE_OG
                     for b in self.bnames.get(d):
                         print("\tBenchmark: {}".format(b))
                         f_out = open(os.path.join(outdir, "{}_{}.out".format(b, e)), "w")
                         f_err = open(os.path.join(outdir, "{}_{}.err".format(b, e)), "w")
                         try:
-                            subprocess.run([RUN, b, e], text=True, timeout=1200, 
+                            subprocess.run([RUN, b, EXPLORE], text=True, timeout=1200, 
                                     stdout=f_out, stderr=f_err)
                         except subprocess.TimeoutExpired as err: 
                             print(err)
@@ -235,7 +239,7 @@ class State:
                 os.chdir(d)
                 for b in self.bnames.get(d):
                     unmodres = os.path.join(d, RESULTS, str(r), "{}_{}.out".format(b, UNMOD))
-                    bcrmpres = os.path.join(d, RESULTS, str(r), "{}_{}.out".format(b, REGEXD))
+                    bcrmpres = os.path.join(d, RESULTS, str(r), "{}_{}.out".format(b, REGEX))
                     outfile = os.path.join(d, RESULTS, str(r), BENCH_DATA)
                     dump_benchmark(outfile, unmodres, bcrmpres, 1)
                 os.chdir(self.root)
@@ -255,15 +259,7 @@ class State:
                 sample_file = os.path.join(aggdir, "0", BENCH_DATA)
 
             # count number of distinctly captured benchmarks
-            runs = 0
-            if self.bench: 
-                runs = self.bench
-            else: 
-                for i in os.listdir(aggdir): 
-                    if os.path.isdir(os.path.join(aggdir, i)): 
-                        runs += 1
-            #runs = self.bench if self.bench else sum(os.path.isdir(os.path.join(aggdir, i)) for i in os.listdir(aggdir))
-            runs -= 1 #FIXME just this time
+            runs = self.bench if self.bench else sum(os.path.isdir(os.path.join(aggdir, i)) for i in os.listdir(aggdir))
             sf = open(sample_file)
             rows = len(sf.readlines()) - 1
             sf.close()
@@ -410,16 +406,17 @@ class State:
         # remove compile directories
         if self.clean == "a" or self.clean == "c":
             for d in self.dirlist: 
-                os.chdir(d)
-                subprocess.run(["cargo", "clean"])
-                dirname = os.path.join(d, EXPLORE)
-                print("deleting directory: {}...".format(dirname))
-                try: 
-                    shutil.rmtree(dirname)
-                except OSError as err: 
-                    print("Error: {} : {}".format(dirname, err.strerror))
-                finally: 
-                    os.chdir(self.root)
+                for EXPLORE in [EXPLORE_OG, EXPLORE_RX]:
+                    os.chdir(d)
+                    subprocess.run(["cargo", "clean"])
+                    dirname = os.path.join(d, EXPLORE)
+                    print("deleting directory: {}...".format(dirname))
+                    try: 
+                        shutil.rmtree(dirname)
+                    except OSError as err: 
+                        print("Error: {} : {}".format(dirname, err.strerror))
+                    finally: 
+                        os.chdir(self.root)
         # remove benchmark directories
         if self.clean == "a" or self.clean == "b":
             for d in self.dirlist: 
@@ -496,8 +493,11 @@ if __name__ == "__main__":
         s.crunch_test_results()
     if s.cmpl == True:
         s.compile_benchmarks()
+        print("Converting source code with regexify.py")
+        subprocess.run(["python3", REGEX_PY, "--root", s.ctgrydir])
+        s.compile_benchmarks(regex=True)
     if s.bench: 
-        #s.run_benchmarks()
+        s.run_benchmarks()
         s.crunch_per_run()
     if s.local:
         s.crunch_local()

@@ -17,7 +17,7 @@ EXPLORE_OG = "explore"
 EXPLORE_RX = "explore_regex"
 RESULTS = "results"
 
-COMPILE = os.path.join("/benchdata", "BoundsCheckExplorer", "onebc.sh")
+COMPILE = os.path.join("/benchdata", "BoundsCheckExplorer", "make_onebc.sh")
 RUN = os.path.join("/benchdata", "BoundsCheckExplorer", "gen_and_run_regex_exp.sh")
 REGEX_PY = os.path.join("/benchdata", "BoundsCheckExplorer", "regexify.py")
 

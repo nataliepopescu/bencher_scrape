@@ -96,8 +96,8 @@ class ResultProvider:
         global data
         for c in list(data.keys()):
             # FIXME hardcoded
-            filepath = os.path.join(self.root, c, "results", self.datafile)
-            #filepath = os.path.join(self.root, c, "results_o3_dbg2_embed=yes", self.datafile)
+            #filepath = os.path.join(self.root, c, "results", self.datafile)
+            filepath = os.path.join(self.root, c, "results_o3_dbg2_embed=yes", self.datafile)
             if is_empty_datafile(filepath) or not os.path.exists(filepath):
                 continue
             # open data file for reading
@@ -244,6 +244,7 @@ def get_overview_layout(rp):
         #line=dict(color="#D0620D"), #D00D56"), #D81B60"),
     )
 
+    fig_all = make_graph(all_bmarks, 'Bar chart of all benchmarks')
     fig_better = make_graph(rp.better, 'Bar chart of improved benchmarks')
     fig_worse = make_graph(rp.worse, 'Bar chart of worsened benchmarks')
     fig_neither = make_graph(rp.neither, 'Bar chart of everything else')
@@ -260,7 +261,7 @@ def get_overview_layout(rp):
         # - histogram
         # - bar chart per category
         html.Br(),
-        html.H3('All benchmarks'),
+        html.H3('All benchmarks (histogram)'),
         html.H5('Total number of benchmarks: {}'.format(len(all_bmarks))),
         html.H5('Total number of benchmarks (- outliers): {}'.format(len(trimmed_bmarks))),
         html.H5('Average speedup across all benchmarks: {}'.format(geomean_overflow(list(all_bmarks.values())))),
@@ -271,6 +272,14 @@ def get_overview_layout(rp):
         dcc.Graph(
             id='histogram',
             figure=fig_hist
+        ),
+        html.Br(),
+
+        html.H3('All benchmarks (bar chart: see above for stats)'),
+        html.Br(),
+        dcc.Graph(
+            id='all_graph',
+            figure=fig_all
         ),
         html.Br(),
 

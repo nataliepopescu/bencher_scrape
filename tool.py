@@ -11,20 +11,27 @@ import numpy
 from aggregate import dump_benchmark, path_wrangle, writerow
 from crunch import crunch, stats
 import datetime
+import re
 
+EXPLORE_OG = "explore"
+EXPLORE_RX = "explore_regex"
 RESULTS = "results"
 
+COMPILE = os.path.join("/benchdata", "BoundsCheckExplorer", "make_onebc.sh")
+RUN = os.path.join("/benchdata", "BoundsCheckExplorer", "gen_and_run_regex_exp.sh")
+REGEX_PY = os.path.join("/benchdata", "BoundsCheckExplorer", "regexify.py")
+
 UNMOD = "UNMOD"
-BCRMP = "BCRMP"
-exp_types = [UNMOD, BCRMP]
+REGEX = "REGEX"
+exp_types = [UNMOD, REGEX]
 headers = ['#', 'bench-name', 'unmod-time', 'unmod-error', 'bcrm-time', 'bcrm-error']
 
 optval =    "3"
 dbgval =    "2"
 embdval =   "yes"
-OPTFLAGS =  " -C opt-level=" + optval
-DBGFLAGS =  " -C debuginfo=" + dbgval
-EMBDFLAGS = " -C embed-bitcode=" + embdval
+OPTFLAGS =  " -C opt-level={}".format(optval)
+DBGFLAGS =  " -C debuginfo={}".format(dbgval)
+EMBDFLAGS = " -C embed-bitcode={}".format(embdval)
 RBCFLAGS =  " -Z remove-bc"
 UNMODFLAGS = OPTFLAGS + DBGFLAGS + EMBDFLAGS
 BCRMPFLAGS = OPTFLAGS + DBGFLAGS + EMBDFLAGS + RBCFLAGS
@@ -56,30 +63,30 @@ class State:
         self.root = os.getcwd()
         self.scrapedir = os.path.join(self.root, "get-crates")
         self.subdirs = os.path.join(self.root, self.ctgrydir)
-        self.resname = RESULTS + "_o" + optval \
-                + "_dbg" + dbgval \
-                + "_embed=" + embdval
 
     def scrape_crates(self):
         os.chdir(self.scrapedir)
-        subprocess.run(["scrapy", "crawl", "-a", "category=" + self.ctgry, "-a", 
-                "x=" + str(self.scrape), "get-crates"])
+        subprocess.run(["scrapy", "crawl", "-a", "category={}".format(self.ctgry), "-a", 
+                "x={}".format(self.scrape), "get-crates"])
         os.chdir(self.root)
 
     def create_dirlist(self, remote=False):
+        self.dirlist = []
         if remote == True: 
-            self.dirlist = []
-            for dir in os.listdir(RESULTS):
-                self.dirlist.append(os.path.join(RESULTS, dir))
+            for path in os.listdir(RESULTS):
+                full_path = os.path.join(RESULTS, path)
+                if os.path.isdir(full_path): 
+                    self.dirlist.append(full_path)
         elif os.path.exists(self.subdirs):
-            self.dirlist = []
-            for dir in os.listdir(self.subdirs):
-                self.dirlist.append(os.path.join(self.subdirs, dir))
+            for path in os.listdir(self.subdirs):
+                full_path = os.path.join(self.subdirs, path)
+                if os.path.isdir(full_path): 
+                    self.dirlist.append(full_path)
         else: 
-            exit("directory <" + self.subdirs + "> or directory <" + RESULTS + "> "\
+            exit("directory <{}> or directory <{}> "\
             "do not exist, need to run "\
-            "scraper for the -" + self.ctgry + "- category of crates OR "\
-            "crunch remote results")
+            "scraper for the -{}- category of crates OR "\
+            "crunch remote results".format(self.subdirs, RESULTS, self.ctgry))
 
     def randomize_dirlist(self):
         random.shuffle(self.dirlist)
@@ -100,9 +107,9 @@ class State:
 
             for d in self.dirlist:
                 os.chdir(d)
-                outdir = os.path.join(d, e, self.resname)
+                outdir = os.path.join(d, e, RESULTS)
                 curnum += 1
-                print("Testing " + curnum + "/" + totalnum + " crates...")
+                print("Testing {}/{} crates...".format(curnum, totalnum))
                 print(outdir)
                 subprocess.run(["mkdir", "-p", outdir])
                 f_out = open(os.path.join(outdir, TESTS_OUT), "w")
@@ -112,7 +119,7 @@ class State:
                             text=True, timeout=600, stdout=f_out, stderr=f_err)
                 except subprocess.TimeoutExpired as err: 
                     print(err)
-                    fname = os.path.join(outdir, "test-timedout")
+                    fname = os.path.join(outdir, "test-timedout-{}".format(e))
                     subprocess.run(["touch", fname])
                 finally: 
                     f_out.close()
@@ -122,105 +129,140 @@ class State:
     def crunch_test_results(self):
         for d in self.dirlist: 
             os.chdir(d)
-            unmod_res = os.path.join(d, UNMOD, self.resname, TESTS_OUT)
+            unmod_res = os.path.join(d, UNMOD, RESULTS, TESTS_OUT)
             unmod_oks = subprocess.run(["grep", "-cw", "ok", unmod_res],
                     capture_output=True, text=True)
-            bcrmp_res = os.path.join(d, BCRMP, self.resname, TESTS_OUT)
+            bcrmp_res = os.path.join(d, BCRMP, RESULTS, TESTS_OUT)
             bcrmp_oks = subprocess.run(["grep", "-cw", "ok", bcrmp_res],
                     capture_output=True, text=True)
             if not int(unmod_oks.stdout) == int(bcrmp_oks.stdout): 
-                print("Mismatch in number of passed tests for: " + d.split("/")[-1])
+                print("Mismatch in number of passed tests for: {}".format(d.split("/")[-1]))
                 fname = os.path.join(d, "test-mismatch")
                 subprocess.run(["touch", fname])
             os.chdir(self.root)
 
-    def compile_benchmarks(self):
-        for e in exp_types:
-            os.environ["RUSTFLAGS"] = UNMODFLAGS if e == UNMOD else BCRMPFLAGS
-            curnum = 0
-            totalnum = len(self.dirlist)
+    def get_bmark_names(self):
+        self.bnames = dict()
+        for d in self.dirlist: 
+            names = []
+            ctoml = open(os.path.join(d, "Cargo.toml"))
+            ctoml_data = ctoml.read()
+            ctoml.close()
+            # well-spaced
+            matches = re.findall(r'(?<=\[\[bench\]\][\s]name[\s]=[\s]\")[a-zA-Z_][a-zA-Z0-9_-]*', ctoml_data)
+            for m in matches: 
+                names.append(m)
+            # no spaces
+            matches = re.findall(r'(?<=\[\[bench\]\][\s]name=\")[a-zA-Z_][a-zA-Z0-9_-]*', ctoml_data)
+            for m in matches: 
+                names.append(m)
+            # off spaces
+            matches = re.findall(r'(?<=\[\[bench\]\][\s]name=[\s]\")[a-zA-Z_][a-zA-Z0-9_-]*', ctoml_data)
+            for m in matches: 
+                names.append(m)
+            matches = re.findall(r'(?<=\[\[bench\]\][\s]name[\s]=\")[a-zA-Z_][a-zA-Z0-9_-]*', ctoml_data)
+            for m in matches: 
+                names.append(m)
+            self.bnames.update({d: names})
 
-            for d in self.dirlist:
-                curnum += 1
-                os.chdir(d)
-                outdir = os.path.join(d, e, self.resname)
-                print("Compiling " + curnum + "/" + totalnum + " crates...")
-                print(outdir)
-                subprocess.run(["mkdir", "-p", outdir])
-                f_out = open(os.path.join(outdir, COMP_OUT), "w")
-                f_err = open(os.path.join(outdir, COMP_ERR), "w")
-                try: # TODO make more lightweight
-                    subprocess.run(["cargo", "bench", "--no-run", "--verbose",
-                            "--target-dir", os.path.join(outdir, "target")], 
-                            text=True, timeout=600, stdout=f_out, stderr=f_err)
+    def compile_benchmarks(self, regex=False):
+        self.get_bmark_names()
+        curnum = 0
+        totalnum = len(self.dirlist)
+        EXPLORE = EXPLORE_RX if regex else EXPLORE_OG
+        if EXPLORE == EXPLORE_OG: 
+            print("Compiling original crates")
+        else: 
+            print("Compiling regexified crates")
+
+        for d in self.dirlist:
+            curnum += 1
+            os.chdir(d)
+            outdir = os.path.join(d, EXPLORE)
+            print("Compiling {}/{} crates...".format(curnum, totalnum))
+            print(outdir)
+            subprocess.run(["mkdir", "-p", outdir])
+            for b in self.bnames.get(d): 
+                print("\tBenchmark: {}".format(b))
+                f_out = open(os.path.join(outdir, "{}_{}".format(b, COMP_OUT)), "w")
+                f_err = open(os.path.join(outdir, "{}_{}".format(b, COMP_ERR)), "w")
+                try:
+                    subprocess.run(["cargo", "clean"])
+                    subprocess.run([COMPILE, b, EXPLORE], text=True, timeout=600,
+                            stdout=f_out, stderr=f_err)
                 except subprocess.TimeoutExpired as err: 
                     print(err)
-                    fname = os.path.join(outdir, "compile-timedout")
+                    fname = os.path.join(outdir, "compile-timedout-{}".format(e))
                     subprocess.run(["touch", fname])
                 finally: 
                     f_out.close()
                     f_err.close()
-                    os.chdir(self.root)
+            os.chdir(self.root)
 
     def run_benchmarks(self):
+        self.get_bmark_names()
         for r in range(self.bench): 
             self.randomize_dirlist()
-            for e in exp_types: 
-                os.environ["RUSTFLAGS"] = UNMODFLAGS if e == UNMOD else BCRMPFLAGS
-                curnum = 0
-                totalnum = len(self.dirlist)
-
-                for d in self.dirlist:
-                    os.chdir(d)
-                    targetdir = os.path.join(d, e, self.resname, "target")
-                    outdir = os.path.join(d, self.resname, str(r))
-                    curnum += 1
-                    print("Benchmarking " + curnum + "/" + totalnum + " crates...")
-                    print(outdir)
-                    subprocess.run(["mkdir", "-p", outdir]) # TODO if exists, differentiate
-                    f_out = open(os.path.join(outdir, e + ".out"), "w")
-                    f_err = open(os.path.join(outdir, e + ".err"), "w")
-                    try:
-                        subprocess.run(["cargo", "bench", "--verbose",
-                                "--target-dir", targetdir], 
-                                text=True, timeout=1200, stdout=f_out, stderr=f_err)
-                    except subprocess.TimeoutExpired as err: 
-                        print(err)
-                        fname = os.path.join(outdir, "bench-timedout")
-                        subprocess.run(["touch", fname])
-                    finally: 
-                        f_out.close()
-                        f_err.close()
-                        os.chdir(self.root)
+            curnum = 0
+            totalnum = len(self.dirlist)
+            for d in self.dirlist:
+                os.chdir(d)
+                outdir = os.path.join(d, RESULTS, str(r))
+                curnum += 1
+                print("Benchmarking {}/{} crates...".format(curnum, totalnum))
+                print(outdir)
+                subprocess.run(["mkdir", "-p", outdir])
+                for e in exp_types:
+                    print(e)
+                    EXPLORE = EXPLORE_RX if e == REGEX else EXPLORE_OG
+                    for b in self.bnames.get(d):
+                        print("\tBenchmark: {}".format(b))
+                        f_out = open(os.path.join(outdir, "{}_{}.out".format(b, e)), "w")
+                        f_err = open(os.path.join(outdir, "{}_{}.err".format(b, e)), "w")
+                        try:
+                            subprocess.run([RUN, b, EXPLORE], text=True, timeout=1200, 
+                                    stdout=f_out, stderr=f_err)
+                        except subprocess.TimeoutExpired as err: 
+                            print(err)
+                            fname = os.path.join(outdir, "bench-timedout-{}".format(e))
+                            subprocess.run(["touch", fname])
+                        finally: 
+                            f_out.close()
+                            f_err.close()
+                os.chdir(self.root)
 
     # summarize data for each run of each crate
     def crunch_per_run(self):
+        self.get_bmark_names()
         for r in range(self.bench):
             for d in self.dirlist:
                 os.chdir(d)
-                unmodres = os.path.join(d, self.resname, str(r), UNMOD + ".out")
-                bcrmpres = os.path.join(d, self.resname, str(r), BCRMP + ".out")
-                outfile = os.path.join(d, self.resname, str(r), BENCH_DATA)
-                dump_benchmark(outfile, unmodres, bcrmpres, 1)
+                for b in self.bnames.get(d):
+                    unmodres = os.path.join(d, RESULTS, str(r), "{}_{}.out".format(b, UNMOD))
+                    bcrmpres = os.path.join(d, RESULTS, str(r), "{}_{}.out".format(b, REGEX))
+                    outfile = os.path.join(d, RESULTS, str(r), BENCH_DATA)
+                    dump_benchmark(outfile, unmodres, bcrmpres, 1)
                 os.chdir(self.root)
 
     # summarize data for all runs of each crate on current node 
     # (assuming all data is on this node)
     def crunch_local(self, from_remote=False):
         for d in self.dirlist: 
-            aggdir = os.path.join(d, self.resname)
+            aggdir = os.path.join(d, RESULTS)
             outfile = os.path.join(aggdir, CRUNCHED_DATA)
             path_wrangle(outfile, headers)
 
             if from_remote == True: 
                 sample_file = os.path.join(aggdir, "0", 
-                        BENCH_DATA + "_" + self.nodes[0])
+                        "{}_{}".format(BENCH_DATA, self.nodes[0]))
             else: 
                 sample_file = os.path.join(aggdir, "0", BENCH_DATA)
 
             # count number of distinctly captured benchmarks
             runs = self.bench if self.bench else sum(os.path.isdir(os.path.join(aggdir, i)) for i in os.listdir(aggdir))
-            rows = len(open(sample_file).readlines()) - 1
+            sf = open(sample_file)
+            rows = len(sf.readlines()) - 1
+            sf.close()
             cols = 2
             if from_remote == True: 
                 matrix = numpy.zeros((rows, cols, runs, len(self.nodes)))
@@ -232,7 +274,7 @@ class State:
                 if from_remote == True: 
                     for nidx, node in enumerate(self.nodes): 
                         infd = open(os.path.join(aggdir, str(run), 
-                                BENCH_DATA + "_" + node))
+                                "{}_{}".format(BENCH_DATA, node)))
                         for row, line in enumerate(infd): 
                             if row == 0: continue # skip header
                             columns = line.split()
@@ -244,6 +286,7 @@ class State:
                                 if col % 2 == 1:
                                     mcol_idx = int((col - 1) / 2)
                                     matrix[row-1][mcol_idx][run][nidx] = columns[col]
+                        infd.close()
                 else: 
                     infd = open(os.path.join(aggdir, str(run), BENCH_DATA))
                     for row, line in enumerate(infd): 
@@ -257,6 +300,7 @@ class State:
                             if col % 2 == 1: 
                                 mcol_idx = int((col - 1) / 2)
                                 matrix[row-1][mcol_idx][run] = columns[col]
+                    infd.close()
 
             # crunch matrix numbers
             outfd = open(outfile, 'a')
@@ -276,8 +320,9 @@ class State:
                     cur.append(str(avg))
                     cur.append(str(stdev))
                 writerow(outfd, cur)
+            outfd.close()
 
-    def get_crates_on_node(self, rt_path): #, node): 
+    def get_crates_on_node(self, rt_path):
         contents = subprocess.run(["ssh", self.nodes[0], "ls", "-l", rt_path],
                 capture_output=True, text=True)
         lines = contents.stdout.split("\n")
@@ -293,8 +338,8 @@ class State:
         return crates
 
     def get_num_runs(self, rt_path, crate):
-        # FIXME resname not necessarily correct
-        path = os.path.join(rt_path, crate, self.resname)
+        # FIXME RESULTS not necessarily correct
+        path = os.path.join(rt_path, crate, RESULTS)
         contents = subprocess.run(["ssh", self.nodes[0], "ls", "-l", path],
                 capture_output=True, text=True)
         lines = contents.stdout.split("\n")
@@ -317,6 +362,7 @@ class State:
                 continue
             else:
                 self.nodes.append(line.strip())
+        fd.close()
         # single path case
         if len(rt_paths) == 1:
             # get list of crates from one of the nodes
@@ -329,7 +375,7 @@ class State:
             for crate in crates: 
                 name = os.path.join(RESULTS, crate)
                 subprocess.run(["mkdir", "-p", name])
-                resdir = os.path.join(name, self.resname)
+                resdir = os.path.join(name, RESULTS)
                 subprocess.run(["mkdir", "-p", resdir])
                 for run in range(runs):
                     rundir = os.path.join(resdir, str(run))
@@ -337,13 +383,13 @@ class State:
             # start copying
             for node in self.nodes: 
                 for crate in crates: 
-                    print("-----Copying from " + crate + " on " + node + "-----")
+                    print("-----Copying from {} on {}-----".format(crate, node))
                     for run in range(runs): 
                         rem_path = os.path.join(rt_paths[0], self.ctgrydir, crate, 
-                                self.resname, str(run), BENCH_DATA)
-                        loc_path = os.path.join(RESULTS, crate, self.resname, 
-                                str(run), BENCH_DATA + "_" + node)
-                        subprocess.run(["scp", node + ":" + rem_path, loc_path])
+                                RESULTS, str(run), BENCH_DATA)
+                        loc_path = os.path.join(RESULTS, crate, RESULTS, 
+                                str(run), "{}_{}".format(BENCH_DATA, node))
+                        subprocess.run(["scp", "{}:{}".format(node, rem_path), loc_path])
             # crunch_local relies on the construction of dirlist attribute
             self.create_dirlist(remote=True)
             self.crunch_local(from_remote=True)
@@ -352,47 +398,35 @@ class State:
             exit("not implemented")
         # input file is incorrect
         else:
-            exit("cannot parse <" + self.remote + ">, please see "\
+            exit("cannot parse <{}>, please see "\
             "<remote_same.example> and/or <remote.example> files for how "\
-            "to format input file")
+            "to format input file".format(self.remote))
 
     def cleanup(self):
-        if self.clean == "c":
+        # remove compile directories
+        if self.clean == "a" or self.clean == "c":
             for d in self.dirlist: 
-                for e in exp_types: 
+                for EXPLORE in [EXPLORE_OG, EXPLORE_RX]:
                     os.chdir(d)
                     subprocess.run(["cargo", "clean"])
-                    dirname = os.path.join(d, e, self.resname, "target")
-                    print("deleting directory: " + dirname + "...")
+                    dirname = os.path.join(d, EXPLORE)
+                    print("deleting directory: {}...".format(dirname))
                     try: 
                         shutil.rmtree(dirname)
                     except OSError as err: 
-                        print("Error: %s : %s" % (dirname, err.strerror))
+                        print("Error: {} : {}".format(dirname, err.strerror))
                     finally: 
                         os.chdir(self.root)
-        if self.clean == "a":
-            for d in self.dirlist: 
-                for e in exp_types: 
-                    os.chdir(d)
-                    dirname = os.path.join(d, e)
-                    print("deleting directory: " + dirname + "...")
-                    try: 
-                        shutil.rmtree(dirname)
-                    except OSError as err: 
-                        print("Error: %s : %s" % (dirname, err.strerror))
-                    finally:
-                        os.chdir(self.root)
+        # remove benchmark directories
         if self.clean == "a" or self.clean == "b":
             for d in self.dirlist: 
                 os.chdir(d)
-                subprocess.run(["cargo", "clean"])
-                dirname = os.path.join(d, self.resname)
-                print("deleting directory: " + dirname + "...")
-                try:
-                    shutil.rmtree(dirname)
-                except OSError as err:
-                    print("Error: %s : %s" % (dirname, err.strerror))
-                finally: 
+                print("deleting directory: {}...".format(RESULTS))
+                try: 
+                    shutil.rmtree(RESULTS)
+                except OSError as err: 
+                    print("Error: {} : {}".format(RESULTS, err.strerror))
+                finally:
                     os.chdir(self.root)
 
 def arg_parse():
@@ -448,18 +482,20 @@ if __name__ == "__main__":
 
     if s.scrape:
         s.scrape_crates()
+        s.revert_criterion_version()
 
     if not s.remote: 
         s.create_dirlist()
     if s.clean: 
         s.cleanup()
-    if s.test == True or s.cmpl == True or s.bench:
-        s.revert_criterion_version()
     if s.test == True:
         s.run_tests()
         s.crunch_test_results()
     if s.cmpl == True:
         s.compile_benchmarks()
+        print("Converting source code with regexify.py")
+        subprocess.run(["python3", REGEX_PY, "--root", s.ctgrydir])
+        s.compile_benchmarks(regex=True)
     if s.bench: 
         s.run_benchmarks()
         s.crunch_per_run()
@@ -472,15 +508,10 @@ if __name__ == "__main__":
     duration = end - start
 
     # log duration of command
-    cmdfile = str(scrape) + "_" + \
-            str(test) + "_" + \
-            str(cmpl) + "_" + \
-            str(bench) + "_" + \
-            str(local) + "_" + \
-            str(remote) + "_" + \
-            str(clean) + ".time"
+    cmdfile = "{}_{}_{}_{}_{}_{}_{}.time".format(scrape, test, cmpl, bench, local, remote, clean)
     cmdfd = open(cmdfile, "w")
-    cmdfd.write("start:\t\t{}\n".format(str(start)))
-    cmdfd.write("end:\t\t{}\n".format(str(end)))
-    cmdfd.write("duration:\t{}\n".format(str(duration)))
+    cmdfd.write("start:\t\t{}\n".format(start))
+    cmdfd.write("end:\t\t{}\n".format(end))
+    cmdfd.write("duration:\t{}\n".format(duration))
+    cmdfd.close()
 

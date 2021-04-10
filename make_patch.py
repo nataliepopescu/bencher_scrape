@@ -28,32 +28,48 @@ def patch(toml_dir, rel_root, root):
     patches = dict()
 
     if os.path.exists(root): 
+        versioned = []
+        unversioned = []
         for dep in os.listdir(root):
             full_path = os.path.join(root, dep)
             if os.path.isdir(full_path): 
-                # are there any keys already in the dictionary that are 
-                # a substring of this key (and the non-matching characters 
-                # are not alphabetical, i.e. a version number is appended)
-                versioned = False
-                for old_patch in patches.keys():
-                    if old_patch in dep: 
-                        unmatched = dep.replace(old_patch, "")
-                        if re.search('[a-zA-Z]', unmatched) == None: 
-                            # this crate is versioned, need some different logic
-                            # FIXME not catching everything
-                            versioned = True
-                            print(dep)
-                if versioned: 
-                    continue
-                new_patch = {
-                        "path": os.path.join(rel_root, dep), 
-                        "package": dep
+                # if crate is versioned, come back to it later
+                if re.search('[-][0-9]+[.][0-9]+[.][0-9]+', dep): 
+                    versioned.append(dep)
+                else: 
+                    unversioned.append(dep)
+        for v_crate in versioned: 
+            m = re.search('[-][0-9]+[.][0-9]+[.][0-9]+', v_crate)
+            end = m.span()[0]
+            name = v_crate[:end]
+            for u_crate in unversioned: 
+                if u_crate == name:
+                    unversioned.remove(u_crate)
+                    u_patch = {
+                        "path": os.path.join(rel_root, u_crate),
                     }
-                patches.update({dep: new_patch})
-
-    for dep in patches.keys(): 
-        toml.write("[patch.crates-io.{}]\npath = \"{}\"\npackage = \"{}\"\n\n"
-                .format(dep, os.path.join(rel_root, dep), dep))
+                    patches.update({u_crate: u_patch})
+                    vname = "{}01".format(name)
+                    v_patch = {
+                        "path": os.path.join(rel_root, v_crate),
+                        "package": name
+                    }
+                    patches.update({vname: v_patch})
+        for u_crate in unversioned: 
+            patch = {
+                    "path": os.path.join(rel_root, u_crate),
+                    "package": u_crate
+                }
+            patches.update({u_crate: patch})
+        for patch in patches: 
+            patch_str = []
+            patch_str.append("[patch.crates-io.{}]\n".format(patch))
+            info = patches.get(patch)
+            for field in info: 
+                value = info.get(field)
+                patch_str.append("{} = \"{}\"\n".format(field, value))
+            patch_str.append("\n")
+            toml.write("".join(patch_str))
 
 def arg_parse():
     parser = argparse.ArgumentParser()

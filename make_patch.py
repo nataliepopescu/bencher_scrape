@@ -76,5 +76,7 @@ if __name__ == "__main__":
     toml, rel_root = arg_parse()
     root = os.path.join(toml, rel_root)
     convert(root)
-    subprocess.run(["python3", "regexify.py", "--root", root])
+    subprocess.run(["python3", 
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "regexify.py"), 
+            "--root", root])
     patch(toml, rel_root, root)

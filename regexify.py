@@ -218,7 +218,7 @@ if __name__ == "__main__":
 
     filelist = findTargetFiles(single_file)
     
-    print("Converting files: ", filelist)
+    #print("Converting files: ", filelist)
 
     # List of all bounds checks
     bcs = []

@@ -25,51 +25,57 @@ def convert(root):
 
 def patch(toml_dir, rel_root, root):
     toml = open(os.path.join(toml_dir, "Cargo.toml"), "a")
-    patches = dict()
 
-    if os.path.exists(root): 
-        versioned = []
-        unversioned = []
-        for dep in os.listdir(root):
-            full_path = os.path.join(root, dep)
-            if os.path.isdir(full_path): 
-                # if crate is versioned, come back to it later
-                if re.search('[-][0-9]+[.][0-9]+[.][0-9]+', dep): 
-                    versioned.append(dep)
-                else: 
-                    unversioned.append(dep)
-        for v_crate in versioned: 
-            m = re.search('[-][0-9]+[.][0-9]+[.][0-9]+', v_crate)
-            end = m.span()[0]
-            name = v_crate[:end]
-            for u_crate in unversioned: 
-                if u_crate == name:
-                    unversioned.remove(u_crate)
-                    u_patch = {
-                        "path": os.path.join(rel_root, u_crate),
-                    }
-                    patches.update({u_crate: u_patch})
-                    vname = "{}01".format(name)
-                    v_patch = {
-                        "path": os.path.join(rel_root, v_crate),
-                        "package": name
-                    }
-                    patches.update({vname: v_patch})
+    # only patch the crates that have actually been converted
+    to_patch = []
+    changes = open(os.path.join(root, "changes.txt"), "r")
+    for line in changes.readlines():
+        changed_file = line.split()[2]
+        crate = changed_file.split("/")[0]
+        to_patch.append(crate)
+    to_patch = list(dict.fromkeys(to_patch))
+
+    patches = dict()
+    versioned = []
+    unversioned = []
+    for dep in to_patch:
+        # if crate is versioned, come back to it later
+        if re.search('[-][0-9]+[.][0-9]+[.][0-9]+', dep): 
+            versioned.append(dep)
+        else: 
+            unversioned.append(dep)
+    for v_crate in versioned: 
+        m = re.search('[-][0-9]+[.][0-9]+[.][0-9]+', v_crate)
+        end = m.span()[0]
+        name = v_crate[:end]
         for u_crate in unversioned: 
-            patch = {
+            if u_crate == name:
+                unversioned.remove(u_crate)
+                u_patch = {
                     "path": os.path.join(rel_root, u_crate),
-                    "package": u_crate
                 }
-            patches.update({u_crate: patch})
-        for patch in patches: 
-            patch_str = []
-            patch_str.append("[patch.crates-io.{}]\n".format(patch))
-            info = patches.get(patch)
-            for field in info: 
-                value = info.get(field)
-                patch_str.append("{} = \"{}\"\n".format(field, value))
-            patch_str.append("\n")
-            toml.write("".join(patch_str))
+                patches.update({u_crate: u_patch})
+                vname = "{}01".format(name)
+                v_patch = {
+                    "path": os.path.join(rel_root, v_crate),
+                    "package": name
+                }
+                patches.update({vname: v_patch})
+    for u_crate in unversioned: 
+        patch = {
+                "path": os.path.join(rel_root, u_crate),
+                "package": u_crate
+            }
+        patches.update({u_crate: patch})
+    for patch in patches: 
+        patch_str = []
+        patch_str.append("[patch.crates-io.{}]\n".format(patch))
+        info = patches.get(patch)
+        for field in info: 
+            value = info.get(field)
+            patch_str.append("{} = \"{}\"\n".format(field, value))
+        patch_str.append("\n")
+        toml.write("".join(patch_str))
 
 def arg_parse():
     parser = argparse.ArgumentParser()

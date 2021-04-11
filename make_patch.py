@@ -74,17 +74,17 @@ def patch(toml_dir, rel_root, root):
 def arg_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument("--toml", "-t",
-            metavar="path/to/toml/",
+            metavar="path/to/root/toml/",
             type=str,
             required=True,
-            help="path to the directory containing the Cargo.toml file to "\
+            help="path to the directory containing the root Cargo.toml file to "\
                     "append to")
     parser.add_argument("--rel_root", "-r",
             metavar="path/to/deps/",
             type=str,
             required=True,
             help="path to the directory containing the dependencies to convert, "\
-                    "relative to the specified toml directory")
+                    "relative to the root Cargo.toml")
     args = parser.parse_args()
     return args.toml, args.rel_root
 

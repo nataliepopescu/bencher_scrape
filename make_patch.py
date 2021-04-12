@@ -112,8 +112,11 @@ def arg_parse():
 if __name__ == "__main__":
     toml, rel_root = arg_parse()
     root = os.path.join(toml, rel_root)
+    print("check for locally-defined get_unchecked")
     convert(root)
+    print("convert")
     subprocess.run(["python3", 
             os.path.join(os.path.dirname(os.path.abspath(__file__)), "regexify.py"), 
             "--root", root])
+    print("editing cargo.toml")
     patch(toml, rel_root, root)

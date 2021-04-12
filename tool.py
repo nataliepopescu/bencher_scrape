@@ -9,7 +9,7 @@ import subprocess
 import shutil
 import numpy
 from aggregate import dump_benchmark, path_wrangle, writerow
-from crunch import crunch, stats
+from crunch import crunch, stats, stats2
 import datetime
 import re
 
@@ -266,24 +266,42 @@ class State:
         self.get_bmark_names()
         for r in range(self.bench):
             for d in self.dirlist:
+                if "rage" not in d: 
+                    continue
                 if "regex" in d: 
                     continue
-                regexd = os.path.join(d, "_regex")
-                os.chdir(d)
+                regexd = "{}_regex".format(d)
+                if "flux" in d:
+                    newd = os.path.join(d, "libflux", "flux")
+                    newregexd = os.path.join(regexd, "libflux", "flux")
+                else: 
+                    newd = d
+                    newregexd = regexd
+                #os.chdir(d)
                 #for b in self.bnames.get(d):
                 #    unmodres = os.path.join(d, RESULTS, str(r), "{}_{}.out".format(b, UNMOD))
                 #    regexres = os.path.join(d, RESULTS, str(r), "{}_{}.out".format(b, REGEX))
-                unmodres = os.path.join(d, RESULTS, str(r), "{}.out".format(UNMOD))
-                regexres = os.path.join(d, RESULTS, str(r), "{}.out".format(REGEX))
-                outfile = os.path.join(d, RESULTS, str(r), BENCH_DATA)
-                dump_benchmark(outfile, unmodres, regexres, 1)
+                unmodres = os.path.join(newd, RESULTS, str(r), "{}.out".format(UNMOD))
+                regexres = os.path.join(newregexd, RESULTS, str(r), "{}.out".format(UNMOD))
+                outfile = os.path.join(newd, RESULTS, str(r), BENCH_DATA)
+                if "blake3" in newd or "boringtun" in newd: 
+                    # bencher format
+                    dump_benchmark(outfile, unmodres, regexres, 0)
+                else: 
+                    # criterion format
+                    dump_benchmark(outfile, unmodres, regexres, 1)
                 os.chdir(self.root)
 
     # summarize data for all runs of each crate on current node 
     # (assuming all data is on this node)
     def crunch_local(self, from_remote=False):
         for d in self.dirlist: 
-            aggdir = os.path.join(d, RESULTS)
+            if "regex" in d: 
+                continue
+            if "flux" in d: 
+                aggdir = os.path.join(d, "libflux", "flux", RESULTS)
+            else: 
+                aggdir = os.path.join(d, RESULTS)
             outfile = os.path.join(aggdir, CRUNCHED_DATA)
             path_wrangle(outfile, headers)
 
@@ -351,8 +369,10 @@ class State:
                                 flat.append(matrix[row][col][run][node])
                         avg, stdev = stats(flat) 
                     else: 
-                        avg, stdev = stats(matrix[row][col])
-                    cur.append(str(avg))
+                        med, stdev = stats2(matrix[row][col])
+                    #    avg, stdev = stats(matrix[row][col])
+                    #cur.append(str(avg))
+                    cur.append(str(med))
                     cur.append(str(stdev))
                 writerow(outfd, cur)
             outfd.close()
@@ -548,7 +568,7 @@ if __name__ == "__main__":
         #subprocess.run(["python3", REGEX_PY, "--root", s.ctgrydir])
         #s.compile_benchmarks(regex=True)
     if s.bench: 
-        s.run_benchmarks()
+        #s.run_benchmarks()
         s.crunch_per_run()
     if s.local:
         s.crunch_local()

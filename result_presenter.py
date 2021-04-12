@@ -96,9 +96,9 @@ class ResultProvider:
         global data
         for c in list(data.keys()):
             # FIXME hardcoded
-            #filepath = os.path.join(self.root, c, "results", self.datafile)
-            filepath = os.path.join(self.root, c, "results_o3_dbg2_embed=yes", self.datafile)
-            if is_empty_datafile(filepath) or not os.path.exists(filepath):
+            filepath = os.path.join(self.root, c, "results", self.datafile)
+            #filepath = os.path.join(self.root, c, "results_o3_dbg2_embed=yes", self.datafile)
+            if not os.path.exists(filepath) or is_empty_datafile(filepath):
                 continue
             # open data file for reading
             handle = open(filepath)

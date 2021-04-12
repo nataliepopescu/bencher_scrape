@@ -17,24 +17,26 @@ EXPLORE_OG = "explore"
 EXPLORE_RX = "explore_regex"
 RESULTS = "results"
 
-COMPILE = os.path.join("/benchdata", "BoundsCheckExplorer", "make_onebc.sh")
-RUN = os.path.join("/benchdata", "BoundsCheckExplorer", "gen_and_run_regex_exp.sh")
-REGEX_PY = os.path.join("/benchdata", "BoundsCheckExplorer", "regexify.py")
+COMPILE = os.path.join("/home", "npopescu", "hack", "BoundsCheckExplorer", "make_onebc.sh")
+RUN = os.path.join("/home", "npopescu", "hack", "BoundsCheckExplorer", "gen_and_run_regex_exp.sh")
+REGEX_PY = os.path.join("/home", "npopescu", "hack", "BoundsCheckExplorer", "regexify.py")
 
 UNMOD = "UNMOD"
 REGEX = "REGEX"
-exp_types = [UNMOD, REGEX]
-headers = ['#', 'bench-name', 'unmod-time', 'unmod-error', 'bcrm-time', 'bcrm-error']
+exp_types = [UNMOD] #, REGEX]
+headers = ['#', 'bench-name', 'unmod-time', 'unmod-error', 'regex-time', 'regex-error']
 
 optval =    "3"
 dbgval =    "2"
 embdval =   "yes"
+cguval =    "1"
 OPTFLAGS =  " -C opt-level={}".format(optval)
 DBGFLAGS =  " -C debuginfo={}".format(dbgval)
 EMBDFLAGS = " -C embed-bitcode={}".format(embdval)
+CGUFLAGS =  " -C codegen-units={}".format(cguval)
 RBCFLAGS =  " -Z remove-bc"
-UNMODFLAGS = OPTFLAGS + DBGFLAGS + EMBDFLAGS
-BCRMPFLAGS = OPTFLAGS + DBGFLAGS + EMBDFLAGS + RBCFLAGS
+UNMODFLAGS = OPTFLAGS + DBGFLAGS + EMBDFLAGS + CGUFLAGS
+BCRMPFLAGS = OPTFLAGS + DBGFLAGS + EMBDFLAGS + CGUFLAGS + RBCFLAGS
 
 TESTS_OUT =     "tests.out"
 TESTS_ERR =     "tests.err"
@@ -49,9 +51,13 @@ category_map = {
 
 class State: 
 
-    def __init__(self, scrape, test, cmpl, bench, local, remote, clean):
-        self.ctgry = 'criterion'
-        self.ctgrydir = category_map.get(self.ctgry)
+    def __init__(self, rootdir, scrape, test, cmpl, bench, local, remote, clean):
+        if rootdir: 
+            self.ctgry = 'custom'
+            self.ctgrydir = rootdir
+        else: 
+            self.ctgry = 'criterion'
+            self.ctgrydir = category_map.get(self.ctgry)
         self.scrape = scrape
         self.test = test
         self.cmpl = cmpl
@@ -116,10 +122,10 @@ class State:
                 f_err = open(os.path.join(outdir, TESTS_ERR), "w")
                 try: 
                     subprocess.run(["cargo", "test", "--verbose"], 
-                            text=True, timeout=600, stdout=f_out, stderr=f_err)
+                            text=True, timeout=1200, stdout=f_out, stderr=f_err)
                 except subprocess.TimeoutExpired as err: 
                     print(err)
-                    fname = os.path.join(outdir, "test-timedout-{}".format(e))
+                    fname = os.path.join(outdir, "test-timedout-{}".format(err))
                     subprocess.run(["touch", fname])
                 finally: 
                     f_out.close()
@@ -132,10 +138,10 @@ class State:
             unmod_res = os.path.join(d, UNMOD, RESULTS, TESTS_OUT)
             unmod_oks = subprocess.run(["grep", "-cw", "ok", unmod_res],
                     capture_output=True, text=True)
-            bcrmp_res = os.path.join(d, BCRMP, RESULTS, TESTS_OUT)
-            bcrmp_oks = subprocess.run(["grep", "-cw", "ok", bcrmp_res],
+            regex_res = os.path.join(d, BCRMP, RESULTS, TESTS_OUT)
+            regex_oks = subprocess.run(["grep", "-cw", "ok", regex_res],
                     capture_output=True, text=True)
-            if not int(unmod_oks.stdout) == int(bcrmp_oks.stdout): 
+            if not int(unmod_oks.stdout) == int(regex_oks.stdout): 
                 print("Mismatch in number of passed tests for: {}".format(d.split("/")[-1]))
                 fname = os.path.join(d, "test-mismatch")
                 subprocess.run(["touch", fname])
@@ -145,7 +151,12 @@ class State:
         self.bnames = dict()
         for d in self.dirlist: 
             names = []
-            ctoml = open(os.path.join(d, "Cargo.toml"))
+            if "flux" in d:
+                ctoml = open(os.path.join(d, "libflux", "flux", "Cargo.toml"))
+            elif "rage" in d:
+                ctoml = open(os.path.join(d, "age", "Cargo.toml"))
+            else: 
+                ctoml = open(os.path.join(d, "Cargo.toml"))
             ctoml_data = ctoml.read()
             ctoml.close()
             # well-spaced
@@ -170,6 +181,8 @@ class State:
         curnum = 0
         totalnum = len(self.dirlist)
         EXPLORE = EXPLORE_RX if regex else EXPLORE_OG
+        os.environ["RUSTFLAGS"] = UNMODFLAGS
+        print(os.environ["RUSTFLAGS"])
         if EXPLORE == EXPLORE_OG: 
             print("Compiling original crates")
         else: 
@@ -177,37 +190,51 @@ class State:
 
         for d in self.dirlist:
             curnum += 1
-            os.chdir(d)
-            outdir = os.path.join(d, EXPLORE)
+            if "flux" in d:
+                newd = os.path.join(d, "libflux", "flux")
+                os.chdir(newd)
+                outdir = os.path.join(newd, EXPLORE)
+            else: 
+                os.chdir(d)
+                outdir = os.path.join(d, EXPLORE)
             print("Compiling {}/{} crates...".format(curnum, totalnum))
             print(outdir)
             subprocess.run(["mkdir", "-p", outdir])
-            for b in self.bnames.get(d): 
-                print("\tBenchmark: {}".format(b))
-                f_out = open(os.path.join(outdir, "{}_{}".format(b, COMP_OUT)), "w")
-                f_err = open(os.path.join(outdir, "{}_{}".format(b, COMP_ERR)), "w")
-                try:
-                    subprocess.run(["cargo", "clean"])
-                    subprocess.run([COMPILE, b, EXPLORE], text=True, timeout=600,
-                            stdout=f_out, stderr=f_err)
-                except subprocess.TimeoutExpired as err: 
-                    print(err)
-                    fname = os.path.join(outdir, "compile-timedout-{}".format(e))
-                    subprocess.run(["touch", fname])
-                finally: 
-                    f_out.close()
-                    f_err.close()
+            #for b in self.bnames.get(d): 
+            #    print("\tBenchmark: {}".format(b))
+            #    f_out = open(os.path.join(outdir, "{}_{}".format(b, COMP_OUT)), "w")
+            #    f_err = open(os.path.join(outdir, "{}_{}".format(b, COMP_ERR)), "w")
+            f_out = open(os.path.join(outdir, COMP_OUT), "w")
+            f_err = open(os.path.join(outdir, COMP_ERR), "w")
+            try:
+                subprocess.run(["cargo", "clean"])
+                #subprocess.run([COMPILE, b, EXPLORE],
+                subprocess.run(["cargo", "bench", "--verbose", "--no-run"],
+                        text=True, timeout=1200, stdout=f_out, stderr=f_err)
+            except subprocess.TimeoutExpired as err: 
+                print(err)
+                fname = os.path.join(outdir, "compile-timedout-{}".format(err))
+                subprocess.run(["touch", fname])
+            finally: 
+                f_out.close()
+                f_err.close()
             os.chdir(self.root)
 
     def run_benchmarks(self):
         self.get_bmark_names()
+        os.environ["RUSTFLAGS"] = UNMODFLAGS
         for r in range(self.bench): 
             self.randomize_dirlist()
             curnum = 0
             totalnum = len(self.dirlist)
             for d in self.dirlist:
-                os.chdir(d)
-                outdir = os.path.join(d, RESULTS, str(r))
+                if "flux" in d:
+                    newd = os.path.join(d, "libflux", "flux")
+                    os.chdir(newd)
+                    outdir = os.path.join(newd, RESULTS, str(r))
+                else: 
+                    os.chdir(d)
+                    outdir = os.path.join(d, RESULTS, str(r))
                 curnum += 1
                 print("Benchmarking {}/{} crates...".format(curnum, totalnum))
                 print(outdir)
@@ -215,20 +242,23 @@ class State:
                 for e in exp_types:
                     print(e)
                     EXPLORE = EXPLORE_RX if e == REGEX else EXPLORE_OG
-                    for b in self.bnames.get(d):
-                        print("\tBenchmark: {}".format(b))
-                        f_out = open(os.path.join(outdir, "{}_{}.out".format(b, e)), "w")
-                        f_err = open(os.path.join(outdir, "{}_{}.err".format(b, e)), "w")
-                        try:
-                            subprocess.run([RUN, b, EXPLORE], text=True, timeout=1200, 
-                                    stdout=f_out, stderr=f_err)
-                        except subprocess.TimeoutExpired as err: 
-                            print(err)
-                            fname = os.path.join(outdir, "bench-timedout-{}".format(e))
-                            subprocess.run(["touch", fname])
-                        finally: 
-                            f_out.close()
-                            f_err.close()
+                    #for b in self.bnames.get(d):
+                    #    print("\tBenchmark: {}".format(b))
+                    #    f_out = open(os.path.join(outdir, "{}_{}.out".format(b, e)), "w")
+                    #    f_err = open(os.path.join(outdir, "{}_{}.err".format(b, e)), "w")
+                    f_out = open(os.path.join(outdir, "{}.out".format(e)), "w")
+                    f_err = open(os.path.join(outdir, "{}.err".format(e)), "w")
+                    try:
+                        #subprocess.run([RUN, b, EXPLORE],
+                        subprocess.run(["cargo", "bench", "--verbose"],
+                                text=True, timeout=1800, stdout=f_out, stderr=f_err)
+                    except subprocess.TimeoutExpired as err: 
+                        print(err)
+                        fname = os.path.join(outdir, "bench-timedout-{}".format(err))
+                        subprocess.run(["touch", fname])
+                    finally: 
+                        f_out.close()
+                        f_err.close()
                 os.chdir(self.root)
 
     # summarize data for each run of each crate
@@ -236,12 +266,17 @@ class State:
         self.get_bmark_names()
         for r in range(self.bench):
             for d in self.dirlist:
+                if "regex" in d: 
+                    continue
+                regexd = os.path.join(d, "_regex")
                 os.chdir(d)
-                for b in self.bnames.get(d):
-                    unmodres = os.path.join(d, RESULTS, str(r), "{}_{}.out".format(b, UNMOD))
-                    bcrmpres = os.path.join(d, RESULTS, str(r), "{}_{}.out".format(b, REGEX))
-                    outfile = os.path.join(d, RESULTS, str(r), BENCH_DATA)
-                    dump_benchmark(outfile, unmodres, bcrmpres, 1)
+                #for b in self.bnames.get(d):
+                #    unmodres = os.path.join(d, RESULTS, str(r), "{}_{}.out".format(b, UNMOD))
+                #    regexres = os.path.join(d, RESULTS, str(r), "{}_{}.out".format(b, REGEX))
+                unmodres = os.path.join(d, RESULTS, str(r), "{}.out".format(UNMOD))
+                regexres = os.path.join(d, RESULTS, str(r), "{}.out".format(REGEX))
+                outfile = os.path.join(d, RESULTS, str(r), BENCH_DATA)
+                dump_benchmark(outfile, unmodres, regexres, 1)
                 os.chdir(self.root)
 
     # summarize data for all runs of each crate on current node 
@@ -406,21 +441,31 @@ class State:
         # remove compile directories
         if self.clean == "a" or self.clean == "c":
             for d in self.dirlist: 
-                for EXPLORE in [EXPLORE_OG, EXPLORE_RX]:
+                #for EXPLORE in [EXPLORE_OG, EXPLORE_RX]:
+                EXPLORE = EXPLORE_OG
+                if "flux" in d: 
+                    newd = os.path.join(d, "libflux", "flux")
+                    os.chdir(newd)
+                    dirname = os.path.join(newd, EXPLORE)
+                else: 
                     os.chdir(d)
-                    subprocess.run(["cargo", "clean"])
                     dirname = os.path.join(d, EXPLORE)
-                    print("deleting directory: {}...".format(dirname))
-                    try: 
-                        shutil.rmtree(dirname)
-                    except OSError as err: 
-                        print("Error: {} : {}".format(dirname, err.strerror))
-                    finally: 
-                        os.chdir(self.root)
+                subprocess.run(["cargo", "clean"])
+                print("deleting directory: {}...".format(dirname))
+                try: 
+                    shutil.rmtree(dirname)
+                except OSError as err: 
+                    print("Error: {} : {}".format(dirname, err.strerror))
+                finally: 
+                    os.chdir(self.root)
         # remove benchmark directories
         if self.clean == "a" or self.clean == "b":
             for d in self.dirlist: 
-                os.chdir(d)
+                if "flux" in d: 
+                    newd = os.path.join(d, "libflux", "flux")
+                    os.chdir(newd)
+                else: 
+                    os.chdir(d)
                 print("deleting directory: {}...".format(RESULTS))
                 try: 
                     shutil.rmtree(RESULTS)
@@ -431,12 +476,18 @@ class State:
 
 def arg_parse():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--dir", "-d",
+            metavar="path",
+            type=str,
+            help="directory in which to run benchmarks/tests (overrides "\
+            "./criterion_rev_deps/)")
     parser.add_argument("--scrape", "-s",
             metavar="X",
             nargs="?",
             type=int,
             const=100,
-            help="scrape top X crates of specified category from crates.io, "\
+            help="scrape top X crates of criterion reverse dependencies from "\
+            "crates.io, "\
             "where X is rounded up to a multiple of 10 (default is 100)")
     parser.add_argument("--test", "-t",
             action="store_true",
@@ -472,11 +523,11 @@ def arg_parse():
             "'a' to additionally remove benchmark result dirs or 'b' to only "\
             "remove benchmark result dirs and not compilation dirs)")
     args = parser.parse_args()
-    return args.scrape, args.test, args.compile, args.bench, args.local, args.remote, args.clean
+    return args.dir, args.scrape, args.test, args.compile, args.bench, args.local, args.remote, args.clean
 
 if __name__ == "__main__":
-    scrape, test, cmpl, bench, local, remote, clean = arg_parse()
-    s = State(scrape, test, cmpl, bench, local, remote, clean)
+    rootdir, scrape, test, cmpl, bench, local, remote, clean = arg_parse()
+    s = State(rootdir, scrape, test, cmpl, bench, local, remote, clean)
 
     start = datetime.datetime.now()
 
@@ -493,9 +544,9 @@ if __name__ == "__main__":
         s.crunch_test_results()
     if s.cmpl == True:
         s.compile_benchmarks()
-        print("Converting source code with regexify.py")
-        subprocess.run(["python3", REGEX_PY, "--root", s.ctgrydir])
-        s.compile_benchmarks(regex=True)
+        #print("Converting source code with regexify.py")
+        #subprocess.run(["python3", REGEX_PY, "--root", s.ctgrydir])
+        #s.compile_benchmarks(regex=True)
     if s.bench: 
         s.run_benchmarks()
         s.crunch_per_run()

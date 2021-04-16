@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3.8
 
 import argparse
 import os
@@ -35,6 +35,8 @@ def patch(toml_dir, rel_root, root):
         crate = changed_file.split("/")[0]
         to_patch.append(crate)
     to_patch = list(dict.fromkeys(to_patch))
+    for p in to_patch: 
+        print(p)
 
     patches = dict()
     versioned = []

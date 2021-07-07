@@ -28,6 +28,5 @@ git clone git@github.com:influxdata/flux.git
 git clone git@github.com:utah-scs/splinter.git
 git clone git@github.com:NetSys/NetBricks.git
 git clone git@github.com:servo/servo.git
-git clone git@github.com:mozilla/gecko-dev.git
 
 cd ..

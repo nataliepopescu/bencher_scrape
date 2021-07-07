@@ -1,7 +1,0 @@
-#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
-html_tokenizing_lipsum.html	29.885	0.0	31.063	0.0	
-html_tokenizing_lipsum-zh.html	18.326	0.0	19.269	0.0	
-html_tokenizing_medium-fragment.html	77.073	0.0	76.682	0.0	
-html_tokenizing_small-fragment.html	7.4853	0.0	7.4275	0.0	
-html_tokenizing_tiny-fragment.html	700.09	0.0	687.02	0.0	
-html_tokenizing_strong.html	58.383	0.0	58.134	0.0	

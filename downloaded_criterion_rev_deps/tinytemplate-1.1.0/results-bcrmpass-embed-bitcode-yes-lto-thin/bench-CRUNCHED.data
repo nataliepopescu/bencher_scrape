@@ -1,8 +1,0 @@
-#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
-parse-table	1.4111	0.0	1.3878	0.0	
-render-table/1	587.71	0.0	568.91	0.0	
-render-table/5	2.9508	0.0	3.0243	0.0	
-render-table/10	9.2851	0.0	9.4949	0.0	
-render-table/50	201.02	0.0	205.74	0.0	
-render-table/100	807.06	0.0	825.63	0.0	
-render-table/200	3.1864	0.0	3.2742	0.0	

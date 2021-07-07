@@ -1,2 +1,0 @@
-#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	nobc+sl-time	nobc+sl-error	safelib-time	safelib-error	
-bench_simulate_games	4262.2	5.010987926547021	4275.325	6.9978121580962735	9153.225	15.034107056955525	9087.95	23.481854696765318	

@@ -1,2 +1,0 @@
-#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	
-bench_black_scholes_american	359303616.11111116	25353041.52150992	349449254.4722222	16352663.239938572	

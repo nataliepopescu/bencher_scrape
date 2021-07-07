@@ -1,4 +1,0 @@
-#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
-is_prime/is_prime	1.5461	0.0	1.5274	0.0	
-is_prime/Sieve::is_prime	131.74	0.0	131.96	0.0	
-is_prime/Sieve::is_prime_with_init	332.59	0.0	327.0	0.0	

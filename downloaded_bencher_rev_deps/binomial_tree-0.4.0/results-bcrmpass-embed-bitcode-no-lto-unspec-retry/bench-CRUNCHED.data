@@ -1,2 +1,0 @@
-#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	totalruns=42	
-bench_black_scholes_american	407509006.1666667	19156594.22783218	395176662.33333343	17494966.891630862	

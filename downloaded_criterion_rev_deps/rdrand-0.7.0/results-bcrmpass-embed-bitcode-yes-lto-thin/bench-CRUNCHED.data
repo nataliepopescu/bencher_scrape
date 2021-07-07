@@ -1,8 +1,0 @@
-#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
-rdrand/try_next/u16	101.62	0.0	93.717	0.0	
-rdrand/try_next/u32	101.02	0.0	94.506	0.0	
-rdrand/next/u32	100.26	0.0	94.491	0.0	
-rdrand/try_next/u64	93.635	0.0	96.344	0.0	
-rdrand/next/u64	94.583	0.0	94.666	0.0	
-rdrand/try_next/fill128	1.4846	0.0	1.4555	0.0	
-rdrand/next/fill128	1.578	0.0	1.6225	0.0	

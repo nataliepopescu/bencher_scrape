@@ -1,2 +1,0 @@
-#	bench-name	unmod-time	unmod-error	nobc-time	nobc-error	nobc+sl-time	nobc+sl-error	safelib-time	safelib-error	
-simple	2088.1944444444443	236.885323808383	2026.138888888889	92.6223373519758	7007.75	510.2039012329613	6912.111111111111	307.9580398706741	

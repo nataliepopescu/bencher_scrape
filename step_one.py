@@ -150,13 +150,13 @@ class State:
                 # log indirect conversions to a file
                 indirects.write("{}:\t{}\n".format(v, i))
 
-            # delete vendor dir
-            subprocess.run(["mv", v_changes_file, V_CHANGES])
-            print("deleting vendor dir for space")
-            try: 
-                shutil.rmtree(self.vendor_dir)
-            except OSError as err: 
-                print("Error: {} : {}".format(self.vendor_dir, err.strerror))
+            ## delete vendor dir
+            #subprocess.run(["mv", v_changes_file, V_CHANGES])
+            #print("deleting vendor dir for space")
+            #try: 
+            #    shutil.rmtree(self.vendor_dir)
+            #except OSError as err: 
+            #    print("Error: {} : {}".format(self.vendor_dir, err.strerror))
             os.chdir(self.root)
 
     def get_direct_gus(self):
@@ -236,10 +236,10 @@ class State:
 
     def get_total_uses(self):
         summ_total_uses = open(os.path.join(self.root, SUMM_TOTAL), "w")
-        sorted_directs = {k: v for k, v in 
-            sorted(self.direct_uses.items(), key=lambda item: item[1])}
-        for app, direct in sorted_directs.items():
-            indirect = self.indirect_uses.get(app)
+        sorted_indirects = {k: v for k, v in 
+            sorted(self.indirect_uses.items(), key=lambda item: item[1])}
+        for app, indirect in sorted_indirects.items():
+            direct = self.direct_uses.get(app)
             all_deps = self.num_deps.get(app)
             unchecked_deps = self.indirect_deps.get(app)
             summ_total_uses.write("{} & {} & {} & {} & {}\n" 
@@ -267,15 +267,15 @@ if __name__ == "__main__":
     regexify = os.path.join(os.path.dirname(os.path.abspath(__file__)), "regexify.py")
     root = os.path.join(os.getcwd(), root)
     s = State(root, regexify)
-    #print("check for locally-defined get_unchecked")
-    #s.get_loc_def_gu()
-    #print("convert")
-    #s.convert()
-    #print("vendoring dependencies")
-    #s.vendor()
-    #print("check for locally-defined get_unchecked in deps")
-    #s.get_loc_def_gu(indirect=True)
-    #s.convert_vendor()
+    print("check for locally-defined get_unchecked")
+    s.get_loc_def_gu()
+    print("convert")
+    s.convert()
+    print("vendoring dependencies")
+    s.vendor()
+    print("check for locally-defined get_unchecked in deps")
+    s.get_loc_def_gu(indirect=True)
+    s.convert_vendor()
     print("get all direct get_unchecked usage from top-level apps")
     s.get_direct_gus()
     print("get total num of dependencies")

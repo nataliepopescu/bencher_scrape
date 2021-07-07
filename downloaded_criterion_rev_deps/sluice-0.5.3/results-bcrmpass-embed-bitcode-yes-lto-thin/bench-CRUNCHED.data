@@ -1,2 +1,0 @@
-#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
-write_100_1K_chunks	25.158	0.0	25.123	0.0	

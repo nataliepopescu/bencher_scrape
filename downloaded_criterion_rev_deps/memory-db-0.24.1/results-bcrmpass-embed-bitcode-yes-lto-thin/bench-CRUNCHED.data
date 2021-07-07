@@ -1,6 +1,0 @@
-#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
-instantiation	632.5	0.0	636.92	0.0	
-compare_to_null_embedded_in_struct	1.1626	0.0	1.1702	0.0	
-compare_to_null_in_const	1.004	0.0	1.0039	0.0	
-contains_with_non_null_key	33.242	0.0	32.927	0.0	
-contains_with_null_key	3.019	0.0	2.6942	0.0	

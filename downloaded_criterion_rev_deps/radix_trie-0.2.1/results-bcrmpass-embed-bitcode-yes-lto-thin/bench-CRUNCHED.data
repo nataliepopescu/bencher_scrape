@@ -1,4 +1,0 @@
-#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
-trie_insert	62.4	0.0	61.014	0.0	
-trie_get	23.778	0.0	23.193	0.0	
-trie_remove	101.76	0.0	98.759	0.0	

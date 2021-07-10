@@ -17,13 +17,13 @@ EXPLORE_OG = "explore"
 EXPLORE_RX = "explore_regex"
 RESULTS = "results"
 
-COMPILE = os.path.join("/home", "npopescu", "hack", "BoundsCheckExplorer", "make_onebc.sh")
-RUN = os.path.join("/home", "npopescu", "hack", "BoundsCheckExplorer", "gen_and_run_regex_exp.sh")
-REGEX_PY = os.path.join("/home", "npopescu", "hack", "BoundsCheckExplorer", "regexify.py")
+COMPILE = os.path.join("../", "BoundsCheckExplorer", "make_onebc.sh")
+RUN = os.path.join("../", "BoundsCheckExplorer", "gen_and_run_regex_exp.sh")
+REGEX_PY = os.path.join("../", "nader", "scripts", "regexify.py")
 
 UNMOD = "UNMOD"
 REGEX = "REGEX"
-exp_types = [UNMOD] #, REGEX]
+exp_types = [UNMOD, REGEX]
 headers = ['#', 'bench-name', 'unmod-time', 'unmod-error', 'regex-time', 'regex-error']
 
 optval =    "3"
@@ -564,11 +564,11 @@ if __name__ == "__main__":
         s.crunch_test_results()
     if s.cmpl == True:
         s.compile_benchmarks()
-        #print("Converting source code with regexify.py")
-        #subprocess.run(["python3", REGEX_PY, "--root", s.ctgrydir])
-        #s.compile_benchmarks(regex=True)
+        print("Converting source code with regexify.py")
+        subprocess.run(["python3", REGEX_PY, "--root", s.ctgrydir])
+        s.compile_benchmarks(regex=True)
     if s.bench: 
-        #s.run_benchmarks()
+        s.run_benchmarks()
         s.crunch_per_run()
     if s.local:
         s.crunch_local()

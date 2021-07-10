@@ -264,7 +264,8 @@ if __name__ == "__main__":
     root, single = arg_parse()
     if single: 
         exit("not implemented")
-    regexify = os.path.join(os.path.dirname(os.path.abspath(__file__)), "regexify.py")
+    #regexify = os.path.join(os.path.dirname(os.path.abspath(__file__)), "regexify.py")
+    regexify = os.path.join(os.getcwd(), "../", "nader", "scripts", "regexify.py")
     root = os.path.join(os.getcwd(), root)
     s = State(root, regexify)
     print("check for locally-defined get_unchecked")

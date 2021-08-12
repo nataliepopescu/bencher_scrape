@@ -39,7 +39,8 @@ def dump_benchmark(
         pattern = "bench:\s+([0-9,]*)\D+([0-9,]*)"
         name_pattern = "(?<=test\s).*(?=\s+[.]{3}\s+bench)"
     else: 
-        pattern = "time:\s+\[([0-9,.]+)\s[a-z]s\s+([0-9,.]+)\s[a-z]s\s+([0-9,.]+)\s[a-z]s\]"
+        #pattern = "time:\s+\[([0-9,.]+)\s[a-z]s\s+([0-9,.]+)\s[a-z]s\s+([0-9,.]+)\s[a-z]s\]"
+        pattern = "time:\s+\[([0-9,.]+)\s[a-z]+s\s+([0-9,.]+)\s[a-z]+s\s+([0-9,.]+)\s[a-z]+s\]"
         name_pattern = "(?<=Analyzing\n).+(?=\s+time)"
 
     # capture benchmark output

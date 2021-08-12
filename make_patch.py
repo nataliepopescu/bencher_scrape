@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3.8
 
 import argparse
 import os
@@ -30,10 +30,13 @@ def patch(toml_dir, rel_root, root):
     to_patch = []
     changes = open(os.path.join(root, "changes.txt"), "r")
     for line in changes.readlines():
+        print(line)
         changed_file = line.split()[2]
         crate = changed_file.split("/")[0]
         to_patch.append(crate)
     to_patch = list(dict.fromkeys(to_patch))
+    for p in to_patch: 
+        print(p)
 
     patches = dict()
     versioned = []
@@ -44,6 +47,7 @@ def patch(toml_dir, rel_root, root):
             versioned.append(dep)
         else: 
             unversioned.append(dep)
+    processed_versioned = []
     for v_crate in versioned: 
         m = re.search('[-][0-9]+[.][0-9]+[.][0-9]+', v_crate)
         end = m.span()[0]
@@ -51,6 +55,7 @@ def patch(toml_dir, rel_root, root):
         for u_crate in unversioned: 
             if u_crate == name:
                 unversioned.remove(u_crate)
+                processed_versioned.append(v_crate)
                 u_patch = {
                     "path": os.path.join(rel_root, u_crate),
                 }
@@ -61,6 +66,16 @@ def patch(toml_dir, rel_root, root):
                     "package": name
                 }
                 patches.update({vname: v_patch})
+    leftover_versioned = [c for c in versioned if c not in processed_versioned]
+    for l_crate in leftover_versioned: 
+        m = re.search('[-][0-9]+[.][0-9]+[.][0-9]+', l_crate)
+        end = m.span()[0]
+        name = l_crate[:end]
+        patch = {
+                "path": os.path.join(rel_root, l_crate),
+                "package": name
+            }
+        patches.update({name: patch})
     for u_crate in unversioned: 
         patch = {
                 "path": os.path.join(rel_root, u_crate),
@@ -75,6 +90,8 @@ def patch(toml_dir, rel_root, root):
             value = info.get(field)
             patch_str.append("{} = \"{}\"\n".format(field, value))
         patch_str.append("\n")
+        #all_lines = "".join(patch_str)
+        #print(all_lines)
         toml.write("".join(patch_str))
 
 def arg_parse():
@@ -97,8 +114,11 @@ def arg_parse():
 if __name__ == "__main__":
     toml, rel_root = arg_parse()
     root = os.path.join(toml, rel_root)
+    print("check for locally-defined get_unchecked")
     convert(root)
+    print("convert")
     subprocess.run(["python3", 
             os.path.join(os.path.dirname(os.path.abspath(__file__)), "regexify.py"), 
             "--root", root])
+    print("editing cargo.toml")
     patch(toml, rel_root, root)

@@ -1,9 +1,0 @@
-#	bench-name	unmod-time	unmod-error	bcrm-time	bcrm-error	
-parse_lifetime_re	841.47	0.0	849.56	0.0	
-parse_literal_re	2.0985	0.0	2.1144	0.0	
-parse_literal_re_regex	41.169	0.0	38.552	0.0	
-parse_misc	911.4	0.0	899.19	0.0	
-analyze_literal_re	662.25	0.0	663.3	0.0	
-run_backtrack	444.96	0.0	424.53	0.0	
-run_tricky	3.7035	0.0	3.6227	0.0	
-run_backtrack_limit	53.354	0.0	45.799	0.0	

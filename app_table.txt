@@ -1,0 +1,24 @@
+,"",,N
+RustPython,"A python interpreter written in rust.",https://github.com/RustPython/RustPython,Y
+wasmer,"Wasmer workspace",https://github.com/wasmerio/wasmer,Y
+sonic,"Fast, lightweight and schema-less search backend.",https://github.com/valeriansaliou/sonic.git,N
+diesel,"",,N
+firecracker,"",,N
+iron,"",,N
+boringtun,"an implementation of the WireGuard® protocol designed for portability and speed",https://github.com/cloudflare/boringtun,N
+servo,"",,N
+zola,"A fast static site generator with everything built-in",https://github.com/getzola/zola,N
+tikv,"A distributed transactional key-value database powered by Rust and Raft",https://github.com/tikv/tikv/,N
+quiche,"🥧 Savoury implementation of the QUIC transport protocol and HTTP/3",https://github.com/cloudflare/quiche,N
+rust-brotli-decompressor,"A brotli decompressor that with an interface avoiding the rust stdlib. This makes it suitable for embedded devices and kernels. It is designed with a pluggable allocator so that the standard lib's allocator may be employed. The default build also includes a stdlib allocator and stream interface. Disable this with --features=no-stdlib. Alternatively, --features=unsafe turns off array bounds checks and memory initialization but provides a safe interface for the caller.  Without adding the --features=unsafe argument, all included code is safe. For compression in addition to this library, download https://github.com/dropbox/rust-brotli ",https://github.com/dropbox/rust-brotli-decompressor,N
+tonic,"",,N
+warp,"serve the web at warp speeds",https://github.com/seanmonstar/warp,N
+step-one,"",,N
+vector,"A lightweight and ultra-fast tool for building observability pipelines",,Y
+rage,"",,N
+gfx,"",,N
+swc,"Speedy web compiler",https://github.com/swc-project/swc.git,N
+BLAKE3,"the BLAKE3 hash function",https://github.com/BLAKE3-team/BLAKE3,N
+NetBricks,"",,N
+tantivy,"Search engine library",https://github.com/tantivy-search/tantivy,Y
+fnm,"Fast and simple Node.js version manager",https://github.com/Schniz/fnm,N

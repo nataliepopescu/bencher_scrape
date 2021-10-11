@@ -371,9 +371,9 @@ def parseArgs():
             metavar="path",
             type=str,
             required=False,
-            default="./downloaded_criterion_rev_deps/",
+            default="./criterion_rev_deps/",
             help="root path of scraped crates directory with benchmark results; "\
-            "default is ./downloaded_criterion_rev_deps/")
+            "default is ./criterion_rev_deps/")
     parser.add_argument("-p", "--port",
             metavar="num",
             type=str,

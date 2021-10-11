@@ -4,7 +4,7 @@ import subprocess
 import os
 
 ROOT_PATH = os.path.dirname(os.path.realpath(__file__))
-cratedir = "criterion_reverse_deps"
+cratedir = "criterion_rev_deps"
 
 crates = [
 "actix-service-1.0.6",

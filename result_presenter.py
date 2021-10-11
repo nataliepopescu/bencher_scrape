@@ -10,8 +10,8 @@ import os
 import json
 import numpy as np
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc
+from dash import html
 import plotly
 import plotly.graph_objects as go
 import plotly.express as px
@@ -68,7 +68,7 @@ class ResultProvider:
 
     def __init__(self, root):
         self.root = root
-        self.datafile = "crunched.data"
+        self.datafile = "bench-CRUNCHED.data" #"crunched.data"
 
         # populate list of crates
         loc_data = dict()
@@ -96,7 +96,8 @@ class ResultProvider:
         global data
         for c in list(data.keys()):
             # FIXME hardcoded
-            filepath = os.path.join(self.root, c, "results", self.datafile)
+            filepath = os.path.join(self.root, c, "results-bcrmpass-embed-bitcode-yes-lto-thin", self.datafile)
+            #filepath = os.path.join(self.root, c, "results", self.datafile)
             #filepath = os.path.join(self.root, c, "results_o3_dbg2_embed=yes", self.datafile)
             if not os.path.exists(filepath) or is_empty_datafile(filepath):
                 continue
@@ -177,8 +178,8 @@ def make_graph(d, title):
             'font': {'family': 'Helvetica', 'color': 'black', 'size': 16},
             'plot_bgcolor': 'white',
             'autosize': False,
-            'width': 2000, 
-            'height': 700}
+            'width': 2500, 
+            'height': 1500}
         })
 
     # add horizontal lines @ 1
@@ -229,8 +230,8 @@ def get_overview_layout(rp):
             'plot_bgcolor': 'white',
             'autosize': False,
             'bargap': 0.2,
-            'width': 2000, 
-            'height': 700}
+            'width': 2500, 
+            'height': 1500}
         })
     # add vertical line @ 1
     fig_hist.add_shape(type="line", 
@@ -370,9 +371,9 @@ def parseArgs():
             metavar="path",
             type=str,
             required=False,
-            default="./criterion_rev_deps/",
+            default="./downloaded_criterion_rev_deps/",
             help="root path of scraped crates directory with benchmark results; "\
-            "default is ./criterion_rev_deps/")
+            "default is ./downloaded_criterion_rev_deps/")
     parser.add_argument("-p", "--port",
             metavar="num",
             type=str,

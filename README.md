@@ -42,7 +42,14 @@ $ make install-llvm-headers && make -j$(nproc)
 
 ## Rust
 
-Clone [this](https://github.com/nataliepopescu/rust) Rust repository.
+Install [rustup](https://www.rust-lang.org/tools/install) (default configuration is fine for our purposes).
+
+Clone [this](https://github.com/nataliepopescu/rust/commits/remove-bc) Rust repository, again 
+making sure you're in the right branch. 
+
+```sh
+$ git checkout remove-bc
+```
 
 ### Configure
 
@@ -68,15 +75,27 @@ llvm-config = "path/to/local/llvm-config"
 
 ```sh
 $ ./x.py build && ./x.py install && ./x.py install cargo && ./x.py doc
-```
 
-```sh
-cargo install cargo-edit
+...
+
+$ rustup toolchain link <tchain-name> build/<target-triple>/stage2
 ```
 
 # Benchmarking
 
-Clone this repository and run: 
+Clone this repository and point rustup to your custom Rust build: 
+
+```sh
+$ rustup override set <tchain-name>
+```
+
+Install `cargo-edit` to set criterion version: 
+
+```sh
+$ cargo install cargo-edit --version 0.7.0
+```
+
+Run: 
 
 ```sh
 $ python3 tool.py -h

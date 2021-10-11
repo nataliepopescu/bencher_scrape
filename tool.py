@@ -14,7 +14,7 @@ import datetime
 import re
 
 EXPLORE_OG = "explore"
-EXPLORE_RX = "explore_regex"
+EXPLORE_BCRMP = "explore_bcrmp"
 RESULTS = "results"
 
 COMPILE = os.path.join("/home", "npopescu", "hack", "BoundsCheckExplorer", "make_onebc.sh")
@@ -22,8 +22,8 @@ RUN = os.path.join("/home", "npopescu", "hack", "BoundsCheckExplorer", "gen_and_
 REGEX_PY = os.path.join("/home", "npopescu", "hack", "BoundsCheckExplorer", "regexify.py")
 
 UNMOD = "UNMOD"
-REGEX = "REGEX"
-exp_types = [UNMOD] #, REGEX]
+BCRMP = "BCRMP"
+exp_types = [UNMOD, BCRMP]
 headers = ['#', 'bench-name', 'unmod-time', 'unmod-error', 'regex-time', 'regex-error']
 
 optval =    "3"
@@ -98,7 +98,7 @@ class State:
         random.shuffle(self.dirlist)
 
     def revert_criterion_version(self):
-        subprocess.run(["cargo", "install", "cargo-edit"])
+        subprocess.run(["cargo", "install", "cargo-edit", "--version", "0.7.0"])
         for d in self.dirlist: 
             os.chdir(d)
             subprocess.run(["cargo", "rm", "criterion", "--dev"])
@@ -176,49 +176,47 @@ class State:
                 names.append(m)
             self.bnames.update({d: names})
 
-    def compile_benchmarks(self, regex=False):
-        self.get_bmark_names()
-        curnum = 0
-        totalnum = len(self.dirlist)
-        EXPLORE = EXPLORE_RX if regex else EXPLORE_OG
-        os.environ["RUSTFLAGS"] = UNMODFLAGS
-        print(os.environ["RUSTFLAGS"])
-        if EXPLORE == EXPLORE_OG: 
-            print("Compiling original crates")
-        else: 
-            print("Compiling regexified crates")
-
-        for d in self.dirlist:
-            curnum += 1
-            if "flux" in d:
-                newd = os.path.join(d, "libflux", "flux")
-                os.chdir(newd)
-                outdir = os.path.join(newd, EXPLORE)
+    def compile_benchmarks(self):
+        for e in exp_types:
+            self.get_bmark_names()
+            curnum = 0
+            totalnum = len(self.dirlist)
+            EXPLORE = EXPLORE_BCRMP if e == BCRMP else EXPLORE_OG
+            os.environ["RUSTFLAGS"] = UNMODFLAGS if e == UNMOD else BCRMPFLAGS
+            print(os.environ["RUSTFLAGS"])
+            if EXPLORE == EXPLORE_OG: 
+                print("Compiling original crates")
             else: 
-                os.chdir(d)
-                outdir = os.path.join(d, EXPLORE)
-            print("Compiling {}/{} crates...".format(curnum, totalnum))
-            print(outdir)
-            subprocess.run(["mkdir", "-p", outdir])
-            #for b in self.bnames.get(d): 
-            #    print("\tBenchmark: {}".format(b))
-            #    f_out = open(os.path.join(outdir, "{}_{}".format(b, COMP_OUT)), "w")
-            #    f_err = open(os.path.join(outdir, "{}_{}".format(b, COMP_ERR)), "w")
-            f_out = open(os.path.join(outdir, COMP_OUT), "w")
-            f_err = open(os.path.join(outdir, COMP_ERR), "w")
-            try:
-                subprocess.run(["cargo", "clean"])
-                #subprocess.run([COMPILE, b, EXPLORE],
-                subprocess.run(["cargo", "bench", "--verbose", "--no-run"],
-                        text=True, timeout=1200, stdout=f_out, stderr=f_err)
-            except subprocess.TimeoutExpired as err: 
-                print(err)
-                fname = os.path.join(outdir, "compile-timedout-{}".format(err))
-                subprocess.run(["touch", fname])
-            finally: 
-                f_out.close()
-                f_err.close()
-            os.chdir(self.root)
+                print("Compiling regexified crates")
+
+            for d in self.dirlist:
+                curnum += 1
+                if "flux" in d:
+                    newd = os.path.join(d, "libflux", "flux")
+                    os.chdir(newd)
+                    outdir = os.path.join(newd, EXPLORE)
+                else: 
+                    os.chdir(d)
+                    outdir = os.path.join(d, EXPLORE)
+                print("Compiling {}/{} crates...".format(curnum, totalnum))
+                print(outdir)
+                target_dir = os.path.join(outdir, "target")
+                subprocess.run(["mkdir", "-p", outdir])
+                f_out = open(os.path.join(outdir, COMP_OUT), "w")
+                f_err = open(os.path.join(outdir, COMP_ERR), "w")
+                try:
+                    subprocess.run(["cargo", "clean", "--target-dir", target_dir],
+                            stdout=open(os.devnull, 'wb'), stderr=open(os.devnull, 'wb'))
+                    subprocess.run(["cargo", "bench", "--verbose", "--no-run", "--target-dir", target_dir],
+                            text=True, timeout=1200, stdout=f_out, stderr=f_err)
+                except subprocess.TimeoutExpired as err: 
+                    print(err)
+                    fname = os.path.join(outdir, "compile-timedout-{}".format(err))
+                    subprocess.run(["touch", fname])
+                finally: 
+                    f_out.close()
+                    f_err.close()
+                os.chdir(self.root)
 
     def run_benchmarks(self):
         self.get_bmark_names()
@@ -241,7 +239,7 @@ class State:
                 subprocess.run(["mkdir", "-p", outdir])
                 for e in exp_types:
                     print(e)
-                    EXPLORE = EXPLORE_RX if e == REGEX else EXPLORE_OG
+                    EXPLORE = EXPLORE_BCRMP if e == BCRMP else EXPLORE_OG
                     #for b in self.bnames.get(d):
                     #    print("\tBenchmark: {}".format(b))
                     #    f_out = open(os.path.join(outdir, "{}_{}.out".format(b, e)), "w")
@@ -249,7 +247,6 @@ class State:
                     f_out = open(os.path.join(outdir, "{}.out".format(e)), "w")
                     f_err = open(os.path.join(outdir, "{}.err".format(e)), "w")
                     try:
-                        #subprocess.run([RUN, b, EXPLORE],
                         subprocess.run(["cargo", "bench", "--verbose"],
                                 text=True, timeout=1800, stdout=f_out, stderr=f_err)
                     except subprocess.TimeoutExpired as err: 
@@ -461,7 +458,6 @@ class State:
         # remove compile directories
         if self.clean == "a" or self.clean == "c":
             for d in self.dirlist: 
-                #for EXPLORE in [EXPLORE_OG, EXPLORE_RX]:
                 EXPLORE = EXPLORE_OG
                 if "flux" in d: 
                     newd = os.path.join(d, "libflux", "flux")
@@ -557,6 +553,7 @@ if __name__ == "__main__":
 
     if not s.remote: 
         s.create_dirlist()
+        s.revert_criterion_version()
     if s.clean: 
         s.cleanup()
     if s.test == True:
@@ -564,11 +561,8 @@ if __name__ == "__main__":
         s.crunch_test_results()
     if s.cmpl == True:
         s.compile_benchmarks()
-        #print("Converting source code with regexify.py")
-        #subprocess.run(["python3", REGEX_PY, "--root", s.ctgrydir])
-        #s.compile_benchmarks(regex=True)
     if s.bench: 
-        #s.run_benchmarks()
+        s.run_benchmarks()
         s.crunch_per_run()
     if s.local:
         s.crunch_local()
